@@ -33,9 +33,15 @@ font = pygame.font.Font(None, 24)
 small_font = pygame.font.Font(None, 18)
 card_font = pygame.font.Font(None, 20)
 
-# Load background image
+# Load images
 background_image = pygame.image.load("./images/background.png")
 background_image = pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
+parchment_texture = pygame.image.load("./images/parchment_texture.png")
+parchment_texture = pygame.transform.scale(parchment_texture, (CARD_WIDTH, CARD_HEIGHT))
+start_screen_image = pygame.image.load("./images/deckdeep.png")
+start_screen_image = pygame.transform.scale(start_screen_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
+game_over_image = pygame.image.load("./images/youlost.png")
+game_over_image = pygame.transform.scale(game_over_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
 # Load SVG icons
 icon_size = 24
@@ -91,15 +97,26 @@ class Character:
         self.image = load_image(size=self.size, image_path="./images/player.png")
         self.shake = 0
 
-class Monster:
-    def __init__(self, name, health, damage, symbol):
+class MonsterType:
+    def __init__(self, name, symbol, health_mult, damage_mult, rarity):
         self.name = name
-        self.health = health
-        self.max_health = health
-        self.damage = damage
         self.symbol = symbol
+        self.health_mult = health_mult
+        self.damage_mult = damage_mult
+        self.rarity = rarity
+        self.power = health_mult * damage_mult  # New attribute to represent overall power
+
+class Monster:
+    def __init__(self, monster_type: MonsterType, level: int):
+        self.name = monster_type.name
+        self.symbol = monster_type.symbol
+        base_health = round(15 + level * 10)
+        base_damage = round(4 + level * 1.3)
+        self.health = round(base_health * monster_type.health_mult)
+        self.max_health = self.health
+        self.damage = round(base_damage * monster_type.damage_mult)
         self.size = 100
-        self.image = load_image(size=self.size, image_path=f"./images/{name.lower()}.png")
+        self.image = load_image(size=self.size, image_path=f"./images/{self.name.lower()}.png")
         self.shake = 0
         self.selected = False
 
@@ -154,12 +171,12 @@ def render_text(text, x, y, color=BLACK, font=font):
     screen.blit(text_surface, (x, y))
 
 def render_card(card, x, y, is_selected, hotkey=None):
-    rgb = colorsys.hsv_to_rgb(card.hue, 0.3, 0.9)
-    color = [int(255 * c) for c in rgb]
+    screen.blit(parchment_texture, (x, y))
+    
     if is_selected:
-        color = YELLOW
-    pygame.draw.rect(screen, color, (x, y, CARD_WIDTH, CARD_HEIGHT))
-    pygame.draw.rect(screen, BLACK, (x, y, CARD_WIDTH, CARD_HEIGHT), 2)
+        pygame.draw.rect(screen, YELLOW, (x, y, CARD_WIDTH, CARD_HEIGHT), 2)
+    else:
+        pygame.draw.rect(screen, BLACK, (x, y, CARD_WIDTH, CARD_HEIGHT), 2)
     
     render_text(card.name, x + 5, y + 5, font=card_font)
     screen.blit(attack_icon, (x + 5, y + 30))
@@ -199,11 +216,22 @@ def render_game_state(player, monster_group, dungeon_level, score, selected_card
     screen.blit(s, (0, 0))
     
     render_text(f"Dungeon Level: {dungeon_level}", 10, 10)
-    render_text(f"Player Bonus: {player.bonus_damage}", 10, 40)
+    render_text(f"Score: {score}", 10, 40)
+    render_text(f"Player Bonus: {player.bonus_damage}", 10, 70)
     
     # Render health and energy bars
     render_health_bar(200, 10, 200, 20, player.health, player.max_health, GREEN, "Player")
     render_text(f"{player.health}/{player.max_health}", 405, 10)
+    
+    # Render player shield as a transparent overlay on the health bar
+    if player.shield > 0:
+        shield_width = int(200 * (player.shield / player.max_health))
+        s = pygame.Surface((shield_width, 20))
+        s.set_alpha(128)
+        s.fill(BLUE)
+        screen.blit(s, (400 - shield_width, 10))
+        render_text(f"+{player.shield}", 405 - shield_width, 10, color=WHITE, font=small_font)
+    
     render_health_bar(200, 40, 200, 20, player.energy, player.max_energy, BLUE, "Energy")
     render_text(f"{player.energy}/{player.max_energy}", 405, 40)
     
@@ -229,9 +257,6 @@ def render_game_state(player, monster_group, dungeon_level, score, selected_card
     
     render_button("End Turn", SCREEN_WIDTH - 120, header_height + 10, 100, 40)
     render_button("Discard", SCREEN_WIDTH - 120, header_height + 60, 100, 40)
-    
-    # Render score in the bottom left corner
-    render_text(f"Score: {score}", 10, SCREEN_HEIGHT - 30)
     
     pygame.display.flip()
 
@@ -259,7 +284,7 @@ def draw_card(player: Character):
     if player.deck and len(player.hand) < player.hand_limit:
         player.hand.append(player.deck.pop())
 
-def play_card(player: Character, monster_group: MonsterGroup, card_index:int):
+def play_card(player: Character, monster_group: MonsterGroup, card_index: int, score: int):
     if 0 <= card_index < len(player.hand):
         card = player.hand[card_index]
         if player.energy >= card.energy_cost:
@@ -272,12 +297,18 @@ def play_card(player: Character, monster_group: MonsterGroup, card_index:int):
             
             if card.targets_all:
                 for monster in monster_group.monsters:
-                    monster.health -= total_damage
-                    monster.shake = 5
+                    old_health = monster.health
+                    monster.health = max(0, monster.health - total_damage)
+                    score += old_health - monster.health
+                    if total_damage > 0:
+                        monster.shake = 5
             else:
                 selected_monster = monster_group.get_selected_monster()
-                selected_monster.health -= total_damage
-                selected_monster.shake = 5
+                old_health = selected_monster.health
+                selected_monster.health = max(0, selected_monster.health - total_damage)
+                score += old_health - selected_monster.health
+                if total_damage > 0:
+                    selected_monster.shake = 5
             
             player.health = min(player.max_health, player.health + round(card.healing))
             player.shield += card.shield
@@ -290,43 +321,38 @@ def play_card(player: Character, monster_group: MonsterGroup, card_index:int):
             player.hand.pop(card_index)
         else:
             print("Not enough energy")
+    return score
+
+# Define monster types
+monster_types = [
+    MonsterType("Goblin", 'G', 0.8, 1.0, 1.0),
+    MonsterType("Zombie_1", 'Z1', 0.3, 1.4, 1.0),
+    MonsterType("Zombie_2", 'Z2', 1.2, 0.5, 1.0),
+    MonsterType("Orc", 'O', 1.0, 1.0, 0.8),
+    MonsterType("Troll", 'T', 1.2, 1.1, 0.6),
+    MonsterType("Dragon", 'D', 1.5, 1.3, 0.3),
+    MonsterType("Witch", 'W', 0.9, 1.2, 0.5)
+]
 
 def generate_monster(level):
-    names = ["Goblin", "Orc", "Troll", "Dragon", "Witch"]
-    symbols = ['G', 'O', 'T', 'D', 'W']
-    index = random.randint(0, len(names) - 1)
-    
-    # Vary monster stats based on their type
-    base_health = 15 + level * 10 
-    base_damage = 4 + level * 2   
-    
-    if names[index] == "Goblin":
-        health = round(base_health * 0.8)
-        damage = round(base_damage * 1.2)
-    elif names[index] == "Orc":
-        health = round(base_health * 1.2)
-        damage = round(base_damage * 0.8)
-    elif names[index] == "Troll":
-        health = round(base_health * 1.5)
-        damage = round(base_damage)
-    elif names[index] == "Dragon":
-        health = round(base_health * 2)
-        damage = round(base_damage * 1.5)
-    else:  # Witch
-        health = round(base_health)
-        damage = round(base_damage * 1.3)
-    
-    return Monster(names[index], health, damage, symbols[index])
+    weights = [1 / (mt.power ** 2) for mt in monster_types]  # Inverse square of power for weights
+    monster_type = random.choices(monster_types, weights=weights)[0]
+    return Monster(monster_type, level)
 
 def generate_monster_group(level):
     monster_group = MonsterGroup()
     num_monsters = min(1 + level // 2, 3)  # Start with 1 monster, add 1 every 2 levels, max 3
-    for _ in range(num_monsters):
+    monsters_to_fight = random.randint(1,num_monsters)
+    for _ in range(monsters_to_fight):
         monster_group.add_monster(generate_monster(level))
     return monster_group
 
 def generate_card_pool():
     return [
+        Card("Draw Card", 0, 0, 0, 0, 1, 'C', random.random(), 1),
+        Card("Boon", 0, 4, 0, 0, 0, 'B', random.random(), 1),
+        Card("Cleave", 6, 0, 0, 0, 2, 'V', random.random(), 1, targets_all=True),
+        Card("Major Heal", 0, 0, 15, 0, 2, 'M', random.random(), 1),
         Card("Fireball", 12, 0, 0, 0, 2, 'F', random.random(), 0.7),
         Card("Ice Shield", 0, 0, 0, 12, 2, 'I', random.random(), 0.7),
         Card("Lightning Strike", 10, 2, 0, 0, 2, 'L', random.random(), 0.7),
@@ -366,18 +392,53 @@ def victory_screen(player, score):
         
         pygame.time.wait(100)
 
+def start_screen():
+    screen.blit(start_screen_image, (0, 0))
+    render_text("Press any key to start", SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT - 50)
+    pygame.display.flip()
+
+    waiting = True
+    while waiting:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+            if event.type == pygame.KEYDOWN:
+                waiting = False
+    return True
+
+def game_over_screen(score):
+    screen.blit(game_over_image, (0, 0))
+    render_text(f"Final Score: {score}", SCREEN_WIDTH // 2 - 60, SCREEN_HEIGHT - 100)
+    render_text("Press any key to continue", SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT - 50)
+    pygame.display.flip()
+
+    waiting = True
+    while waiting:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+            if event.type == pygame.KEYDOWN:
+                waiting = False
+    return True
+
 def game_loop():
     player = Character("Hero", 100, '@')
     player.deck = [
         Card("Quick Strike", 8, 0, 0, 0, 1, 'Q', random.random(), 1),
+        Card("Quick Strike", 8, 0, 0, 0, 1, 'Q', random.random(), 1),
+        Card("Quick Strike", 8, 0, 0, 0, 1, 'Q', random.random(), 1),
+        Card("Quick Strike", 8, 0, 0, 0, 1, 'Q', random.random(), 1),
         Card("Boon", 0, 4, 0, 0, 0, 'B', random.random(), 1),
-        Card("Heal", 0, 0, 8, 0, 1, 'H', random.random(), 1),
+        Card("Boon", 0, 4, 0, 0, 0, 'B', random.random(), 1),
         Card("Shield", 0, 0, 0, 8, 1, 'S', random.random(), 1),
+        Card("Shield", 0, 0, 0, 8, 1, 'S', random.random(), 1),
+        Card("Shield", 0, 0, 0, 8, 1, 'S', random.random(), 1),
+        Card("Heal", 0, 0, 8, 0, 1, 'H', random.random(), 1),
         Card("Power Strike", 15, 0, 0, 0, 2, 'P', random.random(), 1),
-        Card("Major Heal", 0, 0, 15, 0, 2, 'M', random.random(), 1),
+        Card("Draw Card", 0, 0, 0, 0, 1, 'C', random.random(), 1),
         Card("Draw Card", 0, 0, 0, 0, 1, 'C', random.random(), 1),
         Card("Cleave", 6, 0, 0, 0, 2, 'V', random.random(), 1, targets_all=True)
-    ] * 2
+    ] 
     random.shuffle(player.deck)
     
     dungeon_level = 1
@@ -422,7 +483,7 @@ def game_loop():
                 for i, key in enumerate(num_keys):
                     if event.key == key and i < len(player.hand):
                         selected_card = i
-                        play_card(player, monster_group, selected_card)
+                        score = play_card(player, monster_group, selected_card, score)
                         selected_card = -1
                         break
 
@@ -432,7 +493,7 @@ def game_loop():
                     monster_group.select_previous()
                 elif event.key == pygame.K_DOWN:
                     monster_group.select_next()
-        # NOTE 
+        
         if not player_turn:
             for monster in monster_group.monsters:
                 damage = round(max(0, monster.damage - player.shield))
@@ -451,7 +512,6 @@ def game_loop():
         monster_group.remove_dead_monsters()
         
         if not monster_group.monsters:
-            score += sum(monster.max_health + monster.damage for monster in monster_group.monsters)
             dungeon_level += 1
             stages_cleared += 1
             player.health = min(player.max_health, player.health + dungeon_level * 5)
@@ -465,20 +525,28 @@ def game_loop():
                 player.deck.append(new_card)
             
             monster_group = generate_monster_group(dungeon_level)
+            
+            # Reset player's hand for the new fight
+            player.discard_pile.extend(player.hand)
+            player.hand.clear()
+            for _ in range(5):
+                draw_card(player)
         
         render_game_state(player, monster_group, dungeon_level, score, selected_card)
         clock.tick(60)
     
-    # Game over screen
-    screen.fill(WHITE)
-    render_text("GAME OVER", SCREEN_WIDTH // 2 - 50, SCREEN_HEIGHT // 2 - 20)
-    render_text(f"Final Score: {score}", SCREEN_WIDTH // 2 - 60, SCREEN_HEIGHT // 2 + 20)
-    pygame.display.flip()
-    
-    pygame.time.wait(3000)
+    return score
 
 def main():
-    game_loop()
+    running = True
+    while running:
+        if start_screen():
+            final_score = game_loop()
+            if not game_over_screen(final_score):
+                running = False
+        else:
+            running = False
+    
     pygame.quit()
 
 if __name__ == "__main__":
