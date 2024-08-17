@@ -38,11 +38,10 @@ class Card:
 def load_image(size, image_path: Path):
     try:
         image = pygame.image.load(image_path)
-        return pygame.transform.scale(image,(size,size))
+        return pygame.transform.scale(image, (size, size))
     except pygame.error:
         print(f"Unable to load image: {image_path}")
-        # Return a default colored rectangle if image loading fails
-        surface = pygame.Surface((size,size))
+        surface = pygame.Surface((size, size))
         surface.fill((255, 0, 0))  # Red rectangle as a placeholder
         return surface
 
@@ -61,8 +60,7 @@ class Character:
         self.discard_pile = []
         self.hand_limit = 10
         self.size = 100
-        self.image = load_image(size=self.size,image_path="./images/player.png")
-
+        self.image = load_image(size=self.size, image_path="./images/player.png")
 
 class Monster:
     def __init__(self, name, health, damage, symbol):
@@ -71,9 +69,14 @@ class Monster:
         self.max_health = health
         self.damage = damage
         self.symbol = symbol
+        self.size = 100
+        self.image = load_image(size=self.size, image_path=f"./images/{name.lower()}.png")
 
 def render_player(player: Character):
-    screen.blit(player.image,(125,300)) 
+    screen.blit(player.image, (125, 300))
+
+def render_monster(monster: Monster):
+    screen.blit(monster.image, (575, 300))
 
 def render_text(text, x, y, color=BLACK):
     text_surface = font.render(text, True, color)
@@ -93,7 +96,6 @@ def render_card(card, x, y, is_selected, hotkey=None):
     if hotkey:
         render_text(str(hotkey), x + 50, y + 130)
 
-
 def render_button(text, x, y, width, height):
     pygame.draw.rect(screen, GRAY, (x, y, width, height))
     pygame.draw.rect(screen, BLACK, (x, y, width, height), 2)
@@ -112,8 +114,9 @@ def render_game_state(player, monster, dungeon_level, score, selected_card):
     
     render_text(f"{monster.name} Health: {monster.health}/{monster.max_health}", 400, 70)
     render_text(f"{monster.name} Damage: {monster.damage}", 400, 100)
-
+    
     render_player(player)
+    render_monster(monster)
         
     card_start_x = (SCREEN_WIDTH - (len(player.hand) * (CARD_WIDTH + CARD_SPACING) - CARD_SPACING)) // 2
     for i, card in enumerate(player.hand):
@@ -124,6 +127,18 @@ def render_game_state(player, monster, dungeon_level, score, selected_card):
     
     pygame.display.flip()
 
+def render_victory_state(score, new_cards):
+    screen.fill(WHITE)
+    render_text("Victory!", SCREEN_WIDTH // 2 - 50, 50)
+    render_text(f"Score: {score}", SCREEN_WIDTH // 2 - 50, 100)
+    render_text("Select a card to add to your deck:", SCREEN_WIDTH // 2 - 150, 150)
+    
+    for i, card in enumerate(new_cards):
+        render_card(card, 50 + i * (CARD_WIDTH + CARD_SPACING), 200, False)
+    
+    render_text("Press LEFT/RIGHT to navigate, ENTER to select, or SPACE to skip", SCREEN_WIDTH // 2 - 250, SCREEN_HEIGHT - 50)
+    pygame.display.flip()
+
 def shuffle_deck(player: Character):
     player.deck.extend(player.discard_pile)
     player.discard_pile.clear()
@@ -132,7 +147,7 @@ def shuffle_deck(player: Character):
 def draw_card(player: Character):
     if not player.deck:
         shuffle_deck(player)
-    if player.deck and player.hand_limit != len(player.hand):
+    if player.deck and len(player.hand) < player.hand_limit:
         player.hand.append(player.deck.pop())
 
 def play_card(player, monster, card_index):
@@ -150,14 +165,63 @@ def play_card(player, monster, card_index):
             
             player.discard_pile.append(card)
             player.hand.pop(card_index)
+        else:
+            print("Not enough energy")
 
 def generate_monster(level):
     names = ["Goblin", "Orc", "Troll", "Dragon", "Witch"]
     symbols = ['G', 'O', 'T', 'D', 'W']
     index = random.randint(0, len(names) - 1)
-    health = 20 + level * 10
-    damage = 5 + level * 2
+    
+    # Vary monster stats based on their type
+    base_health = 20 + level * 10
+    base_damage = 5 + level * 2
+    
+    if names[index] == "Goblin":
+        health = int(base_health * 0.8)
+        damage = int(base_damage * 1.2)
+    elif names[index] == "Orc":
+        health = int(base_health * 1.2)
+        damage = int(base_damage * 0.8)
+    elif names[index] == "Troll":
+        health = int(base_health * 1.5)
+        damage = base_damage
+    elif names[index] == "Dragon":
+        health = int(base_health * 2)
+        damage = int(base_damage * 1.5)
+    else:  # Witch
+        health = base_health
+        damage = int(base_damage * 1.3)
+    
     return Monster(names[index], health, damage, symbols[index])
+
+def victory_screen(player, score):
+    new_cards = [
+        Card("Fireball", 12, 0, 0, 0, 2, 'F'),
+        Card("Ice Shield", 0, 0, 0, 12, 2, 'I'),
+        Card("Lightning Strike", 10, 2, 0, 0, 2, 'L')
+    ]
+    
+    selected_card = 0
+    running = True
+    
+    while running:
+        render_victory_state(score, new_cards)
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return None
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
+                    selected_card = (selected_card - 1) % len(new_cards)
+                elif event.key == pygame.K_RIGHT:
+                    selected_card = (selected_card + 1) % len(new_cards)
+                elif event.key == pygame.K_RETURN:
+                    return new_cards[selected_card]
+                elif event.key == pygame.K_SPACE:
+                    return None
+        
+        pygame.time.wait(100)
 
 def game_loop():
     player = Character("Hero", 100, '@')
@@ -199,6 +263,7 @@ def game_loop():
                     if card_rect.collidepoint(mouse_x, mouse_y):
                         selected_card = i
                         break
+
                 end_turn_rect = pygame.Rect(SCREEN_WIDTH - 120, 10, 100, 40)
                 if end_turn_rect.collidepoint(mouse_x, mouse_y):
                     player_turn = False
@@ -207,17 +272,21 @@ def game_loop():
                 if discard_rect.collidepoint(mouse_x, mouse_y) and selected_card != -1:
                     player.discard_pile.append(player.hand.pop(selected_card))
                     selected_card = -1
-            elif event.type==pygame.KEYDOWN:
-                num_keys =  [pygame.K_1,pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6,pygame.K_7,pygame.K_8,pygame.K_9,pygame.K_0]
+
+            elif event.type == pygame.KEYDOWN:
+                num_keys = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8, pygame.K_9, pygame.K_0]
                 for i in range(len(player.hand)):
-                    if event.key== num_keys[i]:
+                    if event.key == num_keys[i]:
                         selected_card = i
                         break
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN and selected_card != -1:
-                print("playing_selected card")
-                play_card(player, monster, selected_card)
-                selected_card = None 
-            print(selected_card) 
+
+                if event.key == pygame.K_e:
+                    player_turn = False
+
+                if selected_card != -1:
+                    play_card(player, monster, selected_card)
+                    selected_card = -1
+
         if not player_turn:
             damage = max(0, monster.damage - player.shield)
             player.health -= damage
@@ -238,6 +307,10 @@ def game_loop():
             
             if stages_cleared % 2 == 0 and player.max_energy < 10:
                 player.max_energy += 1
+
+            new_card = victory_screen(player, score)
+            if new_card:
+                player.deck.append(new_card)
             
             monster = generate_monster(dungeon_level)
         
