@@ -1,6 +1,6 @@
-# D&D Deckbuilder
+# DeckDeep Deckbuilder
 
-![D&D Deckbuilder Background](images/background.png)
+![DeckDeep Deckbuilder Background](/assets/images/backgrounds/background.png)
 
 D&D Deckbuilder is a roguelike deck-building game implemented in Python using the Pygame library. Battle through a dungeon, defeat monsters, and build your deck as you progress!
 
@@ -34,6 +34,8 @@ D&D Deckbuilder is a roguelike deck-building game implemented in Python using th
 4. Defeat monsters to progress through dungeon levels and increase your score.
 5. After defeating a monster, choose a new card to add to your deck from a selection of three random cards.
 6. The game ends when your health reaches 0.
+
+![Gameplay](/assets/images/backgrounds/gp_screenshot.png)
 
 ## Game Mechanics
 
@@ -82,3 +84,19 @@ The game now features a beautiful fantasy background image (background.png) that
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+
+## Attribution
+
+**Album:** Destruction Bringer (Free)  
+**Artist:** [One Man Symphony](https://onemansymphony.bandcamp.com)  
+**Description:** A heavy/progressive metal album with 10 tracks, inspired by Mick Gordon's Doom (2016) and Doom Eternal (2020) soundtracks. The tracks are designed to facilitate seamless transitions in scenes, making them suitable for various media, especially in gaming.
+
+### Track Themes:
+- **Six Boss Fight Themes**
+- **Three Regular Encounter Themes** (suitable for any battle)
+- **One Main Menu Theme**
+
+**Additional Content:** Bonus and extended tracks, along with loop files, are available on the artist's [Patreon page](https://www.patreon.com/onemansymphony).
+
+This work is licensed under a [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/).
