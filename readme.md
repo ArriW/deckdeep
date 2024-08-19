@@ -2,15 +2,16 @@
 
 ![DeckDeep Deckbuilder Background](/assets/images/backgrounds/background.png)
 
-D&D Deckbuilder is a roguelike deck-building game implemented in Python using the Pygame library. Battle through a dungeon, defeat monsters, and build your deck as you progress!
+DeckDeep Deckbuilder is a roguelike deck-building game implemented in Python using the Pygame library. Battle through a dungeon, defeat monsters, and build your deck as you progress!
 
 ## Table of Contents
 1. [Installation](#installation)
 2. [How to Play](#how-to-play)
 3. [Game Mechanics](#game-mechanics)
 4. [Controls](#controls)
-5. [File Structure](#file-structure)
+5. [Project Structure](#project-structure)
 6. [Contributing](#contributing)
+7. [Attribution](#attribution)
 
 ## Installation
 
@@ -23,12 +24,12 @@ D&D Deckbuilder is a roguelike deck-building game implemented in Python using th
 4. Navigate to the game directory in your terminal.
 5. Run the game using:
    ```
-   python3 deck_builder.py
+   python -m deckdeep.main
    ```
 
 ## How to Play
 
-1. Start the game by running `deck_builder.py`.
+1. Start the game by running `python -m deckdeep.main`.
 2. You'll begin with a basic deck of cards.
 3. Each turn, draw cards from your deck and use them to attack monsters, gain shields, or heal.
 4. Defeat monsters to progress through dungeon levels and increase your score.
@@ -50,41 +51,30 @@ D&D Deckbuilder is a roguelike deck-building game implemented in Python using th
 ## Controls
 
 - **Mouse**: Click on cards to select them, click again to play them. Click on "End Turn" or "Discard" buttons.
-- **Number Keys (1-0)**: Quickly select and play cards in your hand.
+- **Number Keys (1-9)**: Quickly select and play cards in your hand.
 - **E**: End your turn.
+- **Arrow Keys**: Select targets for your attacks.
 - **Number Keys (1-3)**: Select a new card after defeating a monster.
 - **Space**: Skip adding a new card to your deck after a victory.
 
-## File Structure
+## Project Structure
 
-```
-D&D_Deckbuilder/
-│
-├── deck_builder.py
-├── README.md
-├── images/
-│   ├── background.png
-│   ├── player.png
-│   ├── goblin.png
-│   ├── orc.png
-│   ├── troll.png
-│   ├── dragon.png
-│   ├── witch.png
-│   ├── attack.svg
-│   ├── shield.svg
-│   ├── heal.svg
-│   ├── energy.svg
-│   └── dice.svg
-```
+The game code is now organized in the `deckdeep` package:
 
-## Graphics
-
-The game now features a beautiful fantasy background image (background.png) that sets the mood for your dungeon-crawling adventure. Card attributes are represented by SVG icons for better visual clarity.
+- `deckdeep/main.py`: Entry point of the game
+- `deckdeep/game.py`: Contains the main Game class and game loop
+- `deckdeep/config.py`: Game constants and configuration
+- `deckdeep/assets.py`: Asset management
+- `deckdeep/player.py`: Player class definition
+- `deckdeep/monster.py`: Monster and MonsterType class definitions
+- `deckdeep/monster_group.py`: MonsterGroup class for managing multiple monsters
+- `deckdeep/card.py`: Card class definition and card pool generation
+- `deckdeep/music_manager.py`: Background music management
+- `deckdeep/render.py`: Rendering functions for game elements
 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
 
 ## Attribution
 
