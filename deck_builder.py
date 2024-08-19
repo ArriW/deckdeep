@@ -61,6 +61,9 @@ class GameAssets:
         # Units
         self.player      : pygame.Surface = self.load_and_scale("./assets/images/characters/player.png", (PLAYER_SIZE,PLAYER_SIZE))
 
+        # Misc
+        self.music_path  : str = './assets/music/'
+
     @staticmethod
     def load_and_scale(path: str, size: Tuple[int, int]) -> pygame.Surface:
         try:
@@ -74,6 +77,35 @@ class GameAssets:
 
 # Instantiate the assets
 assets = GameAssets()
+
+import pygame
+import os
+from pathlib import Path
+
+
+class BackgroundMusicManager:
+    def __init__(self, music_directory: str):
+        self.music_files = [str(f) for f in Path(music_directory).iterdir() if f.suffix in ['.mp3', '.ogg', '.wav']]
+        self.current_track_index = 0
+
+    def __enter__(self):
+        if not self.music_files:
+            print("No music files found.")
+            return self
+
+        pygame.mixer.music.load(self.music_files[self.current_track_index])
+        pygame.mixer.music.play()
+        pygame.mixer.music.set_endevent(pygame.USEREVENT)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pygame.mixer.music.stop()
+
+    def handle_event(self, event):
+        if event.type == pygame.USEREVENT:
+            self.current_track_index = (self.current_track_index + 1) % len(self.music_files)
+            pygame.mixer.music.load(self.music_files[self.current_track_index])
+            pygame.mixer.music.play()
 
 class Card:
     def __init__(self, name, damage, bonus_damage, healing, shield, energy_cost, symbol, hue, rarity, targets_all=False):
@@ -361,7 +393,7 @@ def play_card(player: Character, monster_group: MonsterGroup, card_index: int, s
         card = player.hand[card_index]
         if player.energy >= card.energy_cost:
             player.bonus_damage += card.bonus_damage
-            # HACK for not doing damage 0 damage cards
+            # HACK for not doing damage 0 with damage cards
             if card.damage == 0:
                 total_damage = 0
             else:
@@ -528,85 +560,88 @@ def game_loop():
     running = True
     clock = pygame.time.Clock()
 
-    while running and player.health > 0:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_x, mouse_y = pygame.mouse.get_pos()
-                
-                card_start_x = (SCREEN_WIDTH - (len(player.hand) * (CARD_WIDTH + CARD_SPACING) - CARD_SPACING)) // 2
-                for i in range(len(player.hand)):
-                    card_rect = pygame.Rect(card_start_x + i * (CARD_WIDTH + CARD_SPACING), SCREEN_HEIGHT - CARD_HEIGHT - 20, CARD_WIDTH, CARD_HEIGHT)
-                    if card_rect.collidepoint(mouse_x, mouse_y):
-                        selected_card = i
-                        break
+    with BackgroundMusicManager(assets.music_path) as music_manager:
+        while running and player.health > 0:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    mouse_x, mouse_y = pygame.mouse.get_pos()
+                    
+                    card_start_x = (SCREEN_WIDTH - (len(player.hand) * (CARD_WIDTH + CARD_SPACING) - CARD_SPACING)) // 2
+                    for i in range(len(player.hand)):
+                        card_rect = pygame.Rect(card_start_x + i * (CARD_WIDTH + CARD_SPACING), SCREEN_HEIGHT - CARD_HEIGHT - 20, CARD_WIDTH, CARD_HEIGHT)
+                        if card_rect.collidepoint(mouse_x, mouse_y):
+                            selected_card = i
+                            break
 
-                end_turn_rect = pygame.Rect(SCREEN_WIDTH - scale(120), scale(110), scale(100), scale(40))
-                if end_turn_rect.collidepoint(mouse_x, mouse_y):
-                    player_turn = False
-                
-                discard_rect = pygame.Rect(SCREEN_WIDTH - scale(120), scale(160), scale(100), scale(40))
-                if discard_rect.collidepoint(mouse_x, mouse_y) and selected_card != -1:
-                    player.discard_pile.append(player.hand.pop(selected_card))
-                    selected_card = -1
-
-            elif event.type == pygame.KEYDOWN:
-                num_keys = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8, pygame.K_9, pygame.K_0]
-                for i, key in enumerate(num_keys):
-                    if event.key == key and i < len(player.hand):
-                        selected_card = i
-                        score = play_card(player, monster_group, selected_card, score)
+                    end_turn_rect = pygame.Rect(SCREEN_WIDTH - scale(120), scale(110), scale(100), scale(40))
+                    if end_turn_rect.collidepoint(mouse_x, mouse_y):
+                        player_turn = False
+                    
+                    discard_rect = pygame.Rect(SCREEN_WIDTH - scale(120), scale(160), scale(100), scale(40))
+                    if discard_rect.collidepoint(mouse_x, mouse_y) and selected_card != -1:
+                        player.discard_pile.append(player.hand.pop(selected_card))
                         selected_card = -1
-                        break
 
-                if event.key == pygame.K_e:
-                    player_turn = False
-                elif event.key == pygame.K_UP:
-                    monster_group.select_previous()
-                elif event.key == pygame.K_DOWN:
-                    monster_group.select_next()
-        
-        if not player_turn:
-            for monster in monster_group.monsters:
-                damage = round(max(0, monster.damage - player.shield))
-                player.health -= damage
-                player.shake = 5  # Start shaking the player
-            player.shield = 0
-            player.energy = player.max_energy
-            player.bonus_damage = 0
-            player_turn = True
-            
-            player.discard_pile.extend(player.hand)
-            player.hand.clear()
-            for _ in range(5):
-                draw_card(player)
-        
-        monster_group.remove_dead_monsters()
-        
-        if not monster_group.monsters:
-            dungeon_level += 1
-            stages_cleared += 1
-            player.health = min(player.max_health, player.health + dungeon_level * 5)
-            player.energy = player.max_energy
+                elif event.type == pygame.KEYDOWN:
+                    num_keys = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8, pygame.K_9, pygame.K_0]
+                    for i, key in enumerate(num_keys):
+                        if event.key == key and i < len(player.hand):
+                            selected_card = i
+                            score = play_card(player, monster_group, selected_card, score)
+                            selected_card = -1
+                            break
 
-            if stages_cleared % 2 == 0 and player.max_energy < 10:
-                player.max_energy += 1
+                    if event.key == pygame.K_e:
+                        player_turn = False
+                    elif event.key == pygame.K_UP:
+                        monster_group.select_previous()
+                    elif event.key == pygame.K_DOWN:
+                        monster_group.select_next()
 
-            new_card = victory_screen(player, score)
-            if new_card:
-                player.deck.append(new_card)
+                music_manager.handle_event(event)
             
-            monster_group = generate_monster_group(dungeon_level)
+            if not player_turn:
+                for monster in monster_group.monsters:
+                    damage = round(max(0, monster.damage - player.shield))
+                    player.health -= damage
+                    player.shake = 5  # Start shaking the player
+                player.shield = 0
+                player.energy = player.max_energy
+                player.bonus_damage = 0
+                player_turn = True
+                
+                player.discard_pile.extend(player.hand)
+                player.hand.clear()
+                for _ in range(5):
+                    draw_card(player)
             
-            # Reset player's hand for the new fight
-            player.discard_pile.extend(player.hand)
-            player.hand.clear()
-            for _ in range(5):
-                draw_card(player)
-        
-        render_game_state(player, monster_group, dungeon_level, score, selected_card)
-        clock.tick(60)
+            monster_group.remove_dead_monsters()
+            
+            if not monster_group.monsters:
+                dungeon_level += 1
+                stages_cleared += 1
+                player.health = min(player.max_health, player.health + dungeon_level * 5)
+                player.energy = player.max_energy
+
+                if stages_cleared % 2 == 0 and player.max_energy < 10:
+                    player.max_energy += 1
+
+                new_card = victory_screen(player, score)
+                if new_card:
+                    player.deck.append(new_card)
+                
+                monster_group = generate_monster_group(dungeon_level)
+                
+                # Reset player's hand for the new fight
+                player.discard_pile.extend(player.hand)
+                player.hand.clear()
+                for _ in range(5):
+                    draw_card(player)
+            
+            render_game_state(player, monster_group, dungeon_level, score, selected_card)
+            clock.tick(60)
     
     return score
 
