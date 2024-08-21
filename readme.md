@@ -15,9 +15,9 @@ D&D Deckbuilder is a roguelike deck-building game implemented in Python using th
 ## Installation
 
 1. Ensure you have Python 3.7+ installed on your system.
-2. Install Pygame by running:
+2. Install dependencies
    ```
-   pip install pygame
+   pip install -r requirements.txt
    ```
 3. Clone this repository or download the source code.
 4. Navigate to the game directory in your terminal.
