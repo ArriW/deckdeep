@@ -1,1 +1,4 @@
 venv/
+save_game.json
+deckdeep/__pycache__
+TODO.md
