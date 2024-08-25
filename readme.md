@@ -50,6 +50,12 @@ DeckDeep Deckbuilder is a roguelike deck-building game implemented in Python usi
 
 ## Controls
 
+### General Controls
+- Use the mouse to interact with the game interface, select cards, and navigate menus.
+- Keyboard shortcuts are available for various actions, enhancing gameplay speed and convenience.
+- The game provides on-screen prompts and indicators to guide you through available actions and controls.
+
+### Specific Controls
 - **Mouse**: Click on cards to select them, click again to play them. Click on "End Turn" or "Discard" buttons.
 - **Number Keys (1-9)**: Quickly select and play cards in your hand.
 - **E**: End your turn.
