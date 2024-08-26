@@ -43,7 +43,7 @@ class Card:
             Card("Earthquake", 3, 0.5, damage=8, targets_all=True, shield=5),
             Card("Inspire", 2, 0.6, bonus_damage=3, card_draw=1, healing=5),
             Card("Blood Pact", 4, 0.4, damage=20, health_cost=10, bleed=5),
-            Card("Meditation", 1, 0.7, shield=8, health_regain=2),
+            Card("Meditation", 1, 0.7, shield=5, health_regain=2),
             Card("Chain Lightning", 3, 0.5, damage=12, targets_all=True, energy_bonus=1),
             Card("Siphon Soul", 2, 0.6, damage=8, healing=4, bleed=2),
             Card("Fortify", 2, 0.7, shield=12, bonus_damage=2),
@@ -70,12 +70,12 @@ class Card:
             Card("Hidden Dagger", 1, 1, damage=6, bleed=2),
             Card("Lacerate", 1, 1, bleed=4),
             Card("Barricade", 6, .2, shield=60),
-            Card("Defensive Stance", 2, 1, damage=5, shield=10),
+            Card("Battle Stance", 2, 1, damage=5, shield=10),
             Card("Power Strike", 2, 1, damage=15),
             Card("Holy Light", 2, 0.7, healing=10, shield=5),
             Card("Fan of Knives", 1, 1, damage=1, targets_all=True, bleed=1),
             Card("Boon", 0, 1, bonus_damage=2),
-            Card("Equivalent Exchange",2,.7,bleed=3,health_regain=3),
+            Card("Exchange",2,.7,bleed=3,health_regain=3),
             
             
             # A
@@ -90,13 +90,13 @@ class Card:
             Card("Panic!",3, 0.5, card_draw=3, health_cost=15),
             Card("Regeneration", 2, 0.3, health_regain=5),
             Card("Foresight", 2, .7, shield=5, card_draw=2),
-            Card("Frienzied Regeneration", 2, 0.3, health_regain=5,health_cost=10,bonus_damage=4),
+            Card("Monstrosity", 2, 0.3, health_regain=5,health_cost=10,bonus_damage=4),
             Card("Retreat.", 5, 0.5, card_draw=4, shield=15),
-            Card("Lightning Strike", 4, 0.7, damage=10, bonus_damage=2,targets_all=True),
+            Card("Lightning", 4, 0.7, damage=10, bonus_damage=2,targets_all=True),
             Card("Culling", 4, 0.7, damage=25,bleed=5),
 
             # SS
-            Card("Dragon's Breath", 5, 0.3, damage=30, targets_all=True),
+            Card("Dragon Fire", 5, 0.3, damage=30, targets_all=True),
             Card("@allcosts", 1, 0.3, energy_bonus=2, health_cost=20,bonus_damage=6),
         ]
         return random.choices(

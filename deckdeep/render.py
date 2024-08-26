@@ -14,8 +14,15 @@ from collections import defaultdict, Counter
 from pygame import QUIT, KEYDOWN, K_ESCAPE, K_RETURN, K_BACKSPACE, K_UP, K_DOWN
 from time import sleep
 
-def render_text(screen: pygame.Surface, text: str, x: int, y: int, color=BLACK, font=FONT):
+def render_text(screen: pygame.Surface, text: str, x: int, y: int, color=BLACK, font=FONT, circle=False):
     text_surface = font.render(text, True, color)
+    if circle:
+        text_rect = text_surface.get_rect()
+        circle_radius = max(text_rect.width, text_rect.height)*1.3 // 2
+        circle_center = (x + text_rect.width // 2, y + text_rect.height // 2)
+        circle_surface = pygame.Surface((circle_radius*2, circle_radius*2), pygame.SRCALPHA)
+        pygame.draw.circle(circle_surface, (255, 255, 255, 128), (circle_radius, circle_radius), circle_radius)
+        screen.blit(circle_surface, (circle_center[0] - circle_radius, circle_center[1] - circle_radius))
     screen.blit(text_surface, (x, y))
 
 def render_text_with_background(screen: pygame.Surface, text: str, x: int, y: int, font, text_color=BLACK, background_color=WHITE):
@@ -32,8 +39,8 @@ def render_card(screen: pygame.Surface, card: Card, x: int, y: int, is_selected:
         return current_y + y_offset
 
     x_offset = ICON_SIZE + scale(16)
-    x_anchor = scale(10)
-    y_offset = ICON_SIZE
+    x_anchor = scale(15)
+    y_offset = ICON_SIZE + scale(3)
     y_text_offset = scale(5)
 
     screen.blit(assets.parchment_texture, (x, y))
@@ -94,19 +101,19 @@ def render_health_bar(screen: pygame.Surface, x: int, y: int, width: int, height
     render_text(screen, health_text, text_x, y + scale(2), color=WHITE, font=SMALL_FONT)
 
 def render_status_effects(screen: pygame.Surface, x: int, y: int, status_effects: dict, assets: GameAssets):
-    icon_spacing = scale(30) 
+    icon_spacing = scale(35) 
     effect_icons = {
-        "Bleed": (assets.bleed_icon, YELLOW),
-        "HealthRegain": (assets.health_regain_icon, YELLOW),
-        "EnergyBonus": (assets.energy_bonus_icon, YELLOW),
-        "PlayerBonus": (assets.attack_icon, YELLOW),
-        "Strength": (assets.strength_icon, YELLOW)
+        "Bleed": (assets.bleed_icon, PURPLE),
+        "HealthRegain": (assets.health_regain_icon, PURPLE),
+        "EnergyBonus": (assets.energy_bonus_icon, PURPLE),
+        "PlayerBonus": (assets.attack_icon, PURPLE),
+        "Strength": (assets.strength_icon, PURPLE)
     }
     for effect_name, effect in status_effects.items():
         if effect_name in effect_icons:
             icon, color = effect_icons[effect_name]
             screen.blit(icon, (x, y))
-            render_text(screen, str(effect.value), x+round(ICON_SIZE/2), y-round(ICON_SIZE/2), color=color, font=SMALL_FONT)
+            render_text(screen, str(effect.value), x+round(ICON_SIZE/2)-scale(3), y-round(ICON_SIZE/2)-scale(4), color=color, font=FONT,circle=True)
             x += icon_spacing
 
 def render_player(screen: pygame.Surface, player: Player, assets: GameAssets):
@@ -122,7 +129,7 @@ def render_player(screen: pygame.Surface, player: Player, assets: GameAssets):
         status_effects["PlayerBonus"] = type('obj', (object,), {'value': player.bonus_damage})()
     if player.strength > 0:
         status_effects["Strength"] = type('obj', (object,), {'value': player.strength})()
-    render_status_effects(screen, x, y - scale(30), status_effects, assets)
+    render_status_effects(screen, x, y - scale(50), status_effects, assets)
     
     # Render player image
     screen.blit(player_image, (x + offset, y + offset))
@@ -203,7 +210,8 @@ def render_combat_state(screen: pygame.Surface, player: Player, monster_group: M
     pygame.display.flip()
 
 def render_victory_state(screen: pygame.Surface, score: int, new_cards: List[Card], selected_card: int, assets: GameAssets):
-    screen.fill(BLACK)
+    screen.blit(assets.victory_image, (0, 0))
+    # screen.fill(BLACK)
     header_height = scale(200)
     s = pygame.Surface((SCREEN_WIDTH, header_height))
     s.set_alpha(128)
@@ -479,7 +487,7 @@ def render_card_selection(screen: pygame.Surface, full_deck: List[Card], selecte
     parchment = pygame.transform.scale(assets.parchment_texture, (SCREEN_WIDTH, header_height))
     screen.blit(parchment, (0, 0))
 
-    render_text(screen, "Choose a card to remove:", scale(20), scale(15), color=BLACK)
+    render_text(screen, "Choose a card:", scale(20), scale(15), color=BLACK)
 
     card_list_width = scale(400)
     card_list_height = SCREEN_HEIGHT - header_height - scale(60)

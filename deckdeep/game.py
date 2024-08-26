@@ -2,7 +2,7 @@ import pygame
 import json
 import os
 import random
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from deckdeep.assets import GameAssets
 from deckdeep.player import Player
 from deckdeep.monster_group import MonsterGroup
@@ -17,6 +17,57 @@ from deckdeep.config import SCREEN_WIDTH, HEADER_HEIGHT, END_TURN_BUTTON_X, END_
 from time import sleep
 from collections import Counter
 from deckdeep.logger import GameLogger
+from pygame.surface import Surface
+
+class VictorySequence:
+    def __init__(self, screen: Surface, assets: GameAssets):
+        self.screen = screen
+        self.assets = assets
+        self.duration = 2000  # Duration in milliseconds
+        self.start_time = 0
+        self.particles: List[Tuple[int, int, int, int, float, float]] = []  # x, y, size, color, speed_x, speed_y
+
+    def start(self):
+        self.start_time = pygame.time.get_ticks()
+        self.generate_particles()
+
+    def generate_particles(self):
+        for _ in range(50):
+            x = random.randint(0, SCREEN_WIDTH)
+            y = random.randint(0, SCREEN_HEIGHT)
+            size = random.randint(5, 15)
+            color = random.choice([
+                (255, 215, 0),  # Gold
+                (255, 255, 255),  # White
+                (255, 165, 0)  # Orange
+            ])
+            speed_x = random.uniform(-1, 1)
+            speed_y = random.uniform(-1, 1)
+            self.particles.append((x, y, size, color, speed_x, speed_y))
+
+    def update(self):
+        current_time = pygame.time.get_ticks()
+        progress = (current_time - self.start_time) / self.duration
+
+        if progress >= 1:
+            return False
+
+        for i, (x, y, size, color, speed_x, speed_y) in enumerate(self.particles):
+            new_x = x + speed_x * 2
+            new_y = y + speed_y * 2
+            new_size = int(size * (1 - progress))
+            self.particles[i] = (new_x, new_y, new_size, color, speed_x, speed_y)
+
+        return True
+
+    def render(self):
+        victory_text = pygame.font.Font(None, scale(100)).render("Victory!", True, (255, 255, 255))
+        text_rect = victory_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+        
+        self.screen.blit(victory_text, text_rect)
+
+        for x, y, size, color, _, _ in self.particles:
+            pygame.draw.circle(self.screen, color, (int(x), int(y)), size)
 
 
 class Node:
@@ -134,7 +185,7 @@ class Game:
         self.logger.info("New game started", category="SYSTEM")
 
     def generate_node_tree(self):
-        self.node_tree = Node("combat", self.stage, 1, 1, {"monsters": MonsterGroup.generate(1)})
+        self.node_tree = Node("combat", self.stage, 1, 1, {"monsters": MonsterGroup.generate((self.stage - 1) * 9 + 1)})
         current_level = [self.node_tree]
 
         for level in range(2, 10):
@@ -276,7 +327,8 @@ class Game:
         result = self.current_event.execute_option(option_method, self.player, self.assets)
         for relic in self.player.relics:
             if relic.trigger_when == TriggerWhen.PERMANENT:
-                relic.apply_effect(self.player, self)
+                msg = relic.apply_effect(self.player, self)
+                self.logger.debug(msg, category="PLAYER")
         self.logger.info(f"Event option selected: {option_text}", category="EVENT")
         self.logger.info(f"Event result: {result}", category="EVENT")
         self.player.increase_max_energy(self.current_node.level)
@@ -336,7 +388,8 @@ class Game:
             self.apply_relic_effects(TriggerWhen.END_OF_TURN)
             self.player.apply_status_effects()
             self.monster_group.remove_dead_monsters()
-            self.monster_group.decide_action(self.player)
+            mosnter_actions=self.monster_group.decide_action(self.player)
+            self.logger.debug(f"Monster actions: {mosnter_actions}", category="COMBAT")
             self.apply_relic_effects(TriggerWhen.ON_DAMAGE_TAKEN)
             self.player.end_turn()
             for monster in self.monster_group.monsters:
@@ -357,12 +410,31 @@ class Game:
             self.text_event_selection = 0
             self.logger.info(f"Event started: {self.current_event.name}", category="EVENT")
 
+    # In the Game class, modify the combat_victory method:
     def combat_victory(self):
         self.apply_relic_effects(TriggerWhen.END_OF_COMBAT)
         self.player.heal(self.player.hp_regain_per_level)
         self.player.reset_energy()
         self.logger.info(f"Combat victory at node level: {self.current_node.level}", category="COMBAT")
         self.player.increase_max_energy(self.current_node.level)
+
+        victory_sequence = VictorySequence(self.screen, self.assets)
+        victory_sequence.start()
+
+        running = True
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+                    return
+                elif event.type == pygame.KEYDOWN:
+                    running = False
+
+            self.render()  # Render the current game state
+            running = victory_sequence.update()
+            victory_sequence.render()
+            pygame.display.flip()
+            self.clock.tick(60)
 
         new_card = self.victory_screen(self.assets)
         if new_card:
