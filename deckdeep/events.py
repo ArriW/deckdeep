@@ -3,6 +3,7 @@ from deckdeep.card import Card
 from deckdeep.relic import get_relic_by_name, Relic
 from deckdeep.player import Player
 from deckdeep.render import handle_card_selection
+from deckdeep.logger import GameLogger
 
 class Event:
     def __init__(self, name: str, options: list):
@@ -164,7 +165,6 @@ class Scribe(Event):
 
     def duplicate_card(self, player, assets):
         full_deck = player.get_sorted_full_deck()
-        print("The scribe's quill hovers expectantly. Which card would you like to duplicate?")
         chosen_index = handle_card_selection(full_deck, assets)
         if chosen_index is not None:
             duplicated_card = player.duplicate_card_in_deck(chosen_index)
@@ -251,7 +251,6 @@ class RestSite(Event):
 
     def remove_card(self, player, assets):
         full_deck = player.get_sorted_full_deck()
-        print("The forest spirits whisper, asking for an offering. Which card will you give?")
         chosen_index = handle_card_selection(full_deck, assets)
         if chosen_index is not None:
             removed_card = player.remove_card_from_deck(chosen_index)
@@ -285,7 +284,6 @@ class Defender(Event):
 
     def leave(self, player, assets):
         full_deck = player.get_sorted_full_deck()
-        print("As you turn to leave, you must abandon one of your cards to hasten your escape. Which card will you leave behind?")
         chosen_index = handle_card_selection(full_deck, assets)
         if chosen_index is not None:
             removed_card = player.remove_card_from_deck(chosen_index)

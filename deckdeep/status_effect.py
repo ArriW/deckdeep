@@ -78,7 +78,6 @@ class StatusEffectManager:
     def from_dict(cls, data: Dict[str, Dict[str, Any]]) -> 'StatusEffectManager':
         manager = cls()
         for effect_data in data.values():
-            # print(effect_data)
             effect_class = globals()[effect_data["name"]]
             del effect_data["name"]
             manager.add_effect(effect_class.from_dict(effect_data))

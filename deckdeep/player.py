@@ -145,9 +145,11 @@ class Player:
         if level is not None and level % 3 == 0 and self.max_energy < 10: 
             print(f"{self.name} gained +1 max energy!")
             self.max_energy += 1
+            self.energy = self.max_energy
         elif force:
             print(f"{self.name} gained +1 max energy!")
             self.max_energy += 1
+            self.energy = self.max_energy
 
     def add_card_to_deck(self, card: Card):
         self.deck.append(card)
