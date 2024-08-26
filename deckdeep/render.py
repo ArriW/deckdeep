@@ -93,13 +93,6 @@ def render_health_bar(screen: pygame.Surface, x: int, y: int, width: int, height
     text_x = x + (width - SMALL_FONT.size(health_text)[0]) // 2
     render_text(screen, health_text, text_x, y + scale(2), color=WHITE, font=SMALL_FONT)
 
-# def render_player_strength(screen: pygame.Surface, player: Player, assets: GameAssets):
-#     print(player.strength)
-#     if player.strength > 0:
-#         strength_icon = pygame.transform.scale(assets.attack_icon, (ICON_SIZE, ICON_SIZE))
-#         screen.blit(strength_icon, (scale(10), scale(10)))
-#         render_text(screen, f"Strength: {player.strength}", scale(10) + ICON_SIZE + scale(5), scale(10), color=WHITE, font=SMALL_FONT)    
-
 def render_status_effects(screen: pygame.Surface, x: int, y: int, status_effects: dict, assets: GameAssets):
     icon_spacing = scale(30) 
     effect_icons = {

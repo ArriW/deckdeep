@@ -4,3 +4,4 @@ deckdeep/__pycache__
 TODO.md
 .DS_Store
 test_game.*
+*.log

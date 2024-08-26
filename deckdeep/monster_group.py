@@ -68,7 +68,6 @@ class MonsterGroup:
         return monster_group
 
     def to_dict(self) -> Dict:
-        # print(str([monster.to_dict() for monster in self.monsters],))
         return {
             "monsters": [monster.to_dict() for monster in self.monsters],
         }

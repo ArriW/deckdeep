@@ -24,11 +24,9 @@ class Relic:
 
         if self.trigger_when == TriggerWhen.PERMANENT:
             if not self.triggered_once:
-                print(f"Applying {self.name} effect")
                 self.effect(player, game)
                 self.triggered_once = True
         else:
-            print(f"Applying {self.name} effect")
             self.effect(player, game)
 
     def to_dict(self) -> Dict:
