@@ -42,9 +42,12 @@ class MonsterGroup:
         for monster in self.monsters:
             monster.attack(player)
             
-    def decide_action(self, player):
+    def decide_action(self, player) -> str:
+        actions_list = []
         for monster in self.monsters:
-            monster.decide_action(player)
+            actions_list.append(monster.decide_action(player))
+        return "".join(actions_list)
+
 
     def receive_damage(self, damage: int) -> int:
         score = 0

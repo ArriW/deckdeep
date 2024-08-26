@@ -46,7 +46,7 @@ class Monster:
             MonsterAbility("Sneak Attack", lambda m, t: t.take_damage(round(m.damage * (1 + asymptotic_scale(m.level, 0.3, 0.1)))), 0.5)
         ]),
         MonsterType("Zombie_1", "Z1", 0.4, 1.1, 1.0, [
-            MonsterAbility("Infectious Bite", lambda m, t: t.status_effects.add_effect(Bleed(round(asymptotic_scale(m.level, 15, 0.1)))), 0.3)
+            MonsterAbility("Infectious Bite", lambda m, t: t.status_effects.add_effect(Bleed(round(asymptotic_scale(m.level, 15, 0.15)))), 0.3)
         ]),
         MonsterType("Zombie_2", "Z2", 1.1, 0.5, 1.0, [
             MonsterAbility("Regenerate", lambda m, t: m.heal(round(m.max_health * asymptotic_scale(m.level, 0.4, 0.1))), 0.35)
@@ -56,15 +56,15 @@ class Monster:
             MonsterAbility("Shield Up", lambda m, t: m.grant_shields(round(m.max_health * asymptotic_scale(m.level, 0.3, 0.1))), 0.35)
         ]),
         MonsterType("Orc_2", "O2", 1.0, 0.6, 1.0, [
-            MonsterAbility("Battle Cry", lambda m, t: m.heal(round(m.max_health * asymptotic_scale(m.level, 0.15, 0.1))), 0.3),
+            MonsterAbility("Battle Cry", lambda m, t: m.heal(round(m.max_health * asymptotic_scale(m.level, 0.25, 0.1))), 0.3),
             MonsterAbility("Shield Up", lambda m, t: m.grant_shields(round(m.max_health * asymptotic_scale(m.level, 0.3, 0.1))), 0.35)
         ]),
         MonsterType("Witch", "W", 0.6, 1.1, 0.8, [
-            MonsterAbility("Curse", lambda m, t: m.status_effects.add_effect(HealthRegain(round(asymptotic_scale(m.level, 10, 0.1)))), 0.35),
+            MonsterAbility("Curse", lambda m, t: m.status_effects.add_effect(HealthRegain(round(asymptotic_scale(m.level, 15, 0.1)))), 0.35),
             MonsterAbility("Magic Shield", lambda m, t: m.grant_shields(round(m.max_health * asymptotic_scale(m.level, 0.4, 0.1))), 0.3)
         ]),
         MonsterType("Guardian_1", "G1", 1.3, 0.5, 0.7, [
-            MonsterAbility("Fortify", lambda m, t: m.grant_shields(round(m.max_health * asymptotic_scale(m.level, 0.5, 0.1))), 0.4),
+            MonsterAbility("Fortify", lambda m, t: m.grant_shields(round(m.max_health * asymptotic_scale(m.level, .6, 0.1))), 0.4),
             MonsterAbility("Power over time", lambda m, t: setattr(m, 'damage', round(m.damage * (1 + asymptotic_scale(m.level, 0.2, 0.1)))), 0.4)
         ]),
         MonsterType("Guardian_2", "G2", 0.7, 0.9, 0.7, [
@@ -76,16 +76,16 @@ class Monster:
 
     boss_types: List[MonsterType] = [
         MonsterType("Troll", "T", 1.6, 0.9, 1.0, [
-            MonsterAbility("Troll Regeneration", lambda m, t: m.heal(round(m.max_health * asymptotic_scale(m.level, 0.2, 0.1))), 0.35)
+            MonsterAbility("Troll Regeneration", lambda m, t: m.heal(round(m.max_health * asymptotic_scale(m.level, 0.4, 0.1))), 0.35)
         ]),
         MonsterType("Dragon", "D", 1.4, 1.2, 1.0, [
-            MonsterAbility("Fire Breath", lambda m, t: t.status_effects.add_effect(Bleed(round(asymptotic_scale(m.level, 15, 0.1)))), 0.3),
-            MonsterAbility("Regal Roar", lambda m, t: m.heal(round(m.max_health * asymptotic_scale(m.level, 0.15, 0.1))), 0.25)
+            MonsterAbility("Fire Breath", lambda m, t: t.status_effects.add_effect(Bleed(round(asymptotic_scale(m.level, 20, 0.1)))), 0.3),
+            MonsterAbility("Divine Shield", lambda m, t: m.grant_shields(round(m.max_health * asymptotic_scale(m.level, 0.5, 0.2))), 0.3)
         ]),
         MonsterType("Corrupted_Paladin", "CP", 1.1, 1.1, 1.0, [
-            MonsterAbility("Corruption", lambda m, t: t.status_effects.add_effect(Bleed(round(asymptotic_scale(m.level, 20, 0.1)))), 0.3),
+            MonsterAbility("Corruption", lambda m, t: t.status_effects.add_effect(Bleed(round(asymptotic_scale(m.level, 30, 0.2)))), 0.3),
             MonsterAbility("Holy Light", lambda m, t: m.heal(round(m.max_health * asymptotic_scale(m.level, 0.5, 0.1))), 0.25),
-            MonsterAbility("Divine Shield", lambda m, t: m.grant_shields(round(m.max_health * asymptotic_scale(m.level, 0.5, 0.1))), 0.3)
+            MonsterAbility("Divine Shield", lambda m, t: m.grant_shields(round(m.max_health * asymptotic_scale(m.level, 0.5, 0.2))), 0.3)
         ]),
     ]
     def __init__(
@@ -172,7 +172,7 @@ class Monster:
     def apply_status_effects(self):
         self.status_effects.apply_effects(self)
 
-    def decide_action(self, target):
+    def decide_action(self, target)->str:
         if self.monster_type and self.monster_type.abilities:
             for ability in self.monster_type.abilities:
                 if random.random() < ability.probability:

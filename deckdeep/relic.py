@@ -20,14 +20,17 @@ class Relic:
         self.trigger_when = trigger_when
         self.triggered_once = False
 
-    def apply_effect(self, player, game):
+    def apply_effect(self, player, game) -> str:
 
         if self.trigger_when == TriggerWhen.PERMANENT:
             if not self.triggered_once:
                 self.effect(player, game)
                 self.triggered_once = True
+                return f"Permanet {self.name} {self.description}"
         else:
             self.effect(player, game)
+            return f"{self.name} triggered!"
+        return "Did not trigger"
 
     def to_dict(self) -> Dict:
         return {
@@ -106,14 +109,14 @@ ALL_RELICS = {
     ),
     "Cursed Dagger": Relic(
         "Cursed Dagger",
-        "Deal 3 damage to a random enemy at the start of each turn.",
-        lambda p, g: g.monster_group.random_monster().take_damage(3),
+        "Deal 5 damage to a random enemy at the start of each turn.",
+        lambda p, g: g.monster_group.random_monster().take_damage(5),
         TriggerWhen.START_OF_TURN
     ),
     "Time Warp": Relic(
         "Time Warp",
-        "3% chance to take an extra turn after your turn ends.",
-        lambda p, g: setattr(p, 'extra_turn_chance', 0.03),
+        "12% chance to take an extra turn after your turn ends.",
+        lambda p, g: setattr(p, 'extra_turn_chance', 0.12),
         TriggerWhen.PERMANENT
     ),
 }
