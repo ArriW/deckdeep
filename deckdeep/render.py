@@ -25,6 +25,11 @@ def render_text(screen: pygame.Surface, text: str, x: int, y: int, color=BLACK, 
         screen.blit(circle_surface, (circle_center[0] - circle_radius, circle_center[1] - circle_radius))
     screen.blit(text_surface, (x, y))
 
+def render_text_in_icon(screen: pygame.Surface, text: str, x: int, y: int, icon, color=BLACK, font=FONT):
+    screen.blit(icon, (x, y))
+    render_text(screen, text, x + ICON_SIZE - scale(23) , y + scale(7) , color=color, font=font)
+    
+
 def render_text_with_background(screen: pygame.Surface, text: str, x: int, y: int, font, text_color=BLACK, background_color=WHITE):
     text_surface = font.render(text, True, text_color)
     background_surface = pygame.Surface(text_surface.get_size())
@@ -68,11 +73,9 @@ def render_card(screen: pygame.Surface, card: Card, x: int, y: int, is_selected:
         if getattr(card, attr, 0) > 0:
             current_y = render_icon_and_text(icon, text, current_y)
 
-    energy_x = x + CARD_WIDTH - x_offset + ICON_SIZE
-    energy_y = y + CARD_HEIGHT - ICON_SIZE 
-    screen.blit(assets.energy_icon, (energy_x - x_offset, energy_y))
-    render_text(screen, f"{card.energy_cost}", energy_x, energy_y + y_text_offset, font=CARD_FONT)
-
+    energy_x = x + CARD_WIDTH - round(1.25*ICON_SIZE)
+    energy_y = y + CARD_HEIGHT - round(1.25*ICON_SIZE)
+    render_text_in_icon(screen, f"{card.energy_cost}", energy_x, energy_y, assets.energy_icon, color=RED, font=CARD_FONT)
     if hotkey is not None:
         render_text(screen, f"#{hotkey}", x + x_anchor, y + CARD_HEIGHT - x_offset, font=CARD_FONT)
 
