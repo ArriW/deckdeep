@@ -140,6 +140,7 @@ class Game:
         self.cards_per_page = 15  # 5 rows x 3 columns, as defined in render_deck_view
         # for relic view
         self.viewing_relics = False
+        self.monster_intentions = []
 
     def run(self):
         while True:
@@ -388,8 +389,18 @@ class Game:
             self.apply_relic_effects(TriggerWhen.END_OF_TURN)
             self.player.apply_status_effects()
             self.monster_group.remove_dead_monsters()
-            mosnter_actions=self.monster_group.decide_action(self.player)
-            self.logger.debug(f"Monster actions: {mosnter_actions}", category="COMBAT")
+            
+            # Execute previous intentions
+            for i, monster in enumerate(self.monster_group.monsters):
+                if i < len(self.monster_intentions) and monster.is_alive():
+                    intention = self.monster_intentions[i]
+                    result = monster.execute_action(intention, self.player)
+                    self.logger.debug(f"Monster {monster.name} executed action: {result}", category="COMBAT")
+            
+            # Set new intentions for the next turn
+            self.monster_intentions = self.monster_group.decide_action(self.player)
+            self.logger.debug(f"New monster intentions: {self.monster_intentions}", category="COMBAT")
+            
             self.apply_relic_effects(TriggerWhen.ON_DAMAGE_TAKEN)
             self.player.end_turn()
             for monster in self.monster_group.monsters:
