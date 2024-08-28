@@ -61,7 +61,7 @@ class MonsterGroup:
         if is_boss:
             monster_group.add_monster(Monster.generate(level, is_boss=True))
         else:
-            target_power = math.log(level + 1, 1.5) * 150  # Increased base power
+            target_power = math.log(level + 1, 2) * 200  # Increased base power
             current_power = 0
             max_monsters = min(5, 1 + level // 5)  # Cap at 5 monsters, increase max every 5 levels
 
