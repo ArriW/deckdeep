@@ -128,6 +128,8 @@ def render_player(screen: pygame.Surface, player: Player, assets: GameAssets):
     
     # Render status effects above the player
     status_effects = player.status_effects.effects.copy()
+
+    # HACK should make these more formal status effects so we dont hae to attempt them like this
     if player.bonus_damage > 0:
         status_effects["PlayerBonus"] = type('obj', (object,), {'value': player.bonus_damage})()
     if player.strength > 0:
@@ -157,7 +159,7 @@ def get_intention_icon(intention: str, assets: GameAssets) -> Optional[pygame.Su
     elif intention == "buff":
         return assets.strength_icon
     
-    # New abilities
+    # New abilities HACK we should hae a propery attribute for these
     elif intention in ["Sneak Attack", "Thunder Clap"]:
         return assets.attack_icon  # Using attack icon for damaging abilities
     elif intention in ["Infectious Bite", "Curse", "Corruption", "Poison Dart"]:
