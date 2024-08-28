@@ -149,13 +149,32 @@ def render_player(screen: pygame.Surface, player: Player, assets: GameAssets):
         player.shake -= 1
 
 def get_intention_icon(intention: str, assets: GameAssets) -> Optional[pygame.Surface]:
+    # Basic intentions
     if intention == "attack":
         return assets.attack_icon
     elif intention == "defend":
         return assets.shield_icon
     elif intention == "buff":
         return assets.strength_icon
-    return None
+    
+    # New abilities
+    elif intention in ["Sneak Attack", "Thunder Clap"]:
+        return assets.attack_icon  # Using attack icon for damaging abilities
+    elif intention in ["Infectious Bite", "Curse", "Corruption", "Poison Dart"]:
+        return assets.bleed_icon  # Assuming you have a poison icon for DOT effects
+    elif intention in ["Rage", "Power over time"]:
+        return assets.strength_icon  # Using strength icon for self-buffing abilities
+    elif intention in ["Battle Cry", "Holy Light", "Regenerate", "Troll Regeneration"]:
+        return assets.heal_icon  # Assuming you have a heal icon
+    elif intention in ["Shield Up", "Fortify", "Divine Shield"]:
+        return assets.shield_icon  # Using shield icon for defensive abilities
+    elif intention in ["Magic Missile", "Fire Breath"]:
+        return assets.energy_icon  # Assuming you have a magic icon for spell attacks
+    elif intention == "Life Drain":
+        return assets.attack_icon  # Assuming you have a lifesteal icon
+    
+    # If no matching icon is found, return None or a default icon
+    return assets.draw_icon  # Assuming you have an unknown/default icon
 
 def render_monsters(screen: pygame.Surface, monster_group: MonsterGroup, assets: GameAssets):
     num_monsters = len(monster_group.monsters)
