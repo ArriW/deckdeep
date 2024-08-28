@@ -44,7 +44,7 @@ class MonsterGroup:
             monster.attack(player)
 
     def decide_action(self, player) -> List[str]:
-        return [monster.decide_action(player) for monster in self.monsters]
+            return [monster.decide_action(player) for monster in self.monsters]
 
     def receive_damage(self, damage: int) -> int:
         total_damage_dealt = 0
@@ -63,7 +63,7 @@ class MonsterGroup:
         else:
             target_power = math.log(level + 1, 1.5) * 150  # Increased base power
             current_power = 0
-            max_monsters = min(5, 1 + level // 4)  # Cap at 5 monsters, increase max every 4 levels
+            max_monsters = min(5, 1 + level // 5)  # Cap at 5 monsters, increase max every 5 levels
 
             while current_power < target_power and len(monster_group.monsters) < max_monsters:
                 new_monster = Monster.generate(level)
