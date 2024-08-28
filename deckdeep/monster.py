@@ -301,16 +301,9 @@ class Monster:
             if ability:
                 return ability.use(self, target)
 
-        # Fallback to basic actions if no matching ability is found
-        print(f"no matching ability found for {action}")
-        if action == "attack":
-            return self.attack(target)
-        elif action == "defend":
-            return self.defend()
-        elif action == "buff":
-            return self.buff()
-        else:
-            return f"{self.name} does nothing."
+        # Fallback to basic actions if no matching ability is foundi
+        print(f"WARNING: no matching ability found for {action}")
+        return f"{self.name} does nothing."
 
     def decide_action(self, player) -> str:
         if self.monster_type and self.monster_type.abilities:
@@ -321,14 +314,7 @@ class Monster:
             )[0]
             self.intention = chosen_ability.name
         else:
-            # Simple AI: 70% chance to attack, 20% chance to defend, 10% chance to buff
-            action_roll = random.random()
-            if action_roll < 0.7:
-                self.intention = "attack"
-            elif action_roll < 0.9:
-                self.intention = "defend"
-            else:
-                self.intention = "buff"
+            print(f"WARNING: {self.name} has no abilities")
         return self.intention
 
     @staticmethod
