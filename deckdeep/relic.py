@@ -109,8 +109,8 @@ ALL_RELICS = {
     ),
     "Cursed Dagger": Relic(
         "Cursed Dagger",
-        "Deal 5 damage to a random enemy at the start of each turn.",
-        lambda p, g: g.monster_group.random_monster().take_damage(5),
+        "Deal 10 damage to a random enemy at the start of each turn.",
+        lambda p, g: g.monster_group.random_monster().take_damage(10),
         TriggerWhen.START_OF_TURN
     ),
     "Time Warp": Relic(

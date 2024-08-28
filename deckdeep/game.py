@@ -424,6 +424,7 @@ class Game:
         self.apply_relic_effects(TriggerWhen.END_OF_COMBAT)
         self.player.heal(self.player.hp_regain_per_level)
         self.player.reset_energy()
+        self.player.status_effects.clear_effects()
         self.logger.info(f"Combat victory at node level: {self.current_node.level}", category="COMBAT")
         self.player.increase_max_energy(self.current_node.level)
 
