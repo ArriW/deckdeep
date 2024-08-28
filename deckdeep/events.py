@@ -57,10 +57,10 @@ class Medic(Event):
     def __init__(self):
         hair_of_dog = get_relic_by_name("Hair of the Dog")
         super().__init__(
-            f"Medic: You find a medic tent. You can pay 20 HP to gain a {hair_of_dog.name} or heal 30 HP.",
+            f"Medic: You find a medic tent. You can pay 20 HP to gain a {hair_of_dog.name} or heal 50 HP.",
             [
                 ("Get Hair of the Dog", "grant_hair_of_the_dog"),
-                ("Heal 30 HP", "heal"),
+                ("Heal 50 HP", "heal"),
                 ("Leave", "leave"),
             ],
         )
@@ -75,8 +75,8 @@ class Medic(Event):
         return "You don't have enough HP to pay for the Vitality Boost."
 
     def heal(self, player):
-        player.heal(30)
-        return "You healed 30 HP."
+        player.heal(h:=50)
+        return f"You healed {h} HP."
 
     def leave(self, player):
         return "You leave the Medic's tent."
@@ -84,17 +84,17 @@ class Medic(Event):
 class Priest(Event):
     def __init__(self):
         super().__init__(
-            "Priest: A holy figure offers spiritual assistance. You can heal for 10 HP or cleanse one of your misdeeds.",
+            "Priest: A holy figure offers spiritual assistance. You can heal for 50 HP or cleanse one of your misdeeds.",
             [
-                ("Heal 10 HP", "heal"),
+                ("Heal 50 HP", "heal"),
                 ("Remove a curse", "remove_curse"),
                 ("Leave", "leave"),
             ],
         )
 
     def heal(self, player):
-        player.heal(10)
-        return "You healed for 10 HP."
+        player.heal(h:=50)
+        return f"You healed for {h} HP."
 
     def remove_curse(self, player):
         player.remove_curses(1)
@@ -226,7 +226,7 @@ class ForgottenShrine(Event):
 
 class RestSite(Event):
     def __init__(self):
-        self.heal_amount = 20
+        self.heal_amount = 50
         self.energy_gain = 2
         self.damage_gain = 2
         
@@ -297,7 +297,7 @@ class DarkMerchant(Event):
     def __init__(self):
         cursed_dagger = get_relic_by_name("Cursed Dagger")
         super().__init__(
-            f"Dark Merchant: A shadowy figure offers you a mysterious dagger. You can accept the '{cursed_dagger.name}' in exchange for 15 max HP.",
+            f"Dark Merchant: A shadowy figure appears offers you a mysterious dagger. A Do you can accept the '{cursed_dagger.name}' in exchange for 15 max HP?",
             [
                 ("Accept dagger", "accept_dagger"),
                 ("Decline and leave", "leave"),

@@ -1,10 +1,11 @@
 from typing import Dict, Any
 
 class StatusEffect:
-    def __init__(self, name: str, value: int, stack: bool):
+    def __init__(self, name: str, value: int, stack: bool, type: str):
         self.name = name
         self.value = value
         self.stack = stack 
+        self.type = type
 
     def apply(self, target: Any) -> None:
         pass
@@ -23,7 +24,7 @@ class StatusEffect:
 
 class Bleed(StatusEffect):
     def __init__(self, value: int):
-        super().__init__("Bleed", value=value, stack =  True)
+        super().__init__("Bleed", value=value, stack =  True, type="debuff")
 
     def apply(self, target: Any) -> None:
         damage = self.value
@@ -35,7 +36,7 @@ class Bleed(StatusEffect):
 
 class HealthRegain(StatusEffect):
     def __init__(self, value: int):
-        super().__init__("HealthRegain", value=value, stack= True)
+        super().__init__("HealthRegain", value=value, stack= True, type="buff")
 
     def apply(self, target: Any) -> None:
         target.heal(self.value)
@@ -47,7 +48,7 @@ class HealthRegain(StatusEffect):
 
 class EnergyBonus(StatusEffect):
     def __init__(self, value: int):
-        super().__init__("EnergyBonus", value=value, stack = False)
+        super().__init__("EnergyBonus", value=value, stack = False, type="buff")
     def apply(self, target: Any) -> None:
         target.energy += self.value
         self.value = max(0, self.value - 1)
@@ -69,6 +70,19 @@ class StatusEffectManager:
         for effect in list(self.effects.values()):
             effect.apply(target)
             if effect.is_expired():
+                del self.effects[effect.name]
+
+    def clear_effects(self) -> None:
+        self.effects= {}
+
+    def clear_debuff(self) -> None:
+        for effect in list(self.effects.values()):
+            if effect.type == "debuff":
+                del self.effects[effect.name]
+
+    def clear_buff(self) -> None:
+        for effect in list(self.effects.values()):
+            if effect.type == "buff":
                 del self.effects[effect.name]
 
     def to_dict(self) -> Dict[str, Dict[str, Any]]:
