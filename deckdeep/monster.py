@@ -1,6 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict
 from deckdeep.status_effect import StatusEffectManager, Bleed, HealthRegain
+import random
+from typing import Dict, Optional
+from deckdeep.status_effect import StatusEffectManager, Bleed
 from deckdeep.config import scale
 import random
 class Ability(ABC):
@@ -191,6 +194,7 @@ class Monster:
         power_rating: int = 0,
     ):
         self.name = name
+        self.health = health
         self.max_health = max_health
         self.health = health if health is not None else max_health
         self.damage = damage
@@ -206,7 +210,7 @@ class Monster:
         self.shields = shields
         self.level = level
         self.power_rating = self.calculate_power_rating()
-
+        self.intention: str = ""  
     def calculate_power_rating(self):
         base_power = (self.max_health * self.damage * self.spell_power) ** (1 / 3)
         if self.monster_type and hasattr(self.monster_type, 'abilities'):
@@ -218,48 +222,22 @@ class Monster:
         return base_power * (1 + ability_power / 100) 
 
 
+    def __str__(self):
+        return f"{self.name} (HP: {self.health}/{self.max_health}, DMG: {self.damage})"
 
-    def __str__(self) -> str:
-        return self.name
+    def attack(self, player):
+        total_damage = self.damage  
+        player.take_damage(total_damage)
 
-    def to_dict(self) -> Dict:
-        data = {
-            key: value for key, value in vars(self).items() if not key.startswith("_")
-        }
-        data["status_effects"] = self.status_effects.to_dict()
-        data["monster_type"] = self.monster_type.name if self.monster_type else None
-        return data
+    def defend(self):
+        shield_amount = round(self.spell_power * 0.5)
+        self.grant_shields(shield_amount)
+        return f"{self.name} defends, gaining {shield_amount} shields!"
 
-    @classmethod
-    def from_dict(cls, data: Dict) -> "Monster":
-        status_effects = data.pop("status_effects", {})
-        monster_type_name = data.pop("monster_type", None)
-        
-        # Create the monster instance without calculating power_rating
-        monster = cls(**data)
-        
-        monster.status_effects = StatusEffectManager.from_dict(status_effects)
-        
-        if monster_type_name:
-            monster.monster_type = next(
-                (
-                    mt
-                    for mt in cls.monster_types + cls.boss_types
-                    if mt.name == monster_type_name
-                ),
-                None,
-            )
-        
-        # Calculate power_rating after monster_type is set
-        if monster.monster_type:
-            monster.power_rating = monster.calculate_power_rating()
-        else:
-            # Set a default power_rating or calculate it differently if monster_type is None
-            monster.power_rating = (monster.max_health * monster.damage * monster.spell_power) ** (1/3)
-        
-        return monster
-    def attack(self, target):
-        target.take_damage(self.damage)
+    def buff(self):
+        buff_amount = round(self.spell_power * 0.2)
+        # put buff here
+        return f"{self.name} buffs, gaining {buff_amount} Strength!"
 
     def receive_damage(self, damage: int) -> int:
         if self.shields > 0:
@@ -278,74 +256,98 @@ class Monster:
         self.shake = round(min(health_percentage, 100))
         return self.health
 
+    def is_alive(self) -> bool:
+        return self.health > 0
+
     def grant_shields(self, amount: int):
         self.shields += amount
 
     def heal(self, amount: int):
         self.health = min(self.max_health, self.health + amount)
 
+    def add_shields(self, amount: int):
+        self.shields += amount
+
     def take_damage(self, damage: int) -> int:
         return self.receive_damage(damage)
+
 
     def apply_status_effects(self):
         self.status_effects.apply_effects(self)
 
-    def decide_action(self, target) -> str:
+    def execute_action(self, action: str, target):
         if self.monster_type and self.monster_type.abilities:
-            for ability in self.monster_type.abilities:
-                if random.random() < ability.probability:
-                    return ability.use(self, target)
+            ability = next((a for a in self.monster_type.abilities if a.name == action), None)
+            if ability:
+                return ability.use(self, target)
 
-        # Default action: attack
-        damage = self.damage
-        target.take_damage(damage)
-        return f"{self.name} attacks for {damage} damage."
+        # Fallback to basic actions if no matching ability is found
+        if action == "attack":
+            return self.attack(target)
+        elif action == "defend":
+            return self.defend()
+        elif action == "buff":
+            return self.buff()
+        else:
+            return f"{self.name} does nothing."
 
+    def decide_action(self, player) -> str:
+        # Simple AI: 70% chance to attack, 20% chance to defend, 10% chance to buff
+        action_roll = random.random()
+        if action_roll < 0.7:
+            self.intention = "attack"
+        elif action_roll < 0.9:
+            self.intention = "defend"
+        else:
+            self.intention = "buff"
+        return self.intention
+
+    @staticmethod
+    def generate(level: int):
+        name = f"Monster L{level}"
+        health = random.randint(level * 10, level * 15)
+        damage = random.randint(level * 2, level * 3)
+        image_path = "./assets/images/characters/Orc_1.png"
+        return Monster(name, health, health, damage, image_path)
+
+    @staticmethod
+    def generate_boss(level: int):
+        name = f"Boss L{level}"
+        health = random.randint(level * 20, level * 30)
+        damage = random.randint(level * 4, level * 6)
+        image_path = "./assets/images/characters/boss.png"
+        return Monster(name, health, health, damage, image_path)
+
+    def to_dict(self) -> Dict:
+        return {
+            "name": self.name,
+            "health": self.health,
+            "max_health": self.max_health,
+            "damage": self.damage,
+            "image_path": self.image_path,
+            "shields": self.shields,
+            "shake": self.shake,
+            "selected": self.selected,
+            "status_effects": self.status_effects.to_dict(),
+            "power_rating": self.power_rating,
+            "intention": self.intention
+        }
 
     @classmethod
-    def generate(cls, level: int) -> "Monster":
-        weights = [mt.rarity for mt in cls.monster_types]
-        monster_type = random.choices(cls.monster_types, weights=weights)[0]
-        base_health = round(15 + level * 3)
-        base_damage = round(4 + level * 1.1)
-        base_spell_power = round(3 + level * 1.2)
-        max_health = round(base_health * monster_type.health_mult)
-        damage = round(base_damage * monster_type.damage_mult)
-        spell_power = round(base_spell_power * monster_type.spell_power_mult)
-        image_path = f"./assets/images/characters/{monster_type.name.lower()}.png"
+    def from_dict(cls, data: Dict) -> 'Monster':
         monster = cls(
-            name=monster_type.name,
-            max_health=max_health,
-            damage=damage,
-            spell_power=spell_power,
-            image_path=image_path,
-            symbol=monster_type.symbol,
-            monster_type=monster_type,
-            level=level,
+            
+            data["name"],
+            data["health"],
+            data["max_health"],
+            data["damage"],
+            data["image_path"]
         )
-        return monster
-
-    @classmethod
-    def generate_boss(cls, level: int) -> "Monster":
-        boss_type = random.choice(cls.boss_types)
-        base_health = round(30 + level * 5)
-        base_damage = round(8 + level * 1.6)
-        base_spell_power = round(6 + level * 1.5)
-        max_health = round(base_health * boss_type.health_mult)
-        damage = round(base_damage * boss_type.damage_mult)
-        spell_power = round(base_spell_power * boss_type.spell_power_mult)
-        image_path = f"./assets/images/characters/{boss_type.name.lower()}.png"
-        monster = cls(
-            name=f"Boss {boss_type.name}",
-            max_health=max_health,
-            damage=damage,
-            spell_power=spell_power,
-            image_path=image_path,
-            symbol=boss_type.symbol,
-            is_boss=True,
-            size=300, 
-            monster_type=boss_type,
-            level=level,
-        )
+        monster.shields = data["shields"]
+        monster.shake = data["shake"]
+        monster.selected = data["selected"]
+        monster.status_effects = StatusEffectManager.from_dict(data["status_effects"])
+        monster.power_rating = data["power_rating"]
+        monster.intention = data.get("intention", "")  # Use get() to handle cases where intention might not be in the saved data
         return monster
 

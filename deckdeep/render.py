@@ -148,6 +148,15 @@ def render_player(screen: pygame.Surface, player: Player, assets: GameAssets):
     if player.shake > 0:
         player.shake -= 1
 
+def get_intention_icon(intention: str, assets: GameAssets) -> Optional[pygame.Surface]:
+    if intention == "attack":
+        return assets.attack_icon
+    elif intention == "defend":
+        return assets.shield_icon
+    elif intention == "buff":
+        return assets.strength_icon
+    return None
+
 def render_monsters(screen: pygame.Surface, monster_group: MonsterGroup, assets: GameAssets):
     num_monsters = len(monster_group.monsters)
     start_x = SCREEN_WIDTH - scale(120) - PLAYER_SIZE * num_monsters - scale(50) * (num_monsters - 1)
@@ -173,6 +182,11 @@ def render_monsters(screen: pygame.Surface, monster_group: MonsterGroup, assets:
         damage_text = f"DMG: {monster.damage}"
         damage_x = x + (health_bar_width - SMALL_FONT.size(damage_text)[0]) // 2
         render_text(screen, damage_text, damage_x, y + PLAYER_SIZE + scale(35), color=RED, font=SMALL_FONT)
+        
+        # Render monster intention
+        intention_icon = get_intention_icon(monster.intention, assets)
+        if intention_icon:
+            screen.blit(intention_icon, (x + PLAYER_SIZE - ICON_SIZE, y - ICON_SIZE - scale(10)))
         
         if monster.shake > 0:
             monster.shake -= 1
