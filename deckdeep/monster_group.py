@@ -10,7 +10,7 @@ class MonsterGroup:
         self.selected_index = 0
 
     def __str__(self):
-        return ",".join([str(monster) for monster in self.monsters])
+        return ", ".join([str(monster) for monster in self.monsters])
 
     def add_monster(self, monster: Monster):
         self.monsters.append(monster)
@@ -34,7 +34,7 @@ class MonsterGroup:
         return self.monsters[self.selected_index]
 
     def remove_dead_monsters(self):
-        self.monsters = [monster for monster in self.monsters if monster.health > 0]
+        self.monsters = [monster for monster in self.monsters if monster.is_alive()]
         if self.monsters:
             self.selected_index = min(self.selected_index, len(self.monsters) - 1)
             self.monsters[self.selected_index].selected = True
@@ -42,47 +42,62 @@ class MonsterGroup:
     def attack(self, player):
         for monster in self.monsters:
             monster.attack(player)
-            
+
     def decide_action(self, player) -> List[str]:
-        intentions = []
-        for monster in self.monsters:
-            intention = monster.decide_action(player)
-            intentions.append(intention)
-        return intentions
+        return [monster.decide_action(player) for monster in self.monsters]
 
     def receive_damage(self, damage: int) -> int:
-        score = 0
+        total_damage_dealt = 0
         for monster in self.monsters:
-            score += monster.receive_damage(damage)
-        return score
+            total_damage_dealt += monster.receive_damage(damage)
+        return total_damage_dealt
 
     def get_total_monster_power(self) -> int:
-        return sum([monster.get_power() for monster in self.monsters])
+        return sum(monster.power_rating for monster in self.monsters)
 
     @staticmethod
     def generate(level: int, is_boss: bool = False):
         monster_group = MonsterGroup()
         if is_boss:
-            monster_group.add_monster(Monster.generate_boss(level))
+            monster_group.add_monster(Monster.generate(level, is_boss=True))
         else:
-            target_power = math.log(level + 1, 1.5) * 100  # Adjust the base and multiplier as needed
+            target_power = math.log(level + 1, 1.5) * 150  # Increased base power
             current_power = 0
-            max_monsters = min(5, 1 + level // 5)  # Cap at 5 monsters, increase max every 5 levels
+            max_monsters = min(5, 1 + level // 4)  # Cap at 5 monsters, increase max every 4 levels
 
             while current_power < target_power and len(monster_group.monsters) < max_monsters:
                 new_monster = Monster.generate(level)
                 monster_group.add_monster(new_monster)
                 current_power += new_monster.power_rating
 
+            # Add elite monster with a certain probability
+            if random.random() < 0.2 and len(monster_group.monsters) < max_monsters:
+                elite_monster = Monster.generate(level + 2)
+                monster_group.add_monster(elite_monster)
+
         return monster_group
 
     def to_dict(self) -> Dict:
         return {
             "monsters": [monster.to_dict() for monster in self.monsters],
+            "selected_index": self.selected_index
         }
 
     @classmethod
     def from_dict(cls, data: Dict) -> 'MonsterGroup':
         monster_group = cls()
         monster_group.monsters = [Monster.from_dict(monster_data) for monster_data in data["monsters"]]
+        monster_group.selected_index = data["selected_index"]
         return monster_group
+
+    def apply_status_effects(self):
+        for monster in self.monsters:
+            monster.apply_status_effects()
+
+    def execute_actions(self, player):
+        results = []
+        for monster in self.monsters:
+            if monster.is_alive():
+                result = monster.execute_action(monster.intention, player)
+                results.append(result)
+        return results
