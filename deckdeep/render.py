@@ -13,6 +13,8 @@ import random
 from collections import defaultdict, Counter
 from pygame import QUIT, KEYDOWN, K_ESCAPE, K_RETURN, K_BACKSPACE, K_UP, K_DOWN
 from time import sleep
+from deckdeep.monster import IconType
+import math
 
 def render_text(screen: pygame.Surface, text: str, x: int, y: int, color=BLACK, font=FONT, circle=False):
     text_surface = font.render(text, True, color)
@@ -150,69 +152,65 @@ def render_player(screen: pygame.Surface, player: Player, assets: GameAssets):
     if player.shake > 0:
         player.shake -= 1
 
-def get_intention_icon(intention: str, assets: GameAssets) -> Optional[pygame.Surface]:
-    # Basic intentions
-    if intention == "attack":
-        return assets.attack_icon
-    elif intention == "defend":
-        return assets.shield_icon
-    elif intention == "buff":
-        return assets.strength_icon
+def get_intention_icons(intention_icon_types: List[IconType], assets: GameAssets) -> List[pygame.Surface]:
     
-    # New abilities HACK we should hae a propery attribute for these
-    elif intention in ["Sneak Attack", "Thunder Clap"]:
-        return assets.attack_icon  # Using attack icon for damaging abilities
-    elif intention in ["Infectious Bite", "Curse", "Corruption", "Poison Dart"]:
-        return assets.bleed_icon  # Assuming you have a poison icon for DOT effects
-    elif intention in ["Rage", "Power over time"]:
-        return assets.strength_icon  # Using strength icon for self-buffing abilities
-    elif intention in ["Battle Cry", "Holy Light", "Regenerate", "Troll Regeneration"]:
-        return assets.heal_icon  # Assuming you have a heal icon
-    elif intention in ["Shield Up", "Fortify", "Divine Shield"]:
-        return assets.shield_icon  # Using shield icon for defensive abilities
-    elif intention in ["Magic Missile", "Fire Breath"]:
-        return assets.energy_icon  # Assuming you have a magic icon for spell attacks
-    elif intention == "Life Drain":
-        return assets.attack_icon  # Assuming you have a lifesteal icon
-    
-    # If no matching icon is found, return None or a default icon
-    return assets.draw_icon  # Assuming you have an unknown/default icon
+    icon_map = {
+        IconType.ATTACK: assets.attack_icon,
+        IconType.DEFEND: assets.shield_icon,
+        IconType.BUFF: assets.strength_icon,
+        IconType.BLEED: assets.bleed_icon,
+        IconType.HEAL: assets.heal_icon,
+        IconType.MAGIC: assets.energy_icon,
+        IconType.UNKNOWN: assets.draw_icon
+    }
+    return [icon_map.get(icon_type, assets.draw_icon) for icon_type in intention_icon_types]
 
 def render_monsters(screen: pygame.Surface, monster_group: MonsterGroup, assets: GameAssets):
     num_monsters = len(monster_group.monsters)
     start_x = SCREEN_WIDTH - scale(120) - PLAYER_SIZE * num_monsters - scale(50) * (num_monsters - 1)
-    
+
     for i, monster in enumerate(monster_group.monsters):
         monster_image = pygame.transform.scale(GameAssets.load_and_scale_ui(monster.image_path, (PLAYER_SIZE, PLAYER_SIZE)), (PLAYER_SIZE, PLAYER_SIZE))
         x = start_x + i * (PLAYER_SIZE + scale(50))
         y = SCREEN_HEIGHT // 2 - PLAYER_SIZE // 2
         offset = random.randint(-monster.shake, monster.shake)
-        
+
         # Render status effects above the monster
         render_status_effects(screen, x, y - scale(30), monster.status_effects.effects, assets)
-        
+
         # Render monster image
         screen.blit(monster_image, (x + offset, y + offset))
-        
+
         # Render health bar below the monster
         health_bar_width = PLAYER_SIZE
         health_bar_height = scale(20)
         render_health_bar(screen, x, y + PLAYER_SIZE + scale(10), health_bar_width, health_bar_height, monster.health, monster.max_health, RED, monster.shields)
-        
-        # Render monster damage below the health bar
-        damage_text = f"DMG: {monster.damage}"
-        damage_x = x + (health_bar_width - SMALL_FONT.size(damage_text)[0]) // 2
-        render_text(screen, damage_text, damage_x, y + PLAYER_SIZE + scale(35), color=RED, font=SMALL_FONT)
-        
-        # Render monster intention
-        intention_icon = get_intention_icon(monster.intention, assets)
-        if intention_icon:
-            screen.blit(intention_icon, (x + PLAYER_SIZE - ICON_SIZE, y - ICON_SIZE - scale(10)))
-        
-        if monster.shake > 0:
-            monster.shake -= 1
-        if monster.selected:
-            pygame.draw.rect(screen, YELLOW, (x - scale(5), y - scale(5), PLAYER_SIZE + scale(10), PLAYER_SIZE + scale(10)), 3)
+
+        try:
+            # Render yellow frame for selected monster
+            if monster.selected:
+                frame_padding = scale(5)
+                pygame.draw.rect(screen, YELLOW, (x - frame_padding, y - frame_padding, PLAYER_SIZE + 2*frame_padding, PLAYER_SIZE + 2*frame_padding), 3)
+            
+            # Render monster damage in top right corner of the frame
+            damage_x = x + PLAYER_SIZE - scale(25)
+            damage_y = y - scale(25)
+            render_text(screen, str(monster.damage), damage_x, damage_y, color=RED, font=SMALL_FONT, circle=True)
+
+            # Render monster intention icons
+            intention_icons = get_intention_icons(monster.intention_icon_types, assets)
+            icon_width = ICON_SIZE
+            total_width = len(intention_icons) * icon_width
+            icon_start_x = x + (PLAYER_SIZE - total_width) // 2
+            icon_y = y + PLAYER_SIZE - ICON_SIZE - scale(5)
+
+            for j, icon in enumerate(intention_icons):
+                screen.blit(icon, (icon_start_x + j * icon_width, icon_y))
+
+            if monster.shake > 0:
+                monster.shake -= 1
+        except AttributeError:
+            print("Error rendering monster intention icons, maybe game just loaded?")
 
 def render_combat_state(screen: pygame.Surface, player: Player, monster_group: MonsterGroup, dungeon_level: str, score: int, selected_card: int, assets: GameAssets):
     screen.blit(assets.background_image, (0, 0))
