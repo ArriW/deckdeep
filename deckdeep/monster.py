@@ -1,11 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict
+from typing import List, Dict, Optional
+import random
+import math
 from deckdeep.status_effect import StatusEffectManager, Bleed, HealthRegain
-import random
-from typing import Dict, Optional
-from deckdeep.status_effect import StatusEffectManager, Bleed
 from deckdeep.config import scale
-import random
+
 class Ability(ABC):
     def __init__(self, name: str, probability: float):
         self.name = name
@@ -20,7 +19,7 @@ class Ability(ABC):
     def power_contribution(self):
         return self._power_contribution
 
-
+# Existing abilities
 class SneakAttack(Ability):
     def use(self, user, target):
         damage = round(user.damage * 1.5)
@@ -30,7 +29,7 @@ class SneakAttack(Ability):
 
 class InfectiousBite(Ability):
     def use(self, user, target):
-        bleed_damage = round(user.damage*0.25)
+        bleed_damage = round(user.damage * 0.25)
         self._power_contribution = bleed_damage
         bleed = Bleed(bleed_damage)
         target.status_effects.add_effect(bleed)
@@ -107,12 +106,12 @@ class TrollRegeneration(Ability):
 
 class FireBreath(Ability):
     def use(self, user, target):
-        damage = round(user.spell_power)
+        damage = round(user.spell_power * 1.5)
         self._power_contribution = damage * 0.5 * self.probability 
-        bleed = Bleed(damage*.1)
+        bleed = Bleed(v:=round(damage * 0.1))
         target.take_damage(damage)
         target.status_effects.add_effect(bleed)
-        return f"{user.name} breathes fire for {damage} damage and inflicts {damage} Bleed!"
+        return f"{user.name} breathes fire for {damage} damage and inflicts {v} Bleed!"
 
 class Corruption(Ability):
     def use(self, user, target):
@@ -136,7 +135,34 @@ class DivineShield(Ability):
         user.grant_shields(shield_amount)
         return f"{user.name} gains a Divine Shield of {shield_amount}!"
 
-# Update MonsterType to use the new Ability classes
+# New abilities
+class PoisonDart(Ability):
+    def use(self, user, target):
+        damage = round(user.spell_power * 0.5)
+        # weakness = Weakness(2, 2)  # 2 turns of -2 damage
+        self._power_contribution = damage + 4  # Estimating the value of weakness
+        target.take_damage(damage)
+        # target.status_effects.add_effect(weakness)
+        return f"{user.name} fires a Poison Dart for {damage} damage and applies Weakness!"
+
+class ThunderClap(Ability):
+    def use(self, user, target):
+        damage = round(user.damage * 0.8)
+        # vulnerable = Vulnerable(2, 1.5)  # 2 turns of 50% increased damage taken
+        self._power_contribution = damage * 1.25  # Estimating the value of vulnerable
+        target.take_damage(damage)
+        # target.status_effects.add_effect(vulnerable)
+        return f"{user.name} uses Thunder Clap for {damage} damage and applies Vulnerable!"
+
+class LifeDrain(Ability):
+    def use(self, user, target):
+        damage = round(user.spell_power * 0.7)
+        heal = round(damage * 0.5)
+        self._power_contribution = damage + heal
+        target.take_damage(damage)
+        user.heal(heal)
+        return f"{user.name} uses Life Drain, dealing {damage} damage and healing for {heal}!"
+
 class MonsterType:
     def __init__(
         self,
@@ -158,21 +184,22 @@ class MonsterType:
 
 class Monster:
     monster_types: List[MonsterType] = [
-        MonsterType("Goblin", "G", 0.7, 0.9, 0.6, 1.0, [SneakAttack("Sneak Attack", 0.5)]),
-        MonsterType("Zombie_1", "Z1", 0.4, 1.1, 0.5, 1.0, [InfectiousBite("Infectious Bite", 0.7)]),
-        MonsterType("Orc_1", "O1", 1.0, 1.0, 0.7, 0.8, [Rage("Rage", 0.4), BattleCry("Battle Cry", 0.3)]),
-        MonsterType("Orc_2", "O2", 1.0, 0.6, 0.7, 1.0, [BattleCry("Battle Cry", 0.3), ShieldUp("Shield Up", 0.35)]),
-        MonsterType("Zombie_2", "Z2", 1.1, 0.5, 0.6, 1.0, [Regenerate("Regenerate", 0.35)]),
-        MonsterType("Troll", "T", 1.3, 1.1, 0.8, 0.6, [Regenerate("Regenerate", 0.45)]),
-        MonsterType("Guardian_1", "G1", 1.3, 0.5, 0.7, 0.7, [Fortify("Fortify", 0.4), PowerOverTime("Power over time", 0.4)]),
-        MonsterType("Guardian_2", "G2", 0.7, 0.9, 0.8, 0.7, [ShieldUp("Protect", 0.35), PowerOverTime("Power over time", 0.4), Regenerate("Mend", 0.25)]),
-        MonsterType("Witch", "W", 0.7, 0.6, 1.2, 0.7, [Curse("Curse", 0.5), MagicMissile("Magic Missile", 0.4)]),
+        MonsterType("Goblin", "G", 0.7, 0.9, 0.6, 1.0, [SneakAttack("Sneak Attack", 0.5), PoisonDart("Poison Dart", 0.3)]),
+        MonsterType("Zombie_1", "Z", 1.0, 0.8, 0.5, 1.0, [InfectiousBite("Infectious Bite", 0.7)]),
+        MonsterType("Zombie_2", "Z", 1.0, 0.8, 0.5, 1.0, [InfectiousBite("Infectious Bite", 0.7)]),
+        MonsterType("Orc_1", "O", 1.1, 1.1, 0.7, 0.8, [Rage("Rage", 0.4), BattleCry("Battle Cry", 0.3), ThunderClap("Thunder Clap", 0.3)]),
+        MonsterType("Orc_2", "O", 1.1, 1.1, 0.7, 0.8, [Rage("Rage", 0.4), BattleCry("Battle Cry", 0.3), ThunderClap("Thunder Clap", 0.3)]),
+        MonsterType("Troll", "T", 1.3, 1.1, 0.8, 0.6, [Regenerate("Regenerate", 0.45), PowerOverTime("Power over time", 0.35)]),
+        MonsterType("Witch", "W", 0.7, 0.6, 1.2, 0.7, [Curse("Curse", 0.5), MagicMissile("Magic Missile", 0.4), LifeDrain("Life Drain", 0.3)]),
+        MonsterType("Guardian_1", "GL", 1.5, 0.7, 0.5, 0.5, [Fortify("Fortify", 0.6), ShieldUp("Shield Up", 0.4)]),
+        MonsterType("Guardian_2", "D", 0.9, 1.2, 1.0, 0.4, [FireBreath("Fire Breath", 0.3), Corruption("Corruption", 0.4), LifeDrain("Life Drain", 0.3)]),
     ]
 
     boss_types: List[MonsterType] = [
-        MonsterType("Troll", "TB", 1.6, 0.7, 1.0, 1.0, [TrollRegeneration("Troll Regeneration", 0.35)]),
-        MonsterType("Dragon", "D", 1.4, 1.2, 1.3, 1.0, [FireBreath("Fire Breath", 0.20)]),
-        MonsterType("Corrupted_Paladin", "CP", 1.1, 1.1, 1.2, 1.0, [Corruption("Corruption", 0.3), HolyLight("Holy Light", 0.25), DivineShield("Divine Shield", 0.3)]),
+        MonsterType("Troll", "TK", 1.8, 1.2, 1.0, 1.0, [TrollRegeneration("Troll Regeneration", 0.4), ThunderClap("Thunder Clap", 0.3), PowerOverTime("Power over time", 0.3)]),
+        MonsterType("Dragon", "DR", 1.6, 1.4, 1.3, 1.0, [FireBreath("Fire Breath", 0.25), Fortify("Fortify", 0.2), PowerOverTime("Power over time", 0.2)]),
+        MonsterType("Corrupted Paladin", "CP", 1.4, 1.1, 1.2, 1.0, [Corruption("Corruption", 0.3), HolyLight("Holy Light", 0.25), DivineShield("Divine Shield", 0.3)]),
+        # MonsterType("Necromancer", "NC", 1.2, 0.9, 1.6, 1.0, [Curse("Curse", 0.3), LifeDrain("Life Drain", 0.3), MagicMissile("Magic Missile", 0.2), Corruption("Corruption", 0.2)]),
     ]
 
     def __init__(
@@ -191,10 +218,8 @@ class Monster:
         monster_type: MonsterType = None,
         shields: int = 0,
         level: int = 1,
-        power_rating: int = 0,
     ):
         self.name = name
-        self.health = health
         self.max_health = max_health
         self.health = health if health is not None else max_health
         self.damage = damage
@@ -210,23 +235,21 @@ class Monster:
         self.shields = shields
         self.level = level
         self.power_rating = self.calculate_power_rating()
-        self.intention: str = ""  
+        self.intention: str = ""
+
     def calculate_power_rating(self):
         base_power = (self.max_health * self.damage * self.spell_power) ** (1 / 3)
         if self.monster_type and hasattr(self.monster_type, 'abilities'):
-            ability_power = sum(
-                ability.power_contribution for ability in self.monster_type.abilities
-            )
+            ability_power = sum(ability.power_contribution for ability in self.monster_type.abilities)
         else:
             ability_power = 0
-        return base_power * (1 + ability_power / 100) 
-
+        return base_power * (1 + ability_power / 100)
 
     def __str__(self):
-        return f"{self.name} (HP: {self.health}/{self.max_health}, DMG: {self.damage})"
+        return f"{self.name} (HP: {self.health}/{self.max_health}, DMG: {self.damage}, SP: {self.spell_power})"
 
     def attack(self, player):
-        total_damage = self.damage  
+        total_damage = self.damage
         player.take_damage(total_damage)
 
     def defend(self):
@@ -236,8 +259,9 @@ class Monster:
 
     def buff(self):
         buff_amount = round(self.spell_power * 0.2)
-        # put buff here
-        return f"{self.name} buffs, gaining {buff_amount} Strength!"
+        # strength = Strength(2, buff_amount)  # 2 turns of increased damage
+        # self.status_effects.add_effect(strength)
+        return f"{self.name} buffs, gaining {buff_amount} Strength for 2 turns!"
 
     def receive_damage(self, damage: int) -> int:
         if self.shields > 0:
@@ -250,11 +274,11 @@ class Monster:
                 return self.health  # No damage to health if fully absorbed by shields
 
         old_health = self.health
-        self.health = self.health - damage
+        self.health = max(0, self.health - damage)
         actual_damage = old_health - self.health
         health_percentage = (actual_damage / self.max_health) * 100
         self.shake = round(min(health_percentage, 100))
-        return self.health
+        return actual_damage
 
     def is_alive(self) -> bool:
         return self.health > 0
@@ -265,12 +289,8 @@ class Monster:
     def heal(self, amount: int):
         self.health = min(self.max_health, self.health + amount)
 
-    def add_shields(self, amount: int):
-        self.shields += amount
-
     def take_damage(self, damage: int) -> int:
         return self.receive_damage(damage)
-
 
     def apply_status_effects(self):
         self.status_effects.apply_effects(self)
@@ -282,6 +302,7 @@ class Monster:
                 return ability.use(self, target)
 
         # Fallback to basic actions if no matching ability is found
+        print(f"no matching ability found for {action}")
         if action == "attack":
             return self.attack(target)
         elif action == "defend":
@@ -292,31 +313,48 @@ class Monster:
             return f"{self.name} does nothing."
 
     def decide_action(self, player) -> str:
-        # Simple AI: 70% chance to attack, 20% chance to defend, 10% chance to buff
-        action_roll = random.random()
-        if action_roll < 0.7:
-            self.intention = "attack"
-        elif action_roll < 0.9:
-            self.intention = "defend"
+        if self.monster_type and self.monster_type.abilities:
+            chosen_ability = random.choices(
+                self.monster_type.abilities,
+                weights=[ability.probability for ability in self.monster_type.abilities],
+                k=1
+            )[0]
+            self.intention = chosen_ability.name
         else:
-            self.intention = "buff"
+            # Simple AI: 70% chance to attack, 20% chance to defend, 10% chance to buff
+            action_roll = random.random()
+            if action_roll < 0.7:
+                self.intention = "attack"
+            elif action_roll < 0.9:
+                self.intention = "defend"
+            else:
+                self.intention = "buff"
         return self.intention
 
     @staticmethod
-    def generate(level: int):
-        name = f"Monster L{level}"
-        health = random.randint(level * 10, level * 15)
-        damage = random.randint(level * 2, level * 3)
-        image_path = "./assets/images/characters/Orc_1.png"
-        return Monster(name, health, health, damage, image_path)
+    def generate(level: int, is_boss: bool = False):
+        if is_boss:
+            monster_type = random.choice(Monster.boss_types)
+        else:
+            monster_type = random.choices(
+                Monster.monster_types,
+                weights=[1 / mt.rarity for mt in Monster.monster_types],
+                k=1
+            )[0]
 
-    @staticmethod
-    def generate_boss(level: int):
-        name = f"Boss L{level}"
-        health = random.randint(level * 20, level * 30)
-        damage = random.randint(level * 4, level * 6)
-        image_path = "./assets/images/characters/boss.png"
-        return Monster(name, health, health, damage, image_path)
+        base_health = level * 10
+        base_damage = level * 2
+        base_spell_power = level * 1.5
+
+        health = round(base_health * monster_type.health_mult * random.uniform(0.9, 1.1))
+        damage = round(base_damage * monster_type.damage_mult * random.uniform(0.9, 1.1))
+        spell_power = round(base_spell_power * monster_type.spell_power_mult * random.uniform(0.9, 1.1))
+
+        name = f"{monster_type.name} L{level}"
+        image_path = f"./assets/images/characters/{monster_type.name.lower().replace(' ', '_')}.png"
+
+        return Monster(name, health, damage, spell_power, image_path, monster_type.symbol, 
+                       monster_type=monster_type, is_boss=is_boss, level=level)
 
     def to_dict(self) -> Dict:
         return {
@@ -324,30 +362,39 @@ class Monster:
             "health": self.health,
             "max_health": self.max_health,
             "damage": self.damage,
+            "spell_power": self.spell_power,
             "image_path": self.image_path,
+            "symbol": self.symbol,
             "shields": self.shields,
             "shake": self.shake,
             "selected": self.selected,
+            "is_boss": self.is_boss,
             "status_effects": self.status_effects.to_dict(),
+            "monster_type": self.monster_type.name if self.monster_type else None,
+            "level": self.level,
             "power_rating": self.power_rating,
             "intention": self.intention
         }
 
     @classmethod
     def from_dict(cls, data: Dict) -> 'Monster':
+        monster_type = next((mt for mt in cls.monster_types + cls.boss_types if mt.name == data["monster_type"]), None)
         monster = cls(
-            
             data["name"],
-            data["health"],
             data["max_health"],
             data["damage"],
-            data["image_path"]
+            data["spell_power"],
+            data["image_path"],
+            data["symbol"],
+            health=data["health"],
+            shields=data["shields"],
+            shake=data["shake"],
+            selected=data["selected"],
+            is_boss=data["is_boss"],
+            monster_type=monster_type,
+            level=data["level"]
         )
-        monster.shields = data["shields"]
-        monster.shake = data["shake"]
-        monster.selected = data["selected"]
         monster.status_effects = StatusEffectManager.from_dict(data["status_effects"])
         monster.power_rating = data["power_rating"]
-        monster.intention = data.get("intention", "")  # Use get() to handle cases where intention might not be in the saved data
+        monster.intention = data.get("intention", "")
         return monster
-
