@@ -2,6 +2,7 @@ from typing import List
 from deckdeep.monster import Monster
 import random
 from typing import Dict
+import math
 
 class MonsterGroup:
     def __init__(self):
@@ -64,10 +65,15 @@ class MonsterGroup:
         if is_boss:
             monster_group.add_monster(Monster.generate_boss(level))
         else:
-            num_monsters = min(1 + level // 2, 3)  # Start with 1 monster, add 1 every 2 levels, max 3
-            monsters_to_fight = random.randint(1, num_monsters)
-            for _ in range(monsters_to_fight):
-                monster_group.add_monster(Monster.generate(level))
+            target_power = math.log(level + 1, 1.5) * 100  # Adjust the base and multiplier as needed
+            current_power = 0
+            max_monsters = min(5, 1 + level // 5)  # Cap at 5 monsters, increase max every 5 levels
+
+            while current_power < target_power and len(monster_group.monsters) < max_monsters:
+                new_monster = Monster.generate(level)
+                monster_group.add_monster(new_monster)
+                current_power += new_monster.power_rating
+
         return monster_group
 
     def to_dict(self) -> Dict:
