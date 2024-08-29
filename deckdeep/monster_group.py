@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 from deckdeep.monster import Monster
 import random
 from typing import Dict
@@ -59,25 +59,26 @@ class MonsterGroup:
         return sum(monster.power_rating for monster in self.monsters)
 
     @staticmethod
-    def generate(level: int, is_boss: bool = False):
+    def generate(level: int, is_boss: bool = False) -> Tuple['MonsterGroup', float, float]:
         monster_group = MonsterGroup()
+    
+        # Adjusted scaling function
+        def scaling_factor(lvl):
+            return 1 + math.log(lvl + 1, 2)  # Logarithmic scaling
+
+        base_power = 20
+        target_power = base_power * scaling_factor(level)
+    
+        # Add a small amount of randomness (±10%)
+        target_power *= random.uniform(0.9, 1.1)
+
+        current_power = 0
+        max_monsters = 5
         if is_boss:
-            monster_group.add_monster(Monster.generate(level, is_boss=True))
-        else:
-            # Calculate the average monster power
-            avg_monster_power = Monster.generate(level).power_rating
-
-            # New scaling function
-            def scaling_factor(lvl):
-                if lvl <= 10:
-                    return 1 + (2 * lvl / 10)  # Linear scaling from 1:1 to 3:1
-                else:
-                    return 3 + (2 * (lvl - 10) / 30)  # Linear scaling from 3:1 to 5:1
-
-            target_power = avg_monster_power * scaling_factor(level)
-            current_power = 0
-            max_monsters = 5
-
+            boss = Monster.generate(level,is_boss=True)
+            monster_group.add_monster(boss)
+            return monster_group , target_power, boss.power_rating
+        else: 
             while current_power < target_power and len(monster_group.monsters) < max_monsters:
                 new_monster = Monster.generate(level)
                 monster_group.add_monster(new_monster)
@@ -85,11 +86,12 @@ class MonsterGroup:
 
             # Add elite monster with a certain probability
             if random.random() < 0.15 and len(monster_group.monsters) < max_monsters:
-                elite_level = min(level + 2, int(level * 1.3))  # Cap elite level increase
+                elite_level = min(level + 2, int(level * 1.3))
                 elite_monster = Monster.generate(elite_level)
                 monster_group.add_monster(elite_monster)
 
-        return monster_group
+            actual_power = monster_group.get_power_rating()
+        return monster_group, target_power, actual_power
 
     def to_dict(self) -> Dict:
         return {
