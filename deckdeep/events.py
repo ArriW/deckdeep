@@ -218,7 +218,7 @@ class ForgottenShrine(Event):
         return "You don't have enough HP to make the offering."
 
     def cleanse(self, player):
-        player.remove_curse(len(player.curses))
+        player.remove_curses(len(player.curses))
         return "All curses have been removed from your deck."
 
     def leave(self, player):
