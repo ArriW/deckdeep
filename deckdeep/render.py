@@ -245,7 +245,7 @@ def render_combat_state(screen: pygame.Surface, player: Player, monster_group: M
     
     pygame.display.flip()
 
-def render_victory_state(screen: pygame.Surface, score: int, new_cards: List[Card], selected_card: int, assets: GameAssets):
+def render_victory_state(screen: pygame.Surface, score: int, new_cards: List[Card], selected_card: int, assets: GameAssets, player: Player):
     screen.blit(assets.victory_image, (0, 0))
     # screen.fill(BLACK)
     header_height = scale(200)
@@ -257,12 +257,17 @@ def render_victory_state(screen: pygame.Surface, score: int, new_cards: List[Car
     render_text(screen, "Victory!", SCREEN_WIDTH // 2 - 50, 50)
     render_text(screen, f"Score: {score}", SCREEN_WIDTH // 2 - 50, 100)
     render_text(screen, "Select a card to add to your deck:", SCREEN_WIDTH // 2 - 150, 150)
-    render_text(screen, "Press number keys to select a card, or SPACE to skip", SCREEN_WIDTH // 2 - 250, 175)
+    render_text(screen, "Press number keys to select a card, or #4 to skip and gain +5 max HP", SCREEN_WIDTH // 2 - 250, 175)
     
     for i, card in enumerate(new_cards):
         render_card(screen, card, scale(250) + i * (CARD_WIDTH + CARD_SPACING), scale(250), i == selected_card, assets, hotkey=i+1)
     
     render_text(screen, "#4: Skip", scale(250) + 3 * (CARD_WIDTH + CARD_SPACING), scale(250), color=WHITE)
+
+
+    render_health_bar(screen, scale(50), scale(50), scale(200), scale(20), player.health,player.max_health, GREEN)
+    render_health_bar(screen, scale(50), scale(70), scale(200), scale(20), player.energy,player.max_energy ,BLUE)
+
     
     pygame.display.flip()
 
@@ -293,7 +298,7 @@ def render_menu(screen: pygame.Surface, options: List[str], selected: int, asset
    
     pygame.display.flip()
 
-def render_text_event(screen: pygame.Surface, text: str, options: List[str], assets: GameAssets):
+def render_text_event(screen: pygame.Surface, text: str, options: List[str], assets: GameAssets, player: Player):
     screen.blit(assets.background_image, (0, 0))
     
     text_box_width = scale(600)
@@ -329,6 +334,9 @@ def render_text_event(screen: pygame.Surface, text: str, options: List[str], ass
         pygame.draw.rect(screen, GRAY, (text_box_x, option_y, text_box_width, option_height))
         pygame.draw.rect(screen, BLACK, (text_box_x, option_y, text_box_width, option_height), 2)
         render_text(screen, f"#{i+1}: {option}", text_box_x + scale(20), option_y + scale(10))
+
+    render_health_bar(screen, scale(50), scale(50), scale(200), scale(20),player.health,player.max_health, GREEN)
+    render_health_bar(screen, scale(50), scale(70), scale(200), scale(20), player.energy,player.max_energy ,BLUE)
     
     pygame.display.flip()
 

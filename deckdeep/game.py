@@ -187,7 +187,10 @@ class Game:
         self.logger.info("New game started", category="SYSTEM")
 
     def generate_node_tree(self):
-        self.node_tree = Node("combat", self.stage, 1, 1, {"monsters": MonsterGroup.generate((self.stage - 1) * 9 + 1)})
+        root_level = (self.stage - 1) * 9 + 1
+        monster_group, target_power, actual_power = MonsterGroup.generate(root_level)
+        self.node_tree = Node("combat", self.stage, 1, root_level, {"monsters": monster_group})
+        self.logger.info(f"Generated root node monster group: Target power: {target_power:.2f}, Actual power: {actual_power:.2f}", category="SYSTEM")
         current_level = [self.node_tree]
 
         for level in range(2, 10):
@@ -196,12 +199,17 @@ class Game:
                 num_children = random.randint(2, 3)
                 for _ in range(num_children):
                     true_level = (self.stage - 1) * 9 + level
+                
                     if level == 9:
-                        child = Node("boss", self.stage, level, true_level, {"monsters": MonsterGroup.generate(true_level, is_boss=True)})
+                        monster_group, target_power, actual_power = MonsterGroup.generate(true_level, is_boss=True)
+                        child = Node("boss", self.stage, level, true_level, {"monsters": monster_group})
+                        self.logger.info(f"Generated boss node monster group: Level {true_level}, Target power: {target_power:.2f}, Actual power: {actual_power:.2f}", category="SYSTEM")
                     else:
                         node_type = random.choice(["combat", "event", "combat"])
                         if node_type == "combat":
-                            content = {"monsters": MonsterGroup.generate(true_level)}
+                            monster_group, target_power, actual_power = MonsterGroup.generate(true_level)
+                            content = {"monsters": monster_group}
+                            self.logger.info(f"Generated combat node monster group: Level {true_level}, Target power: {target_power:.2f}, Actual power: {actual_power:.2f} , Delta{actual_power-target_power}", category="SYSTEM")
                         else:
                             content = {"event": get_random_event()}
                         child = Node(node_type, self.stage, level, true_level, content)
@@ -492,7 +500,7 @@ class Game:
             render_combat_state(self.screen, self.player, self.monster_group, f"{self.current_node.stage}:{self.current_node.level}", self.score, self.selected_card, self.assets)
         elif self.current_node.node_type == "event":
             if self.current_event:
-                render_text_event(self.screen, self.current_event.name, [option[0] for option in self.current_event.options], self.assets)
+                render_text_event(self.screen, self.current_event.name, [option[0] for option in self.current_event.options], self.assets, self.player)
             else:
                 self.logger.error("current_event is None in render method", category="SYSTEM")
 
@@ -544,7 +552,7 @@ class Game:
         running = True
 
         while running:
-            render_victory_state(self.screen, self.score, new_cards, selected_card, assets)
+            render_victory_state(self.screen, self.score, new_cards, selected_card, assets,player=self.player)
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:

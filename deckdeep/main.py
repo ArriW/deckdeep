@@ -6,16 +6,16 @@ from deckdeep.logger import setup_game_logger
 def main():
     # Initialize the logger
     logger = setup_game_logger(name='deckdeep_logger', log_file='deckdeep.log')
-    logger.info("Starting D&D Deckbuilder", category="SYSTEM")
+    logger.info("Starting Deckdeep Deckbuilder", category="SYSTEM")
 
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    pygame.display.set_caption("D&D Deckbuilder")
+    pygame.display.set_caption("Deckdeep Deckbuilder")
     
     game = Game(screen, logger)
     game.run()
 
-    logger.info("Shutting down D&D Deckbuilder", category="SYSTEM")
+    logger.info("Shutting down Deckdeep Deckbuilder", category="SYSTEM")
     pygame.quit()
 
 if __name__ == "__main__":
