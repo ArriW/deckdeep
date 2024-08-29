@@ -261,7 +261,7 @@ class Monster:
     ]
 
     boss_types: List[MonsterType] = [
-        MonsterType("Troll", "TK", 2.4, 1.4, 1.0, 1.0, [TrollRegeneration("Troll Regeneration", 0.4), PowerOverTime("Power over time", 0.3), BasicAttack("Sword Attack", 0.3)]),
+        MonsterType("Troll", "TK", 2.4, 1.4, 1.0, 1.0, [TrollRegeneration("Troll Regeneration", 0.25), PowerOverTime("Power over time", 0.2), BasicAttack("Sword Attack", 0.55)]),
         MonsterType("Dragon", "DR", 1.8, 1.6, 1.3, 1.0, [FireBreath("Fire Breath", 0.25), Fortify("Fortify", 0.2), BasicAttack("Claw Attack", 0.35)]),
         MonsterType("Corrupted Paladin", "CP", 1.5, 1.2, 1.7, 1.0, [BasicAttack("Chalice of the wicked",.6),Corruption("Corruption", 0.2), HolyLight("Holy Light", 0.10), DivineShield("Divine Shield", 0.1)]),
         # MonsterType("Necromancer", "NC", 1.2, 0.9, 1.6, 1.0, [Curse("Curse", 0.3), LifeDrain("Life Drain", 0.3), MagicMissile("Magic Missile", 0.2), Corruption("Corruption", 0.2)]),
@@ -303,12 +303,14 @@ class Monster:
         self.intention: str = ""
 
     def calculate_power_rating(self):
-        base_power = (self.max_health * self.damage * self.spell_power) ** (1 / 3)
-        if self.monster_type and hasattr(self.monster_type, 'abilities'):
-            ability_power = sum(ability.power_contribution for ability in self.monster_type.abilities)
-        else:
-            ability_power = 0
-        return base_power * (1 + ability_power / 100)
+        base_survivability = self.max_health / 6  # Assuming the player deals ~6 damage per round
+        ability_power = sum(self.calculate_ability_power(ability) for ability in self.monster_type.abilities)
+        
+        return base_survivability * ability_power
+
+    def calculate_ability_power(self, ability):
+        # Calculate the expected contribution of the ability per round
+        return ability.power_contribution * ability.probability
 
     def __str__(self):
         return f"{self.name} (HP: {self.health}/{self.max_health}, DMG: {self.damage}, SP: {self.spell_power})"
@@ -395,15 +397,17 @@ class Monster:
                 k=1
             )[0]
 
-        base_health = level * 4 + 12
-        base_damage = level * 1.2 + 6
-        base_spell_power = level * 1.2 + 6
+        # Logarithmic scaling for base stats
+        base_health = 12 + math.log(level + 1, 1.5) * 8
+        base_damage = 6 + math.log(level + 1, 2) * 3
+        base_spell_power = 6 + math.log(level + 1, 2) * 3
 
+        # Apply monster type multipliers and random variation
         health = round(base_health * monster_type.health_mult * random.uniform(0.9, 1.1))
         damage = round(base_damage * monster_type.damage_mult * random.uniform(0.9, 1.1))
         spell_power = round(base_spell_power * monster_type.spell_power_mult * random.uniform(0.9, 1.1))
 
-        name = f"{monster_type.name} L{level}"
+        name = f"{monster_type.name} L{level} power"
         image_path = f"./assets/images/characters/{monster_type.name.lower().replace(' ', '_')}.png"
 
         return Monster(name, health, damage, spell_power, image_path, monster_type.symbol, 

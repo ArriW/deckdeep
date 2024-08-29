@@ -24,6 +24,9 @@ class MonsterGroup:
 
     def random_monster(self) -> Monster:
         return random.choice(self.monsters)
+
+    def get_power_rating(self) -> int:
+        return sum([monster.calculate_power_rating() for monster in self.monsters])
     
     def select_previous(self):
         self.monsters[self.selected_index].selected = False
@@ -61,9 +64,10 @@ class MonsterGroup:
         if is_boss:
             monster_group.add_monster(Monster.generate(level, is_boss=True))
         else:
-            target_power = math.log(level + 1, 2) * 200  # Increased base power
+            # Logarithmic scaling for target power
+            target_power = math.log(level + 1, 1.5) * 100
             current_power = 0
-            max_monsters = min(5, 1 + level // 5)  # Cap at 5 monsters, increase max every 5 levels
+            max_monsters = min(5, 1 + level // 5) 
 
             while current_power < target_power and len(monster_group.monsters) < max_monsters:
                 new_monster = Monster.generate(level)
@@ -71,8 +75,9 @@ class MonsterGroup:
                 current_power += new_monster.power_rating
 
             # Add elite monster with a certain probability
-            if random.random() < 0.2 and len(monster_group.monsters) < max_monsters:
-                elite_monster = Monster.generate(level + 2)
+            if random.random() < 0.15 and len(monster_group.monsters) < max_monsters:
+                elite_level = min(level + 2, int(level * 1.3))  # Cap elite level increase
+                elite_monster = Monster.generate(elite_level)
                 monster_group.add_monster(elite_monster)
 
         return monster_group
