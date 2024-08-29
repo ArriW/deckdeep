@@ -496,34 +496,34 @@ class Monster:
         spell_power: int,
         image_path: str,
         symbol: str = "",
-        health: int = None,
+        health: Optional[int] = None,
         size: int = 100,
         shake: int = 0,
         selected: bool = False,
         is_boss: bool = False,
-        monster_type: MonsterType = None,
+        monster_type: Optional['MonsterType'] = None,
         shields: int = 0,
         level: int = 1,
     ):
-        self.name = name
-        self.max_health = max_health
-        self.health = max_health  # Always start with max health
-        self.damage = damage
-        self.spell_power = spell_power
-        self.image_path = image_path
-        self.symbol = symbol
-        self.size = scale(size)
-        self.shake = shake
-        self.selected = selected
-        self.is_boss = is_boss
-        self.status_effects = StatusEffectManager()
-        self.monster_type = monster_type
-        self.shields = shields
-        self.level = level
+        self.name: str = name
+        self.max_health: int = max_health
+        self.health: int = health if health is not None else max_health
+        self.damage: int = damage
+        self.spell_power: int = spell_power
+        self.image_path: str = image_path
+        self.symbol: str = symbol
+        self.size: int = scale(size)
+        self.shake: int = shake
+        self.selected: bool = selected
+        self.is_boss: bool = is_boss
+        self.status_effects: StatusEffectManager = StatusEffectManager()
+        self.monster_type: Optional['MonsterType'] = monster_type
+        self.shields: int = shields
+        self.level: int = level
         self.intention: Optional[Ability] = None
         self.intention_icon_types: List[IconType] = []
 
-        self.power_rating = self.calculate_power_rating()
+        self.power_rating: float = self.calculate_power_rating()
 
     def calculate_power_rating(self):
         base_survivability = (
