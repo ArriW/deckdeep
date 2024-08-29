@@ -101,7 +101,14 @@ class VictorySequence:
             new_x = x + speed_x * 2
             new_y = y + speed_y * 2
             new_size = int(size * (1 - progress))
-            self.particles[i] = (new_x, new_y, new_size, color, speed_x, speed_y)
+            self.particles[i] = (
+                int(new_x),
+                int(new_y),
+                new_size,
+                color,
+                speed_x,
+                speed_y,
+            )
 
         return True
 
@@ -246,7 +253,9 @@ class Game:
         self.game_over = False
         self.generate_node_tree()
         self.current_node = self.node_tree
-        self.monster_group = self.current_node.content["monsters"]
+        self.monster_group = self.current_node.content[
+            "monsters"
+        ]  # pylint: # type: ignore
         self.initialize_combat()
         self.apply_relic_effects(TriggerWhen.START_OF_COMBAT)
         self.logger.info("New game started", category="SYSTEM")
@@ -515,6 +524,11 @@ class Game:
                     )
                 self.selected_card = -1
                 self.apply_relic_effects(TriggerWhen.ON_ATTACK)
+            else:
+                self.logger.info(
+                    f"Player tried to play card: {card.name} but didn't have enough energy",
+                    category="COMBAT",
+                )
 
     def update(self):
         if self.current_node.node_type in ["combat", "boss"]:
@@ -824,8 +838,10 @@ class Game:
     def save_game(self):
         save_data = {
             "player": self.player.to_dict(),
-            "node_tree": self.node_tree.to_dict(),
-            "current_node_path": self.get_node_path(self.node_tree, self.current_node),
+            "node_tree": self.node_tree.to_dict(),  # pylint: # type: ignore
+            "current_node_path": self.get_node_path(
+                self.node_tree, self.current_node
+            ),  # pylint: # type: ignore
             "stage": self.stage,
             "score": self.score,
             "game_over": self.game_over,
@@ -862,7 +878,7 @@ class Game:
             self.logger.info("Starting a new game", category="SYSTEM")
             self.new_game()
 
-    def get_node_path(self, root: Node, target: Node) -> List[int]:
+    def get_node_path(self, root: Node, target: Node) -> List[Node]:
         def dfs(node: Node, path: List[int]) -> Optional[List[int]]:
             if node == target:
                 return path

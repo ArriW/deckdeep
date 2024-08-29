@@ -3,7 +3,7 @@ import random
 from deckdeep.card import Card, get_player_starting_deck
 from typing import Dict, Optional
 from deckdeep.status_effect import StatusEffectManager, Bleed
-from deckdeep.relic import Relic, TriggerWhen
+from deckdeep.relic import Relic
 
 
 class Player:
