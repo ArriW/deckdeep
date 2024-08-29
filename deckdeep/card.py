@@ -51,7 +51,7 @@ class Card:
             Card("Time Warp", 3, 0.3, card_draw=3, energy_bonus=1),
             Card("Venomous Strike", 2, 0.7, damage=7, bleed=4),
             Card("Arcane Missile", 1, 0.8, damage=3, targets_all=True),
-            Card("Soul Drain", 3, 0.5, damage=10, healing=10, health_cost=5),
+            Card("Soul Drain", 3, 0.5, damage=18, health_regain=4, health_cost=10),
 
             # F
 
@@ -73,7 +73,7 @@ class Card:
             Card("Battle Stance", 2, 1, damage=5, shield=10),
             Card("Power Strike", 2, 1, damage=15),
             Card("Holy Light", 2, 0.7, healing=10, shield=5),
-            Card("Fan of Knives", 1, 1, damage=1, targets_all=True, bleed=1),
+            Card("Fan of Knives", 1, 1, damage=1, targets_all=True, bleed=2),
             Card("Boon", 0, 1, bonus_damage=2),
             Card("Exchange",2,.7,bleed=3,health_regain=3),
             
@@ -84,10 +84,10 @@ class Card:
             Card("Whirlwind", 3, 0.7, damage=2, shield=3, targets_all=True, bleed=2),
             Card("Fireball", 4, 0.7, damage=14, targets_all=True),
             Card("Vampiric Touch", 2, .7, damage=8, healing=8),
-            Card("Trap Door",4,0.6, bleed=18,bonus_damage=3),
+            Card("Trap Door",4,0.6, bleed=15,bonus_damage=3),
             
             # S
-            Card("Panic!",3, 0.5, card_draw=3, health_cost=15),
+            Card("Panic!",1, 0.5, card_draw=5, health_cost=20),
             Card("Regeneration", 2, 0.3, health_regain=5),
             Card("Foresight", 2, .7, shield=5, card_draw=2),
             Card("Monstrosity", 2, 0.3, health_regain=5,health_cost=10,bonus_damage=4),

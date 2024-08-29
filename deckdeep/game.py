@@ -182,9 +182,9 @@ class Game:
         self.generate_node_tree()
         self.current_node = self.node_tree
         self.monster_group = self.current_node.content["monsters"]
+        self.initialize_combat()  
         self.apply_relic_effects(TriggerWhen.START_OF_COMBAT)
         self.logger.info("New game started", category="SYSTEM")
-    
 
     def generate_node_tree(self):
         self.node_tree = Node("combat", self.stage, 1, 1, {"monsters": MonsterGroup.generate((self.stage - 1) * 9 + 1)})
@@ -391,6 +391,9 @@ class Game:
             self.player.apply_status_effects()
             self.monster_group.remove_dead_monsters()
         
+            for monster in self.monster_group.monsters:
+                monster.apply_status_effects()
+                self.monster_group.remove_dead_monsters()
             # Execute previous intentions
             for i, monster in enumerate(self.monster_group.monsters):
                 if i < len(self.monster_intentions) and monster.is_alive():
@@ -404,8 +407,6 @@ class Game:
         
             self.apply_relic_effects(TriggerWhen.ON_DAMAGE_TAKEN)
             self.player.end_turn()
-            for monster in self.monster_group.monsters:
-                monster.apply_status_effects()
             self.player_turn = True
             self.apply_relic_effects(TriggerWhen.START_OF_TURN)
             self.logger.debug("Turn ended, new turn started", category="COMBAT")
@@ -466,47 +467,6 @@ class Game:
             self.text_event_selection = 0
             self.logger.info(f"Event started: {self.current_event.name}", category="EVENT")
 
-    # In the Game class, modify the combat_victory method:
-    def combat_victory(self):
-        self.apply_relic_effects(TriggerWhen.END_OF_COMBAT)
-        self.player.heal(self.player.hp_regain_per_level)
-        self.player.reset_energy()
-        self.logger.info(f"Combat victory at node level: {self.current_node.level}", category="COMBAT")
-        self.player.increase_max_energy(self.current_node.level)
-
-        victory_sequence = VictorySequence(self.screen, self.assets)
-        victory_sequence.start()
-
-        running = True
-        while running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.running = False
-                    return
-                elif event.type == pygame.KEYDOWN:
-                    running = False
-
-            self.render()  # Render the current game state
-            running = victory_sequence.update()
-            victory_sequence.render()
-            pygame.display.flip()
-            self.clock.tick(60)
-
-        new_card = self.victory_screen(self.assets)
-        if new_card:
-            self.player.add_card_to_deck(new_card)
-            self.logger.info(f"New card added to deck: {new_card.name}", category="PLAYER")
-
-        self.player.reset_hand()
-        self.auto_save()
-
-        if self.current_node.node_type == "boss":
-            self.next_stage()
-        else:
-            self.select_next_node()
-
-
-
 
     def next_stage(self):
         self.stage += 1
@@ -550,7 +510,7 @@ class Game:
             self.logger.debug(f"Node content: {self.current_node}", category="SYSTEM")
             if self.current_node.node_type in ["combat", "boss"]:
                 self.monster_group = self.current_node.content["monsters"]
-                self.logger.debug(f"Monster group: {self.monster_group}", category="COMBAT")
+                self.logger.debug(f"Monster group: Power{self.monster_group.get_power_rating()} {self.monster_group}", category="COMBAT")
                 self.initialize_combat()  # Initialize combat when entering a combat node
             elif self.current_node.node_type == "event":
                 self.current_event = self.current_node.content["event"]
