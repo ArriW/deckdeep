@@ -13,7 +13,6 @@ from deckdeep.config import (
 from deckdeep.config import WHITE, BLACK, GRAY, YELLOW, GREEN, BLUE, RED, BEIGE, PURPLE
 from deckdeep.config import FONT, SMALL_FONT, CARD_FONT
 from deckdeep.config import (
-    HEADER_HEIGHT,
     END_TURN_BUTTON_X,
     END_TURN_BUTTON_Y,
     VIEW_DECK_BUTTON_X,
@@ -29,7 +28,6 @@ from deckdeep.assets import GameAssets
 from deckdeep.relic import Relic
 import random
 from collections import Counter
-from pygame import QUIT, KEYDOWN, K_ESCAPE, K_RETURN, K_BACKSPACE, K_UP, K_DOWN
 from deckdeep.monster import IconType
 
 # Imports only for type checking to avoid circular imports

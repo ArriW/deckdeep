@@ -520,7 +520,7 @@ class Monster:
         self.monster_type = monster_type
         self.shields = shields
         self.level = level
-        self.intention: str = ""
+        self.intention: Optional[Ability] = None
         self.intention_icon_types: List[IconType] = []
 
         self.power_rating = self.calculate_power_rating()
@@ -592,32 +592,28 @@ class Monster:
     def apply_status_effects(self):
         self.status_effects.apply_effects(self)
 
-    def execute_action(self, action: str, target):
-        if self.monster_type and self.monster_type.abilities:
-            ability = next(
-                (a for a in self.monster_type.abilities if a.name == action), None
-            )
-            if ability:
-                return ability.use(self, target)
-
-        print(f"WARNING: no matching ability found for {action}")
-        return f"{self.name} does nothing."
+    def execute_action(self, target):
+        if self.intention:
+            print(f"DEBUG: Executing ability {self.intention.__class__.__name__} for {self.name}")
+            return self.intention.use(self, target)
+        else:
+            print(f"WARNING: No intention set for {self.name}")
+            return f"{self.name} does nothing."
 
     def decide_action(self, player) -> str:
         if self.monster_type and self.monster_type.abilities:
-            chosen_ability = random.choices(
+            self.intention = random.choices(
                 self.monster_type.abilities,
-                weights=[
-                    ability.probability for ability in self.monster_type.abilities
-                ],
-                k=1,
+                weights=[ability.probability for ability in self.monster_type.abilities],
+                k=1
             )[0]
-            self.intention = chosen_ability.name
-            self.intention_icon_types = chosen_ability.icon_types
+            self.intention_icon_types = self.intention.icon_types
+            print(f"DEBUG: {self.name} decided to use {self.intention.__class__.__name__}")
+            return self.intention.__class__.__name__
         else:
             print(f"WARNING: {self.name} has no abilities")
             self.intention_icon_types = [IconType.UNKNOWN]
-        return self.intention
+            return "No Action"
 
     @staticmethod
     def generate(level: int, is_boss: bool = False):
@@ -676,7 +672,7 @@ class Monster:
             "monster_type": self.monster_type.name if self.monster_type else None,
             "level": self.level,
             "power_rating": self.power_rating,
-            "intention": self.intention,
+            "intention": self.intention.__class__.__name__ if self.intention else None,
         }
 
     @classmethod
@@ -706,5 +702,6 @@ class Monster:
         )
         monster.status_effects = StatusEffectManager.from_dict(data["status_effects"])
         monster.power_rating = data["power_rating"]
-        monster.intention = data.get("intention", "")
+        if data["intention"]:
+            monster.intention = next((a for a in monster.monster_type.abilities if a.__class__.__name__ == data["intention"]), None)
         return monster
