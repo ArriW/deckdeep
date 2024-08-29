@@ -5,6 +5,7 @@ from deckdeep.player import Player
 from deckdeep.render import handle_card_selection
 from deckdeep.logger import GameLogger
 
+
 class Event:
     def __init__(self, name: str, options: list):
         self.name = name
@@ -12,10 +13,11 @@ class Event:
 
     def execute_option(self, option_method, player, assets):
         method = getattr(self, option_method)
-        if 'assets' in method.__code__.co_varnames:
+        if "assets" in method.__code__.co_varnames:
             return method(player, assets)
         else:
             return method(player)
+
 
 class VoodooDoctor(Event):
     def __init__(self):
@@ -41,10 +43,10 @@ class VoodooDoctor(Event):
 
     def sketchy_potion(self, player: Player):
         possible_outcomes = [
-            lambda: setattr(player, 'energy', player.energy + 10),
-            lambda: setattr(player, 'health', player.health + 10),
-            lambda: setattr(player, 'max_health', player.max_health + 10),
-            lambda: setattr(player, 'shield', player.shield + 10)
+            lambda: setattr(player, "energy", player.energy + 10),
+            lambda: setattr(player, "health", player.health + 10),
+            lambda: setattr(player, "max_health", player.max_health + 10),
+            lambda: setattr(player, "shield", player.shield + 10),
         ]
         select_random_outcome = random.choice(possible_outcomes)
         select_random_outcome()
@@ -52,6 +54,7 @@ class VoodooDoctor(Event):
 
     def leave(self, player):
         return "You leave the Voodoo Doctor's tent."
+
 
 class Medic(Event):
     def __init__(self):
@@ -75,11 +78,12 @@ class Medic(Event):
         return "You don't have enough HP to pay for the Vitality Boost."
 
     def heal(self, player):
-        player.heal(h:=50)
+        player.heal(h := 50)
         return f"You healed {h} HP."
 
     def leave(self, player):
         return "You leave the Medic's tent."
+
 
 class Priest(Event):
     def __init__(self):
@@ -93,7 +97,7 @@ class Priest(Event):
         )
 
     def heal(self, player):
-        player.heal(h:=50)
+        player.heal(h := 50)
         return f"You healed for {h} HP."
 
     def remove_curse(self, player):
@@ -102,6 +106,7 @@ class Priest(Event):
 
     def leave(self, player):
         return "You leave the Priest's temple."
+
 
 class Thrifter(Event):
     def __init__(self):
@@ -131,6 +136,7 @@ class Thrifter(Event):
     def leave(self, player, assets):
         return "You leave the Thrifter's shop."
 
+
 class CursedWell(Event):
     def __init__(self):
         cursed_coin = get_relic_by_name("Cursed Coin")
@@ -152,13 +158,17 @@ class CursedWell(Event):
     def leave(self, player):
         return "You back away from the Cursed Well."
 
+
 class Scribe(Event):
     def __init__(self):
         super().__init__(
-            "Scribe\nIn a dimly lit study, you encounter a wizened scribe surrounded by ancient tomes and scrolls. " 
+            "Scribe\nIn a dimly lit study, you encounter a wizened scribe surrounded by ancient tomes and scrolls. "
             "The air crackles with magical energy as the scribe offers to duplicate one of your cards.",
             [
-                ("Duplicate a card (Add 1 copy of a card to your deck)", "duplicate_card"),
+                (
+                    "Duplicate a card (Add 1 copy of a card to your deck)",
+                    "duplicate_card",
+                ),
                 ("Leave", "leave"),
             ],
         )
@@ -169,15 +179,21 @@ class Scribe(Event):
         if chosen_index is not None:
             duplicated_card = player.duplicate_card_in_deck(chosen_index)
             if duplicated_card:
-                return f"The scribe's quill dances across a blank parchment, creating an exact copy of your '{duplicated_card.name}'. " \
-                       f"A duplicate has been added to your deck."
+                return (
+                    f"The scribe's quill dances across a blank parchment, creating an exact copy of your '{duplicated_card.name}'. "
+                    f"A duplicate has been added to your deck."
+                )
             else:
                 return "The scribe frowns. Something went wrong, and no card was duplicated."
         return "You decide not to duplicate any card."
 
     def leave(self, player, assets):
-        return "You thank the scribe for their offer but decide to continue on your journey. " \
-               "The scribe nods understanding, returning to their arcane studies."
+        return (
+            "You thank the scribe for their offer but decide to continue on your journey. "
+            "The scribe nods understanding, returning to their arcane studies."
+        )
+
+
 class AncientLibrary(Event):
     def __init__(self):
         paper_weight = get_relic_by_name("Paper Weight")
@@ -195,6 +211,7 @@ class AncientLibrary(Event):
 
     def leave(self, player):
         return "You leave the Ancient Library."
+
 
 class ForgottenShrine(Event):
     def __init__(self):
@@ -224,18 +241,25 @@ class ForgottenShrine(Event):
     def leave(self, player):
         return "You leave the Forgotten Shrine undisturbed."
 
+
 class RestSite(Event):
     def __init__(self):
         self.heal_amount = 50
         self.energy_gain = 2
         self.damage_gain = 2
-        
+
         super().__init__(
             "Rest Site: You discover a tranquil clearing in the forest. A mystical fountain bubbles nearby, and an ancient altar stands silent. The air is thick with restorative energy.",
             [
                 (f"Drink from the fountain (Heal {self.heal_amount} HP)", "heal"),
-                (f"Meditate at the altar (Gain {self.energy_gain} energy and {self.damage_gain} bonus damage)", "boost"),
-                ("Offer a card to the forest spirits (Remove 1 card from your deck)", "remove_card"),
+                (
+                    f"Meditate at the altar (Gain {self.energy_gain} energy and {self.damage_gain} bonus damage)",
+                    "boost",
+                ),
+                (
+                    "Offer a card to the forest spirits (Remove 1 card from your deck)",
+                    "remove_card",
+                ),
                 ("Continue your journey", "leave"),
             ],
         )
@@ -263,15 +287,19 @@ class RestSite(Event):
     def leave(self, player, assets):
         return "You leave the peaceful clearing, feeling refreshed and ready to face new challenges."
 
+
 class Defender(Event):
     def __init__(self):
         self.damage_percentage = 20
         self.shield_rune = get_relic_by_name("Shield Rune")
-        
+
         super().__init__(
             f"Defender: A caravan of travelers has been ambushed by bandits. Defend and help them, suffering {self.damage_percentage}% of your current health as damage, and be rewarded the '{self.shield_rune.name}'.",
             [
-                (f"Defend caravan (Take {self.damage_percentage}% damage, gain '{self.shield_rune.name}')", "defend"),
+                (
+                    f"Defend caravan (Take {self.damage_percentage}% damage, gain '{self.shield_rune.name}')",
+                    "defend",
+                ),
                 ("Leave (Abandon a card from your deck)", "leave"),
             ],
         )
@@ -292,6 +320,7 @@ class Defender(Event):
             else:
                 return "Something went wrong. No card was removed."
         return "You must abandon a card to leave. The event continues."
+
 
 class DarkMerchant(Event):
     def __init__(self):
@@ -315,6 +344,7 @@ class DarkMerchant(Event):
 
     def leave(self, player):
         return "You decline the mysterious offer and walk away."
+
 
 def get_random_event():
     events = [
