@@ -2,7 +2,7 @@ import pygame
 
 # Screen dimensions
 SCREEN_WIDTH = 1450
-SCREEN_HEIGHT = int(SCREEN_WIDTH * 2/3)
+SCREEN_HEIGHT = int(SCREEN_WIDTH * 2 / 3)
 
 # Calibration
 CALIBRATED_WIDTH = 1200
@@ -18,9 +18,11 @@ RED = (255, 0, 0)
 BEIGE = (245, 245, 220)
 PURPLE = (128, 0, 128)
 
+
 # Scaling function
 def scale(original_pixel_weight: int) -> int:
     return round(original_pixel_weight / CALIBRATED_WIDTH * SCREEN_WIDTH)
+
 
 # Game constants
 CARD_WIDTH = scale(160)

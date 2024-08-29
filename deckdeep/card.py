@@ -1,6 +1,7 @@
 import random
 from typing import List, Dict
 
+
 class Card:
     def __init__(
         self,
@@ -19,7 +20,7 @@ class Card:
         health_regain: int = 0,
     ):
         self.name = name
-        self.damage = int(damage) 
+        self.damage = int(damage)
         self.bonus_damage = int(bonus_damage)
         self.healing = int(healing)
         self.shield = int(shield)
@@ -36,7 +37,6 @@ class Card:
     def generate_card_pool(num_cards: int = 3) -> List["Card"]:
         card_pool = [
             # Unclassified
-
             Card("Poison Dart", 1, 0.8, damage=3, bleed=3),
             Card("Mana Surge", 1, 0.6, energy_bonus=1, card_draw=1),
             Card("Life Tap", 1, 0.7, card_draw=2, health_cost=5),
@@ -44,7 +44,9 @@ class Card:
             Card("Inspire", 2, 0.6, bonus_damage=3, card_draw=1, healing=5),
             Card("Blood Pact", 4, 0.4, damage=20, health_cost=10, bleed=5),
             Card("Meditation", 1, 0.7, shield=5, health_regain=2),
-            Card("Chain Lightning", 3, 0.5, damage=12, targets_all=True, energy_bonus=1),
+            Card(
+                "Chain Lightning", 3, 0.5, damage=12, targets_all=True, energy_bonus=1
+            ),
             Card("Siphon Soul", 2, 0.6, damage=8, healing=4, bleed=2),
             Card("Fortify", 2, 0.7, shield=12, bonus_damage=2),
             Card("Rage", 1, 0.6, bonus_damage=5, health_cost=3),
@@ -52,52 +54,46 @@ class Card:
             Card("Venomous Strike", 2, 0.7, damage=7, bleed=4),
             Card("Arcane Missile", 1, 0.8, damage=3, targets_all=True),
             Card("Soul Drain", 3, 0.5, damage=18, health_regain=4, health_cost=10),
-
             # F
-
             # D
-
             # C
-            Card("Major Heal", 2, .9, healing=15),
+            Card("Major Heal", 2, 0.9, healing=15),
             Card("Charm", 2, 0.6, shield=15, healing=3),
-            Card("Revive",9,.3,healing=100),
+            Card("Revive", 9, 0.3, healing=100),
             Card("Overload", 3, 0.7, damage=15, health_cost=10, targets_all=True),
-
-            Card("Healing Potion", 2, 0.7, healing=10,health_regain=3),
+            Card("Healing Potion", 2, 0.7, healing=10, health_regain=3),
             # B
-            Card("Crooked Trade",1,0.8,health_cost=5,bonus_damage=5),
+            Card("Crooked Trade", 1, 0.8, health_cost=5, bonus_damage=5),
             Card("Ice Armor", 1, 0.7, shield=15, health_cost=4),
             Card("Hidden Dagger", 1, 1, damage=6, bleed=2),
             Card("Lacerate", 1, 1, bleed=4),
-            Card("Barricade", 6, .2, shield=60),
+            Card("Barricade", 6, 0.2, shield=60),
             Card("Battle Stance", 2, 1, damage=5, shield=10),
             Card("Power Strike", 2, 1, damage=15),
             Card("Holy Light", 2, 0.7, healing=10, shield=5),
             Card("Fan of Knives", 1, 1, damage=1, targets_all=True, bleed=2),
             Card("Boon", 0, 1, bonus_damage=2),
-            Card("Exchange",2,.7,bleed=3,health_regain=3),
-            
-            
+            Card("Exchange", 2, 0.7, bleed=3, health_regain=3),
             # A
-            Card("Patience", 1, .7, bonus_damage=3, card_draw=1),
-            Card("Cleave", 2, .9, damage=6, targets_all=True),
+            Card("Patience", 1, 0.7, bonus_damage=3, card_draw=1),
+            Card("Cleave", 2, 0.9, damage=6, targets_all=True),
             Card("Whirlwind", 3, 0.7, damage=2, shield=3, targets_all=True, bleed=2),
             Card("Fireball", 4, 0.7, damage=14, targets_all=True),
-            Card("Vampiric Touch", 2, .7, damage=8, healing=8),
-            Card("Trap Door",4,0.6, bleed=15,bonus_damage=3),
-            
+            Card("Vampiric Touch", 2, 0.7, damage=8, healing=8),
+            Card("Trap Door", 4, 0.6, bleed=15, bonus_damage=3),
             # S
-            Card("Panic!",1, 0.5, card_draw=5, health_cost=20),
+            Card("Panic!", 1, 0.5, card_draw=5, health_cost=20),
             Card("Regeneration", 2, 0.3, health_regain=5),
-            Card("Foresight", 2, .7, shield=5, card_draw=2),
-            Card("Monstrosity", 2, 0.3, health_regain=5,health_cost=10,bonus_damage=4),
+            Card("Foresight", 2, 0.7, shield=5, card_draw=2),
+            Card(
+                "Monstrosity", 2, 0.3, health_regain=5, health_cost=10, bonus_damage=4
+            ),
             Card("Retreat.", 5, 0.5, card_draw=4, shield=15),
-            Card("Lightning", 4, 0.7, damage=10, bonus_damage=2,targets_all=True),
-            Card("Culling", 4, 0.7, damage=25,bleed=5),
-
+            Card("Lightning", 4, 0.7, damage=10, bonus_damage=2, targets_all=True),
+            Card("Culling", 4, 0.7, damage=25, bleed=5),
             # SS
             Card("Dragon Fire", 6, 0.3, damage=30, targets_all=True),
-            Card("@allcosts", 1, 0.3, energy_bonus=2, health_cost=20,bonus_damage=6),
+            Card("@allcosts", 1, 0.3, energy_bonus=2, health_cost=20, bonus_damage=6),
         ]
         return random.choices(
             card_pool, weights=[card.rarity for card in card_pool], k=num_cards
@@ -112,18 +108,19 @@ class Card:
     def from_dict(cls, data: Dict) -> "Card":
         return cls(**data)
 
-def get_player_starting_deck()-> List[Card]:
+
+def get_player_starting_deck() -> List[Card]:
     return [
-    Card("Quick Strike", 1, 1, damage=6),
-    Card("Quick Strike", 1, 1, damage=6),
-    Card("Quick Strike", 1, 1, damage=6),
-    Card("Quick Strike", 1, 1, damage=6),
-    Card("Soulful Persuit", 0, 1, bonus_damage=2),
-    Card("Soulful Persuit", 0, 1, bonus_damage=2),
-    Card("Shield", 1, 1, shield=6),
-    Card("Shield", 1, 1, shield=6),
-    Card("Shield", 1, 1, shield=6),
-    Card("Shield", 1, 1, shield=6),
-    Card("Power Strike", 2, 1, damage=15),
-    Card("AW's Gift", 0, 1, card_draw=1,health_regain=1, healing=3),
-]
+        Card("Quick Strike", 1, 1, damage=6),
+        Card("Quick Strike", 1, 1, damage=6),
+        Card("Quick Strike", 1, 1, damage=6),
+        Card("Quick Strike", 1, 1, damage=6),
+        Card("Soulful Persuit", 0, 1, bonus_damage=2),
+        Card("Soulful Persuit", 0, 1, bonus_damage=2),
+        Card("Shield", 1, 1, shield=6),
+        Card("Shield", 1, 1, shield=6),
+        Card("Shield", 1, 1, shield=6),
+        Card("Shield", 1, 1, shield=6),
+        Card("Power Strike", 2, 1, damage=15),
+        Card("AW's Gift", 0, 1, card_draw=1, health_regain=1, healing=3),
+    ]
