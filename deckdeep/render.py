@@ -209,8 +209,8 @@ def render_monsters(screen: pygame.Surface, monster_group: MonsterGroup, assets:
 
             if monster.shake > 0:
                 monster.shake -= 1
-        except AttributeError:
-            print("Error rendering monster intention icons, maybe game just loaded?")
+        except AttributeError as e:
+            print(f"Error rendering monster intention icons, maybe game just loaded? {e}")
 
 def render_combat_state(screen: pygame.Surface, player: Player, monster_group: MonsterGroup, dungeon_level: str, score: int, selected_card: int, assets: GameAssets):
     screen.blit(assets.background_image, (0, 0))
