@@ -540,13 +540,11 @@ class Game:
                 self.monster_group.remove_dead_monsters()
             # Execute previous intentions
             for i, monster in enumerate(self.monster_group.monsters):
-                if i < len(self.monster_intentions) and monster.is_alive():
-                    intention = self.monster_intentions[i]
-                    result = monster.execute_action(intention, self.player)
-                    self.logger.debug(
-                        f"Monster {monster.name} executed action: {result}",
-                        category="COMBAT",
-                    )
+                result = monster.execute_action(self.player)
+                self.logger.debug(
+                    f"Monster {i} {monster.name} executed action: {result}",
+                    category="COMBAT",
+                )
 
             # Set new intentions for the next turn
             self.monster_intentions = self.monster_group.decide_action(self.player)
