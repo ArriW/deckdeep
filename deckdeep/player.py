@@ -2,8 +2,9 @@ from typing import List
 import random
 from deckdeep.card import Card, get_player_starting_deck
 from typing import Dict, Optional
-from deckdeep.status_effect import StatusEffectManager, Bleed 
+from deckdeep.status_effect import StatusEffectManager, Bleed
 from deckdeep.relic import Relic, TriggerWhen
+
 
 class Player:
     def __init__(self, name: str, health: int, symbol: str):
@@ -15,8 +16,8 @@ class Player:
         self.energy = 3
         self.max_energy = 3
         self.symbol = symbol
-        self.hand_limit = 7 
-        self.deck: List[Card] = get_player_starting_deck() 
+        self.hand_limit = 7
+        self.deck: List[Card] = get_player_starting_deck()
         self.hand: List[Card] = []
         self.discard_pile: List[Card] = []
         self.size = 100
@@ -52,19 +53,23 @@ class Player:
         score = 0
         if self.can_play_card(card):
             self.bonus_damage += card.bonus_damage
-            total_damage = round(card.damage + self.bonus_damage + self.strength) if card.damage > 0 else 0
-            
+            total_damage = (
+                round(card.damage + self.bonus_damage + self.strength)
+                if card.damage > 0
+                else 0
+            )
+
             if card.targets_all:
                 score += monster_group.receive_damage(total_damage)
                 for monster in monster_group.monsters:
-                    if hasattr(card, 'bleed') and card.bleed > 0:
+                    if hasattr(card, "bleed") and card.bleed > 0:
                         monster.status_effects.add_effect(Bleed(card.bleed))
             else:
                 target_monster = monster_group.get_selected_monster()
                 score += target_monster.receive_damage(total_damage)
-                if hasattr(card, 'bleed') and card.bleed > 0:
+                if hasattr(card, "bleed") and card.bleed > 0:
                     target_monster.status_effects.add_effect(Bleed(card.bleed))
-            
+
             self.heal(round(card.healing))
             self.health -= card.health_cost
             self.shield += card.shield
@@ -72,7 +77,7 @@ class Player:
 
             for _ in range(card.card_draw):
                 self.draw_card()
-            
+
             self.discard_pile.append(card)
             self.hand.remove(card)
         return score
@@ -83,7 +88,7 @@ class Player:
     def add_block(self, amount: int):
         self.shield += amount
 
-    def remove_curses(self,amount:int=1):
+    def remove_curses(self, amount: int = 1):
         for card in self.deck:
             if card.name == "Curse":
                 self.deck.remove(card)
@@ -97,7 +102,7 @@ class Player:
             return 0
 
         old_health = self.health
-    
+
         # Handle shield absorption
         if self.shield > 0:
             if damage <= self.shield:
@@ -106,23 +111,23 @@ class Player:
             else:
                 damage -= self.shield
                 self.shield = 0
-    
+
         # Apply remaining damage to health
         self.health = self.health - damage
-    
+
         # Phoenix Feather effect
         if self.health <= 0 and self.phoenix_feather_active:
             self.health = 1
             self.phoenix_feather_active = False
             print(f"{self.name} survived with 1 HP thanks to Phoenix Feather!")
-    
+
         # Calculate actual damage taken
         actual_damage = old_health - self.health
-    
+
         # Calculate shake based on percentage of max health
         health_percentage = (actual_damage / self.max_health) * 100
         self.shake = round(min(health_percentage, 100))
-    
+
         return actual_damage
 
     def end_turn(self):
@@ -141,8 +146,12 @@ class Player:
     def reset_energy(self):
         self.energy = self.max_energy
 
-    def increase_max_energy(self, level: Optional[int] = None, force: bool = False,):
-        if level is not None and level % 3 == 0 and self.max_energy < 10: 
+    def increase_max_energy(
+        self,
+        level: Optional[int] = None,
+        force: bool = False,
+    ):
+        if level is not None and level % 3 == 0 and self.max_energy < 10:
             print(f"{self.name} gained +1 max energy!")
             self.max_energy += 1
             self.energy = self.max_energy
@@ -172,25 +181,31 @@ class Player:
         self.relics.append(relic)
 
     def to_dict(self) -> Dict:
-        base_dict = {key: value for key, value in vars(self).items() if not key.startswith('_')}
-        base_dict['deck'] = [card.to_dict() for card in self.deck]
-        base_dict['hand'] = [card.to_dict() for card in self.hand]
-        base_dict['discard_pile'] = [card.to_dict() for card in self.discard_pile]
-        base_dict['status_effects'] = self.status_effects.to_dict()
-        base_dict['relics'] = [relic.to_dict() for relic in self.relics]
+        base_dict = {
+            key: value for key, value in vars(self).items() if not key.startswith("_")
+        }
+        base_dict["deck"] = [card.to_dict() for card in self.deck]
+        base_dict["hand"] = [card.to_dict() for card in self.hand]
+        base_dict["discard_pile"] = [card.to_dict() for card in self.discard_pile]
+        base_dict["status_effects"] = self.status_effects.to_dict()
+        base_dict["relics"] = [relic.to_dict() for relic in self.relics]
         return base_dict
 
     @classmethod
-    def from_dict(cls, data: Dict) -> 'Player':
+    def from_dict(cls, data: Dict) -> "Player":
         player = cls(data["name"], data["max_health"], data["symbol"])
         for key, value in data.items():
-            if key not in ['deck', 'hand', 'discard_pile', 'status_effects', 'relics']:
+            if key not in ["deck", "hand", "discard_pile", "status_effects", "relics"]:
                 setattr(player, key, value)
         player.deck = [Card.from_dict(card_data) for card_data in data["deck"]]
         player.hand = [Card.from_dict(card_data) for card_data in data["hand"]]
-        player.discard_pile = [Card.from_dict(card_data) for card_data in data["discard_pile"]]
+        player.discard_pile = [
+            Card.from_dict(card_data) for card_data in data["discard_pile"]
+        ]
         player.status_effects = StatusEffectManager.from_dict(data["status_effects"])
-        player.relics = [Relic.from_dict(relic_data) for relic_data in data.get("relics", [])]
+        player.relics = [
+            Relic.from_dict(relic_data) for relic_data in data.get("relics", [])
+        ]
         return player
 
     def get_sorted_full_deck(self) -> List[Card]:
@@ -227,7 +242,7 @@ class Player:
                 health_cost=card_to_duplicate.health_cost,
                 bleed=card_to_duplicate.bleed,
                 energy_bonus=card_to_duplicate.energy_bonus,
-                health_regain=card_to_duplicate.health_regain
+                health_regain=card_to_duplicate.health_regain,
             )
             # Add the new card to the same pile as the original card
             if card_to_duplicate in self.deck:
