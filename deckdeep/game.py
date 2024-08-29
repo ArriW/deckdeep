@@ -499,7 +499,7 @@ class Game:
     def initialize_combat(self):
         self.monster_intentions = self.monster_group.decide_action(self.player)
         self.logger.debug(f"Initial monster intentions: {self.monster_intentions}", category="COMBAT")
-        self.player_turn = True  # Ensure the player goes first
+        self.player_turn = True
         self.apply_relic_effects(TriggerWhen.START_OF_COMBAT)
 
     def select_next_node(self):
@@ -510,8 +510,8 @@ class Game:
             self.logger.debug(f"Node content: {self.current_node}", category="SYSTEM")
             if self.current_node.node_type in ["combat", "boss"]:
                 self.monster_group = self.current_node.content["monsters"]
-                self.logger.debug(f"Monster group: Power{self.monster_group.get_power_rating()} {self.monster_group}", category="COMBAT")
-                self.initialize_combat()  # Initialize combat when entering a combat node
+                self.logger.debug(f"Monster group: Power {round(self.monster_group.get_power_rating())} {self.monster_group}", category="COMBAT")
+                self.initialize_combat()
             elif self.current_node.node_type == "event":
                 self.current_event = self.current_node.content["event"]
                 self.text_event_selection = 0

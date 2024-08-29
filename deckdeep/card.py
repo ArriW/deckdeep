@@ -96,7 +96,7 @@ class Card:
             Card("Culling", 4, 0.7, damage=25,bleed=5),
 
             # SS
-            Card("Dragon Fire", 5, 0.3, damage=30, targets_all=True),
+            Card("Dragon Fire", 6, 0.3, damage=30, targets_all=True),
             Card("@allcosts", 1, 0.3, energy_bonus=2, health_cost=20,bonus_damage=6),
         ]
         return random.choices(
