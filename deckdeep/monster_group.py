@@ -4,6 +4,7 @@ import random
 from typing import Dict
 import math
 
+
 class MonsterGroup:
     def __init__(self):
         self.monsters: List[Monster] = []
@@ -27,7 +28,7 @@ class MonsterGroup:
 
     def get_power_rating(self) -> int:
         return sum([monster.calculate_power_rating() for monster in self.monsters])
-    
+
     def select_previous(self):
         self.monsters[self.selected_index].selected = False
         self.selected_index = (self.selected_index - 1) % len(self.monsters)
@@ -47,7 +48,7 @@ class MonsterGroup:
             monster.attack(player)
 
     def decide_action(self, player) -> List[str]:
-            return [monster.decide_action(player) for monster in self.monsters]
+        return [monster.decide_action(player) for monster in self.monsters]
 
     def receive_damage(self, damage: int) -> int:
         total_damage_dealt = 0
@@ -59,27 +60,32 @@ class MonsterGroup:
         return sum(monster.power_rating for monster in self.monsters)
 
     @staticmethod
-    def generate(level: int, is_boss: bool = False) -> Tuple['MonsterGroup', float, float]:
+    def generate(
+        level: int, is_boss: bool = False
+    ) -> Tuple["MonsterGroup", float, float]:
         monster_group = MonsterGroup()
-    
+
         # Adjusted scaling function
         def scaling_factor(lvl):
             return 1 + math.log(lvl + 1, 2)  # Logarithmic scaling
 
         base_power = 20
         target_power = base_power * scaling_factor(level)
-    
+
         # Add a small amount of randomness (±10%)
         target_power *= random.uniform(0.9, 1.1)
 
         current_power = 0
         max_monsters = 5
         if is_boss:
-            boss = Monster.generate(level,is_boss=True)
+            boss = Monster.generate(level, is_boss=True)
             monster_group.add_monster(boss)
-            return monster_group , target_power, boss.power_rating
-        else: 
-            while current_power < target_power and len(monster_group.monsters) < max_monsters:
+            return monster_group, target_power, boss.power_rating
+        else:
+            while (
+                current_power < target_power
+                and len(monster_group.monsters) < max_monsters
+            ):
                 new_monster = Monster.generate(level)
                 monster_group.add_monster(new_monster)
                 current_power += new_monster.power_rating
@@ -96,13 +102,15 @@ class MonsterGroup:
     def to_dict(self) -> Dict:
         return {
             "monsters": [monster.to_dict() for monster in self.monsters],
-            "selected_index": self.selected_index
+            "selected_index": self.selected_index,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict) -> 'MonsterGroup':
+    def from_dict(cls, data: Dict) -> "MonsterGroup":
         monster_group = cls()
-        monster_group.monsters = [Monster.from_dict(monster_data) for monster_data in data["monsters"]]
+        monster_group.monsters = [
+            Monster.from_dict(monster_data) for monster_data in data["monsters"]
+        ]
         monster_group.selected_index = data["selected_index"]
         return monster_group
 
