@@ -64,10 +64,19 @@ class MonsterGroup:
         if is_boss:
             monster_group.add_monster(Monster.generate(level, is_boss=True))
         else:
-            # Logarithmic scaling for target power
-            target_power = math.log(level + 1, 1.5) * 100
+            # Calculate the average monster power
+            avg_monster_power = Monster.generate(level).power_rating
+
+            # New scaling function
+            def scaling_factor(lvl):
+                if lvl <= 10:
+                    return 1 + (2 * lvl / 10)  # Linear scaling from 1:1 to 3:1
+                else:
+                    return 3 + (2 * (lvl - 10) / 30)  # Linear scaling from 3:1 to 5:1
+
+            target_power = avg_monster_power * scaling_factor(level)
             current_power = 0
-            max_monsters = min(5, 1 + level // 5) 
+            max_monsters = 5
 
             while current_power < target_power and len(monster_group.monsters) < max_monsters:
                 new_monster = Monster.generate(level)

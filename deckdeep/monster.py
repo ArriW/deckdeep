@@ -23,32 +23,41 @@ class Ability(ABC):
         self._power_contribution = 0
         self.icon_types = icon_types
 
-
     @abstractmethod
     def use(self, user, target):
+        pass
+
+    @abstractmethod
+    def calculate_power_contribution(self, user):
         pass
 
     @property
     def power_contribution(self):
         return self._power_contribution
 
+    @power_contribution.setter
+    def power_contribution(self, value):
+        self._power_contribution = value
+
 class BasicAttack(Ability):
     def __init__(self, name: str, probability: float):
         super().__init__(name, probability, [IconType.ATTACK])
     def use(self, user, target):
         damage = user.damage
-        self._power_contribution = damage
         target.take_damage(damage)
         return f"{user.name} attacks for {damage} damage!"
+    def calculate_power_contribution(self, user):
+        return user.damage
 
 class SneakAttack(Ability):
     def __init__(self, name: str, probability: float):
         super().__init__(name, probability, [IconType.ATTACK])
     def use(self, user, target):
         damage = round(user.damage * 1.5)
-        self._power_contribution = damage
         target.take_damage(damage)
         return f"{user.name} performs a Sneak Attack for {damage} damage!"
+    def calculate_power_contribution(self, user):
+        return round(user.damage * 1.5)
 
 class InfectiousBite(Ability):
     def __init__(self, name: str, probability: float):
@@ -56,10 +65,11 @@ class InfectiousBite(Ability):
     def use(self, user, target):
         target.take_damage(user.damage*.25)
         bleed_damage = max(round(user.damage * 0.25),3)
-        self._power_contribution = bleed_damage
         bleed = Bleed(bleed_damage)
         target.status_effects.add_effect(bleed)
         return f"{user.name} inflicts an Infectious Bite, causing {bleed_damage} Bleed!"
+    def calculate_power_contribution(self, user):
+        return max(round(user.damage * 0.25),3)
 
 class Rage(Ability):
     def __init__(self, name: str, probability: float):
@@ -67,44 +77,49 @@ class Rage(Ability):
     def use(self, user, target):
         old_damage = user.damage
         user.damage = round(user.damage * 1.2)
-        self._power_contribution = user.damage - old_damage
         return f"{user.name} enters a Rage, increasing damage from {old_damage} to {user.damage}!"
+    def calculate_power_contribution(self, user):
+        return round(user.damage * 0.2)
 
 class BattleCry(Ability):
     def __init__(self, name: str, probability: float):
         super().__init__(name, probability, [IconType.HEAL])
     def use(self, user, target):
         heal_amount = round(user.spell_power * 0.5)
-        self._power_contribution = heal_amount
         user.heal(heal_amount)
         return f"{user.name} uses Battle Cry, healing for {heal_amount}!"
+    def calculate_power_contribution(self, user):
+        return round(user.spell_power * 0.5)
 
 class ShieldUp(Ability):
     def __init__(self, name: str, probability: float):
         super().__init__(name, probability, [IconType.DEFEND])
     def use(self, user, target):
         shield_amount = round(user.max_health * 0.3)
-        self._power_contribution = shield_amount
         user.grant_shields(shield_amount)
         return f"{user.name} uses Shield Up, gaining {shield_amount} shields!"
+    def calculate_power_contribution(self, user):
+        return round(user.max_health * 0.3)
 
 class Regenerate(Ability):
     def __init__(self, name: str, probability: float):
         super().__init__(name, probability, [IconType.HEAL])
     def use(self, user, target):
         heal_amount = round(user.max_health * 0.25)
-        self._power_contribution = heal_amount
         user.heal(heal_amount)
         return f"{user.name} Regenerates, healing for {heal_amount}!"
+    def calculate_power_contribution(self, user):
+        return round(user.max_health * 0.25)
 
 class Fortify(Ability):
     def __init__(self, name: str, probability: float):
         super().__init__(name, probability, [IconType.DEFEND])
     def use(self, user, target):
         shield_amount = round(user.max_health * 0.2)
-        self._power_contribution = shield_amount
         user.grant_shields(shield_amount)
         return f"{user.name} Fortifies, gaining {shield_amount} shields!"
+    def calculate_power_contribution(self, user):
+        return round(user.max_health * 0.2)
 
 class PowerOverTime(Ability):
     def __init__(self, name: str, probability: float):
@@ -113,28 +128,31 @@ class PowerOverTime(Ability):
         old_damage = user.damage
         damage_dealt = round(user.damage)
         user.damage = round(user.damage * 1.2)
-        self._power_contribution = (user.damage - old_damage) + damage_dealt
         target.take_damage(damage_dealt)
         return f"{user.name}'s power increases from {old_damage} to {user.damage} and deals {damage_dealt} damage!"
+    def calculate_power_contribution(self, user):
+        return round(user.damage * 0.2) + user.damage
 
 class Curse(Ability):
     def __init__(self, name: str, probability: float):
         super().__init__(name, probability, [IconType.MAGIC, IconType.BLEED])
     def use(self, user, target):
         bleed_damage = round(user.spell_power * 0.3)
-        self._power_contribution = bleed_damage
         bleed = Bleed(bleed_damage)
         target.status_effects.add_effect(bleed)
         return f"{user.name} Curses the target, causing {bleed_damage} Bleed!"
+    def calculate_power_contribution(self, user):
+        return round(user.spell_power * 0.3)
 
 class MagicMissile(Ability):
     def __init__(self, name: str, probability: float):
         super().__init__(name, probability, [IconType.MAGIC])
     def use(self, user, target):
         damage = round(user.spell_power)
-        self._power_contribution = damage
         target.take_damage(damage)
         return f"{user.name} casts Magic Missile for {damage} damage!"
+    def calculate_power_contribution(self, user):
+        return round(user.spell_power)
 
 class TrollRegeneration(Ability):
     def __init__(self, name: str, probability: float):
@@ -142,75 +160,75 @@ class TrollRegeneration(Ability):
     def use(self, user, target):
         heal_amount = round(user.max_health * 0.1)
         regen_amount = round(user.spell_power * 0.3)
-        self._power_contribution = heal_amount + regen_amount
         user.heal(heal_amount)
         regen = HealthRegain(regen_amount)
         user.status_effects.add_effect(regen)
         return f"{user.name} uses Troll Regeneration, healing for {heal_amount} and gaining {regen_amount} Health Regeneration!"
+    def calculate_power_contribution(self, user):
+        return round(user.max_health * 0.1) + round(user.spell_power * 0.3)
 
 class FireBreath(Ability):
     def __init__(self, name: str, probability: float):
         super().__init__(name, probability, [IconType.ATTACK, IconType.BLEED])
     def use(self, user, target):
         damage = round(user.spell_power * 1.5)
-        self._power_contribution = damage * 0.5 * self.probability 
         bleed = Bleed(v:=round(damage * 0.1))
         target.take_damage(damage)
         target.status_effects.add_effect(bleed)
         return f"{user.name} breathes fire for {damage} damage and inflicts {v} Bleed!"
+    def calculate_power_contribution(self, user):
+        damage = round(user.spell_power * 1.5)
+        return damage + round(damage * 0.1)
 
 class Corruption(Ability):
     def __init__(self, name: str, probability: float):
         super().__init__(name, probability, [IconType.BLEED])
     def use(self, user, target):
-        user.spell_power += user.spell_power * 0.2
+        user.spell_power += round(user.spell_power * 0.2)
         bleed_damage = round(user.spell_power * 0.3)
-        self._power_contribution = bleed_damage
         bleed = Bleed(bleed_damage)
         target.status_effects.add_effect(bleed)
         return f"{user.name} corrupts the target, causing {bleed_damage} Bleed!"
+    def calculate_power_contribution(self, user):
+        return round(user.spell_power * 0.3)
 
 class HolyLight(Ability):
     def __init__(self, name: str, probability: float):
         super().__init__(name, probability, [IconType.HEAL])
     def use(self, user, target):
         heal_amount = round(user.max_health * 0.3)
-        self._power_contribution = heal_amount
         user.heal(heal_amount)
         return f"{user.name} uses Holy Light, healing for {heal_amount}!"
+    def calculate_power_contribution(self, user):
+        return round(user.max_health * 0.3)
 
 class DivineShield(Ability):
     def __init__(self, name: str, probability: float):
         super().__init__(name, probability, [IconType.DEFEND])
     def use(self, user, target):
         shield_amount = round(user.max_health * 0.4)
-        self._power_contribution = shield_amount
         user.grant_shields(shield_amount)
         return f"{user.name} gains a Divine Shield of {shield_amount}!"
+    def calculate_power_contribution(self, user):
+        return round(user.max_health * 0.4)
 
-# New abilities
 class PoisonDart(Ability):
     def __init__(self, name: str, probability: float):
         super().__init__(name, probability, [IconType.ATTACK, IconType.BLEED])
     def use(self, user, target):
         damage = round(user.spell_power * 0.5)
-        # weakness = Weakness(2, 2)  # 2 turns of -2 damage
-        self._power_contribution = damage + 4  # Estimating the value of weakness
         target.take_damage(damage)
-        # target.status_effects.add_effect(weakness)
         return f"{user.name} fires a Poison Dart for {damage} damage and applies Weakness!"
+    def calculate_power_contribution(self, user):
+        return round(user.spell_power * 0.5) + 4  # Estimating the value of weakness
 
 class ThunderClap(Ability):
     def __init__(self, name: str, probability: float):
         super().__init__(name, probability, [IconType.ATTACK, IconType.BUFF])
     def use(self, user, target):
         raise NotImplementedError("ThunderClap is not implemented yet")
-        damage = round(user.damage * 0.8)
-        # vulnerable = Vulnerable(2, 1.5)  # 2 turns of 50% increased damage taken
-        self._power_contribution = damage * 1.25  # Estimating the value of vulnerable
-        target.take_damage(damage)
-        # target.status_effects.add_effect(vulnerable)
-        return f"{user.name} uses Thunder Clap for {damage} damage and applies Vulnerable!"
+    def calculate_power_contribution(self, user):
+        return round(user.damage * 0.8 * 1.25)  # Estimating the value of vulnerable
 
 class LifeDrain(Ability):
     def __init__(self, name: str, probability: float):
@@ -218,15 +236,12 @@ class LifeDrain(Ability):
     def use(self, user, target):
         damage = round(user.spell_power * 0.7)
         heal = round(damage * 0.5)
-        self._power_contribution = damage + heal
         target.take_damage(damage)
         user.heal(heal)
         return f"{user.name} uses Life Drain, dealing {damage} damage and healing for {heal}!"
-
-# ADD ENERGY DRAIN ABILITY
-# ADD BUFF REMOVAL 
-# ADD SELF CLEANSE
-
+    def calculate_power_contribution(self, user):
+        damage = round(user.spell_power * 0.7)
+        return damage + round(damage * 0.5)
 
 class MonsterType:
     def __init__(
@@ -250,8 +265,10 @@ class MonsterType:
 class Monster:
     monster_types: List[MonsterType] = [
         MonsterType("Goblin", "G", 0.7, 0.9, 0.6, 1.0, [SneakAttack("Sneak Attack", 0.5), PoisonDart("Poison Dart", 0.3)]),
-        MonsterType("Zombie_1", "Z", 0.8, 1.0, 0.5, 1.0, [InfectiousBite("Infectious Bite", 0.7),BasicAttack("Claw", 0.3)]),
-        MonsterType("Zombie_2", "Z", 0.8, 1.0, 0.5, 1.0, [InfectiousBite("Infectious Bite", 0.7),BasicAttack("Claw", 0.3)]),
+        MonsterType("Zombie_1", "Z", 0.8, 1.0, 0.3, 1.0, [InfectiousBite("Infectious Bite", 0.7),BasicAttack("Claw", 0.3)]),
+        MonsterType("Zombie_1", "Z", 0.8, 1.0, 0.3, 1.0, [InfectiousBite("Infectious Bite", 0.7),BasicAttack("Claw", 0.3)]),
+        MonsterType("Zombie_3", "Z", 0.3, 0.3, 0.3, 1.0, [InfectiousBite("Infectious Bite", 0.7),BasicAttack("Claw", 0.3)]),
+        MonsterType("Zombie_4", "Z", 0.3, 0.3, 0.3, 1.0, [InfectiousBite("Infectious Bite", 0.7),BasicAttack("Claw", 0.3)]),
         MonsterType("Orc_1", "O", 0.9, 1.1, 0.7, 0.8, [Rage("Rage", 0.4), BasicAttack("Axe Attack", 0.6)]),
         MonsterType("Orc_2", "O", 1.1, 0.9, 0.7, 0.8, [BattleCry("Battle Cry", 0.3), ShieldUp("Block",0.2),BasicAttack("Axe Attack", 0.5)]),
         MonsterType("Troll", "T", 1.3, 1.1, 0.8, 0.6, [Regenerate("Regenerate", 0.35), BasicAttack("Fist", 0.65)]),
@@ -264,7 +281,6 @@ class Monster:
         MonsterType("Troll", "TK", 2.4, 1.4, 1.0, 1.0, [TrollRegeneration("Troll Regeneration", 0.25), PowerOverTime("Power over time", 0.2), BasicAttack("Sword Attack", 0.55)]),
         MonsterType("Dragon", "DR", 1.8, 1.6, 1.3, 1.0, [FireBreath("Fire Breath", 0.25), Fortify("Fortify", 0.2), BasicAttack("Claw Attack", 0.35)]),
         MonsterType("Corrupted Paladin", "CP", 1.5, 1.2, 1.7, 1.0, [BasicAttack("Chalice of the wicked",.6),Corruption("Corruption", 0.2), HolyLight("Holy Light", 0.10), DivineShield("Divine Shield", 0.1)]),
-        # MonsterType("Necromancer", "NC", 1.2, 0.9, 1.6, 1.0, [Curse("Curse", 0.3), LifeDrain("Life Drain", 0.3), MagicMissile("Magic Missile", 0.2), Corruption("Corruption", 0.2)]),
     ]
 
     def __init__(
@@ -286,7 +302,7 @@ class Monster:
     ):
         self.name = name
         self.max_health = max_health
-        self.health = health if health is not None else max_health
+        self.health = max_health  # Always start with max health
         self.damage = damage
         self.spell_power = spell_power
         self.image_path = image_path
@@ -299,18 +315,20 @@ class Monster:
         self.monster_type = monster_type
         self.shields = shields
         self.level = level
-        self.power_rating = self.calculate_power_rating()
         self.intention: str = ""
+        self.intention_icon_types: List[IconType] = []
+        
+        self.power_rating = self.calculate_power_rating()
 
     def calculate_power_rating(self):
         base_survivability = self.max_health / 6  # Assuming the player deals ~6 damage per round
-        ability_power = sum(self.calculate_ability_power(ability) for ability in self.monster_type.abilities)
-        
+        ability_power = sum(self.calculate_ability_power(ability) for ability in self.monster_type.abilities) if self.monster_type else 0
         return base_survivability * ability_power
 
     def calculate_ability_power(self, ability):
-        # Calculate the expected contribution of the ability per round
-        return ability.power_contribution * ability.probability
+        # Calculate the power contribution without applying effects
+        power_contribution = ability.calculate_power_contribution(self)
+        return power_contribution * ability.probability
 
     def __str__(self):
         return f"{self.name} (HP: {self.health}/{self.max_health}, DMG: {self.damage}, SP: {self.spell_power})"
@@ -326,8 +344,6 @@ class Monster:
 
     def buff(self):
         buff_amount = round(self.spell_power * 0.2)
-        # strength = Strength(2, buff_amount)  # 2 turns of increased damage
-        # self.status_effects.add_effect(strength)
         return f"{self.name} buffs, gaining {buff_amount} Strength for 2 turns!"
 
     def receive_damage(self, damage: int) -> int:
@@ -368,7 +384,6 @@ class Monster:
             if ability:
                 return ability.use(self, target)
 
-        # Fallback to basic actions if no matching ability is foundi
         print(f"WARNING: no matching ability found for {action}")
         return f"{self.name} does nothing."
 
@@ -397,17 +412,15 @@ class Monster:
                 k=1
             )[0]
 
-        # Logarithmic scaling for base stats
-        base_health = 12 + math.log(level + 1, 1.5) * 8
-        base_damage = 6 + math.log(level + 1, 2) * 3
-        base_spell_power = 6 + math.log(level + 1, 2) * 3
+        base_health = 12 + math.log(level + 1, 3) * 8
+        base_damage = 6 + math.log(level + 1, 3) * 3
+        base_spell_power = 6 + math.log(level + 1, 3) * 3
 
-        # Apply monster type multipliers and random variation
         health = round(base_health * monster_type.health_mult * random.uniform(0.9, 1.1))
         damage = round(base_damage * monster_type.damage_mult * random.uniform(0.9, 1.1))
         spell_power = round(base_spell_power * monster_type.spell_power_mult * random.uniform(0.9, 1.1))
 
-        name = f"{monster_type.name} L{level} power"
+        name = f"{monster_type.name} L{level}"
         image_path = f"./assets/images/characters/{monster_type.name.lower().replace(' ', '_')}.png"
 
         return Monster(name, health, damage, spell_power, image_path, monster_type.symbol, 
@@ -443,7 +456,7 @@ class Monster:
             data["spell_power"],
             data["image_path"],
             data["symbol"],
-            health=data["health"],
+            health=data["max_health"],  # Always start with max health
             shields=data["shields"],
             shake=data["shake"],
             selected=data["selected"],
