@@ -301,8 +301,9 @@ class Game:
                                 MonsterGroup.generate(true_level)
                             )
                             content = {"monsters": monster_group}
+
                             self.logger.info(
-                                f"Generated combat node monster group: Level {true_level}, Target power: {target_power:.2f}, Actual power: {actual_power:.2f} , Delta{actual_power-target_power}",
+                                f"Generated combat node monster group: Level {true_level}, Target power: {target_power:.2f}, Actual power: {actual_power:.2f} , Delta: {round(actual_power-target_power)}",
                                 category="SYSTEM",
                             )
                         else:

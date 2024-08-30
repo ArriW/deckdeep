@@ -74,13 +74,13 @@ class InfectiousBite(Ability):
 
     def use(self,user,target) -> str:
         target.take_damage(user.damage * 0.25)
-        bleed_damage = max(round(user.damage * 0.25), 3)
+        bleed_damage = max(round(user.damage * 0.25), 1)
         bleed = Bleed(bleed_damage)
         target.status_effects.add_effect(bleed)
         return f"{user.name} inflicts an Infectious Bite, causing {bleed_damage} Bleed!"
 
     def calculate_power_contribution(self, user):
-        return max(round(user.damage * 0.25), 3)
+        return max(round(user.damage * 0.25), 1)
 
 
 class Rage(Ability):
@@ -168,26 +168,27 @@ class Curse(Ability):
         super().__init__(name, probability, [IconType.MAGIC, IconType.BLEED])
 
     def use(self,user,target) -> str:
-        bleed_damage = round(user.spell_power * 0.3)
+        bleed_damage = max(round(user.spell_power * 0.2),1)
         bleed = Bleed(bleed_damage)
         target.status_effects.add_effect(bleed)
         return f"{user.name} Curses the target, causing {bleed_damage} Bleed!"
 
     def calculate_power_contribution(self, user):
-        return round(user.spell_power * 0.3)
+        return max(round(user.spell_power * 0.2),1)
 
 
 class MagicMissile(Ability):
     def __init__(self, name: str, probability: float):
-        super().__init__(name, probability, [IconType.MAGIC])
+        super().__init__(name, probability, [IconType.ATTACK, IconType.HEAL])
 
     def use(self,user,target) -> str:
+        user.heal(round(user.spell_power * 0.4))
         damage = round(user.spell_power)
         target.take_damage(damage)
         return f"{user.name} casts Magic Missile for {damage} damage!"
 
     def calculate_power_contribution(self, user):
-        return round(user.spell_power)
+        return round(user.spell_power+round(user.spell_power * 0.4))
 
 
 class TrollRegeneration(Ability):

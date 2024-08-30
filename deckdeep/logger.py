@@ -98,7 +98,8 @@ def setup_game_logger(
 
     # File Handler with simplified timestamp
     file_formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        # "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        "%(asctime)s - %(levelname)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )  # Show date and time, but no milliseconds
     max_bytes = max_lines * 100
