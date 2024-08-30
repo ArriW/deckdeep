@@ -69,7 +69,7 @@ class MonsterGroup:
         def scaling_factor(lvl):
             return 1 + math.log(lvl + 1, 2)  # Logarithmic scaling
 
-        base_power = 20
+        base_power = 15
         target_power = base_power * scaling_factor(level)
 
         # Add a small amount of randomness (±10%)
@@ -82,19 +82,22 @@ class MonsterGroup:
             monster_group.add_monster(boss)
             return monster_group, target_power, boss.power_rating
         else:
+            attempts = 0
             while (
                 current_power < target_power
                 and len(monster_group.monsters) < max_monsters
             ):
                 new_monster = Monster.generate(level)
+                if current_power + new_monster.power_rating > target_power*1.2 and attempts < 5:
+                    continue
                 monster_group.add_monster(new_monster)
                 current_power += new_monster.power_rating
 
-            # Add elite monster with a certain probability
-            if random.random() < 0.15 and len(monster_group.monsters) < max_monsters:
-                elite_level = min(level + 2, int(level * 1.3))
-                elite_monster = Monster.generate(elite_level)
-                monster_group.add_monster(elite_monster)
+            # # Add elite monster with a certain probability
+            # if random.random() < 0.15 and len(monster_group.monsters) < max_monsters:
+            #     elite_level = min(level + 2, int(level * 1.3))
+            #     elite_monster = Monster.generate(elite_level)
+            #     monster_group.add_monster(elite_monster)
 
             actual_power = monster_group.get_power_rating()
         return monster_group, target_power, actual_power
