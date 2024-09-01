@@ -121,3 +121,7 @@ class GameAssets:
                 surface, (255, 0, 0, 128), surface.get_rect(), 1
             )  # Semi-transparent red border as a placeholder
             return surface
+
+    def load_event_image(self, event_name: str) -> pygame.Surface:
+        path = f"./assets/images/events/{event_name.lower().replace(' ', '_')}.png"
+        return self.load_and_scale_background(path, (SCREEN_WIDTH, int(SCREEN_HEIGHT * 2/3)))
