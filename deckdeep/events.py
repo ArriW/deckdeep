@@ -123,7 +123,7 @@ class Thrifter(Event):
         if player.health > cost:
             player.health -= cost
             full_deck = player.get_sorted_full_deck()
-            chosen_index = handle_card_selection(full_deck, assets)
+            chosen_index = handle_card_selection(full_deck, assets, player)
             if chosen_index is not None:
                 removed_card = player.remove_card_from_deck(chosen_index)
                 if removed_card:
@@ -175,7 +175,7 @@ class Scribe(Event):
 
     def duplicate_card(self, player, assets):
         full_deck = player.get_sorted_full_deck()
-        chosen_index = handle_card_selection(full_deck, assets)
+        chosen_index = handle_card_selection(full_deck, assets, player)
         if chosen_index is not None:
             duplicated_card = player.duplicate_card_in_deck(chosen_index)
             if duplicated_card:

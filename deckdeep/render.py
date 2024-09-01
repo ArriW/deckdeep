@@ -35,6 +35,10 @@ if TYPE_CHECKING:
     from deckdeep.game import Node
 
 
+def get_key_name(key: int) -> str:
+    return pygame.key.name(key).upper()
+
+
 def render_text(
     screen: pygame.Surface,
     text: str,
@@ -43,7 +47,23 @@ def render_text(
     color=BLACK,
     font=FONT,
     circle=False,
+    outline=False, 
+    outline_color=BLACK,
+    shadow=False,
+    shadow_color=(50, 50, 50, 128),
 ):
+    if shadow:
+        shadow_offset = scale(1)
+        render_text(
+            screen, text, x + shadow_offset, y + shadow_offset, color=shadow_color, font=font, outline=False
+        )
+    
+    if outline:
+        for dx, dy in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
+            render_text(
+                screen, text, x + dx, y + dy, color=outline_color, font=font, outline=False
+            )
+    
     text_surface = font.render(text, True, color)
     if circle:
         text_rect = text_surface.get_rect()
@@ -69,10 +89,17 @@ def render_text_in_icon(
     screen: pygame.Surface, text: str, x: int, y: int, icon, color=BLACK, font=FONT
 ):
     screen.blit(icon, (x, y))
+    
     render_text(
-        screen, text, x + ICON_SIZE - scale(23), y + scale(7), color=color, font=font
+        screen,
+        text,
+        x + ICON_SIZE - scale(23),
+        y + scale(7),
+        color=color,
+        font=font,
+        outline=True,
+        shadow=True
     )
-
 
 def render_text_with_background(
     screen: pygame.Surface,
@@ -97,6 +124,8 @@ def render_card(
     y: int,
     is_selected: bool,
     assets: GameAssets,
+    player_energy: int,
+    player_max_energy: int,
     hotkey=None,
     opacity=255
 ):
@@ -127,7 +156,6 @@ def render_card(
     name_surface.set_alpha(opacity)
     name_x = x + (CARD_WIDTH - name_surface.get_width()) // 2
     screen.blit(name_surface, (name_x, y + scale(10)))
-
     current_y = y + y_offset + scale(15)
 
     icon_map = {
@@ -151,22 +179,32 @@ def render_card(
 
     energy_x = x + CARD_WIDTH - round(1.25 * ICON_SIZE)
     energy_y = y + CARD_HEIGHT - round(1.25 * ICON_SIZE)
+    
+    # Determine the color of the energy cost
+    if player_energy >= card.energy_cost:
+        energy_color = (*GREEN, opacity)
+    elif player_max_energy >= card.energy_cost:
+        energy_color = (*RED, opacity)
+    else:
+        energy_color = (*RED, opacity)
+
     render_text_in_icon(
         screen,
         f"{card.energy_cost}",
         energy_x,
         energy_y,
         assets.energy_icon,
-        color=(*RED, opacity),
+        color=energy_color,
         font=CARD_FONT
     )
     if hotkey is not None:
         render_text(
             screen,
-            f"#{hotkey}",
+            f"{get_key_name(hotkey)}",
             x + x_anchor,
             y + CARD_HEIGHT - x_offset,
             font=CARD_FONT,
+            color=(*BLACK, opacity)
         )
     return x , y
 
@@ -208,7 +246,7 @@ def render_health_bar(
     if shield > 0:
         health_text += f" (+{shield})"
     text_x = x + (width - SMALL_FONT.size(health_text)[0]) // 2
-    render_text(screen, health_text, text_x, y + scale(2), color=WHITE, font=SMALL_FONT)
+    render_text(screen, health_text, text_x, y + scale(2), color=WHITE, font=SMALL_FONT,outline=True)
 
 
 def render_status_effects(
@@ -443,6 +481,7 @@ def render_combat_state(
     card_start_x = (
         SCREEN_WIDTH - (len(player.hand) * (CARD_WIDTH + CARD_SPACING) - CARD_SPACING)
     ) // 2
+    num_keys = [pygame.K_q, pygame.K_w, pygame.K_e, pygame.K_r, pygame.K_t, pygame.K_y, pygame.K_u, pygame.K_i, pygame.K_o, pygame.K_p]
     for i, card in enumerate(player.hand):
         card.x , card.y = render_card(
             screen,
@@ -451,7 +490,9 @@ def render_combat_state(
             SCREEN_HEIGHT - CARD_HEIGHT - scale(20),
             i == selected_card,
             assets,
-            hotkey=i + 1,
+            player.energy,
+            player.max_energy,
+            hotkey=num_keys[i],
         )
 
     # Render played cards with animation
@@ -465,13 +506,13 @@ def render_combat_state(
                     card.y,
                     False,
                     assets,
+                    player.energy,
+                    player.max_energy,
                     opacity=card.opacity
                 )
                 card.update_animation()
                 if not card.is_animating:  # Check if the animation is complete
                     card.reset_animation()  # Reset animation properties for reuse
-            else:
-                print("Card is not animating")
 
     render_button(
         screen,
@@ -521,6 +562,7 @@ def render_victory_state(
         175,
     )
 
+    num_keys = [pygame.K_q, pygame.K_w, pygame.K_e, pygame.K_r]
     for i, card in enumerate(new_cards):
         render_card(
             screen,
@@ -529,12 +571,14 @@ def render_victory_state(
             scale(250),
             i == selected_card,
             assets,
-            hotkey=i + 1,
+            player.energy,
+            player.max_energy,
+            hotkey=num_keys[i],
         )
 
     render_text(
         screen,
-        "#4: Skip",
+        f"{get_key_name(pygame.K_r)}: Skip",
         scale(250) + 3 * (CARD_WIDTH + CARD_SPACING),
         scale(250),
         color=WHITE,
@@ -715,8 +759,9 @@ def render_node_selection(
         render_text(
             screen, f"Level {node.level}", node_x + scale(10), node_y + scale(50)
         )
+        hotkey_list = [get_key_name(pygame.K_q), get_key_name(pygame.K_w), get_key_name(pygame.K_e), get_key_name(pygame.K_r), get_key_name(pygame.K_t), get_key_name(pygame.K_y), get_key_name(pygame.K_u), get_key_name(pygame.K_i), get_key_name(pygame.K_o), get_key_name(pygame.K_p)]
         render_text(
-            screen, f"#{i+1}", node_x + scale(10), node_y + node_height - scale(30)
+            screen, hotkey_list[i], node_x + scale(10), node_y + node_height - scale(30)
         )
 
     render_text(
@@ -735,6 +780,7 @@ def render_deck_view(
     current_page: int,
     total_pages: int,
     assets: GameAssets,
+    player: Player,
 ):
     screen.blit(assets.background_image, (0, 0))
 
@@ -771,7 +817,7 @@ def render_deck_view(
         x = start_x + col * (CARD_WIDTH + card_spacing_x)
         y = start_y + row * (CARD_HEIGHT + card_spacing_y)
 
-        render_card(screen, card, x, y, False, assets)
+        render_card(screen, card, x, y, False, assets, player.energy, player.max_energy)
 
     # Render page information
     render_text(
@@ -814,6 +860,7 @@ def render_relic_selection(
     start_x = (SCREEN_WIDTH - total_width) // 2
     start_y = scale(250)
 
+    num_keys = [pygame.K_q, pygame.K_w, pygame.K_e, pygame.K_r]
     for i, relic in enumerate(new_relics):
         relic_x = start_x + i * (relic_width + relic_spacing)
         relic_y = start_y
@@ -855,7 +902,7 @@ def render_relic_selection(
 
         render_text(
             screen,
-            f"#{i+1}",
+            f"{get_key_name(num_keys[i])}",
             relic_x + relic_width - scale(30),
             relic_y + relic_height - scale(30),
             font=SMALL_FONT,
@@ -863,7 +910,7 @@ def render_relic_selection(
 
     render_text(
         screen,
-        "#4: Skip",
+        f"{get_key_name(pygame.K_r)}: Skip",
         start_x + 3 * (relic_width + relic_spacing),
         start_y,
         font=SMALL_FONT,
@@ -939,7 +986,7 @@ def render_relic_view(screen: pygame.Surface, relics: List[Relic], assets: GameA
     pygame.display.flip()
 
 
-def handle_card_selection(full_deck: List[Card], assets: GameAssets):
+def handle_card_selection(full_deck: List[Card], assets: GameAssets, player: Player):
     selected_index = 0
     clock = pygame.time.Clock()
     screen = pygame.display.get_surface()
@@ -950,6 +997,7 @@ def handle_card_selection(full_deck: List[Card], assets: GameAssets):
             sorted(full_deck, key=lambda card: (card.energy_cost, card.name)),
             selected_index,
             assets,
+            player,
         )
 
         for event in pygame.event.get():
@@ -973,6 +1021,7 @@ def render_card_selection(
     full_deck: List[Card],
     selected_index: int,
     assets: GameAssets,
+    player: Player,
 ):
     screen.blit(assets.background_image, (0, 0))
 
@@ -1000,9 +1049,10 @@ def render_card_selection(
     visible_cards = 20
     start_index = max(0, min(selected_index, len(full_deck) - visible_cards))
 
+    num_keys = [pygame.K_q, pygame.K_w, pygame.K_e, pygame.K_r, pygame.K_t, pygame.K_y, pygame.K_u, pygame.K_i, pygame.K_o, pygame.K_p]
     for i, card in enumerate(full_deck[start_index : start_index + visible_cards]):
         color = RED if i + start_index == selected_index else BLACK
-        card_text = f"{i + start_index + 1}: {card.name} (Energy: {card.energy_cost})"
+        card_text = f"{i}: {card.name} (Energy: {card.energy_cost})"
         render_text(
             screen,
             card_text,
@@ -1022,6 +1072,8 @@ def render_card_selection(
             header_height + scale(20),
             True,
             assets,
+            player.energy,
+            player.max_energy,
         )
 
     instructions = "Use UP/DOWN arrows to navigate, ENTER to select, ESC to cancel"
