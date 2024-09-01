@@ -301,7 +301,7 @@ class Game:
                                 MonsterGroup.generate(true_level)
                             )
                             content = {"monsters": monster_group}
-
+                            
                             self.logger.info(
                                 f"Generated combat node monster group: Level {true_level}, Target power: {target_power:.2f}, Actual power: {actual_power:.2f} , Delta: {round(actual_power-target_power)}",
                                 category="SYSTEM",
@@ -383,17 +383,29 @@ class Game:
             self.handle_event_key_press(key)
 
     def handle_combat_key_press(self, key):
+        # num_keys = [
+        #     pygame.K_1,
+        #     pygame.K_2,
+        #     pygame.K_3,
+        #     pygame.K_4,
+        #     pygame.K_5,
+        #     pygame.K_6,
+        #     pygame.K_7,
+        #     pygame.K_8,
+        #     pygame.K_9,
+        #     pygame.K_0,
+        # ]
         num_keys = [
-            pygame.K_1,
-            pygame.K_2,
-            pygame.K_3,
-            pygame.K_4,
-            pygame.K_5,
-            pygame.K_6,
-            pygame.K_7,
-            pygame.K_8,
-            pygame.K_9,
-            pygame.K_0,
+            pygame.K_q,
+            pygame.K_w,
+            pygame.K_e,
+            pygame.K_r,
+            pygame.K_t,
+            pygame.K_y,
+            pygame.K_u,
+            pygame.K_i,
+            pygame.K_o,
+            pygame.K_p,
         ]
         for i, num_key in enumerate(num_keys):
             if key == num_key and i < len(self.player.hand):
@@ -401,38 +413,50 @@ class Game:
                 self.play_card()
                 break
 
-        if key == pygame.K_e:
+        if key == pygame.K_SPACE:
             self.player_turn = False
             self.logger.info("Player ended turn", category="PLAYER")
-        elif key == pygame.K_LEFT:
+        elif key == pygame.K_h:
             self.monster_group.select_previous()
             self.logger.debug("Selected previous monster", category="PLAYER")
-        elif key == pygame.K_RIGHT:
+        elif key == pygame.K_l:
             self.monster_group.select_next()
             self.logger.debug("Selected next monster", category="PLAYER")
         elif key == pygame.K_ESCAPE:
             self.logger.info("Opened Menu", category="SYSTEM")
             self.menu_active = True
-        elif key == pygame.K_d:
+        elif key == pygame.K_1:
             self.viewing_deck = True
             self.deck_scroll = 0
             self.logger.debug("Viewing deck", category="PLAYER")
-        elif key == pygame.K_r:
+        elif key == pygame.K_2:
             self.viewing_relics = True
             self.logger.debug("Viewing relics", category="PLAYER")
 
     def handle_event_key_press(self, key):
+        # num_keys = [
+        #     pygame.K_1,
+        #     pygame.K_2,
+        #     pygame.K_3,
+        #     pygame.K_4,
+        #     pygame.K_5,
+        #     pygame.K_6,
+        #     pygame.K_7,
+        #     pygame.K_8,
+        #     pygame.K_9,
+        #     pygame.K_0,
+        # ]
         num_keys = [
-            pygame.K_1,
-            pygame.K_2,
-            pygame.K_3,
-            pygame.K_4,
-            pygame.K_5,
-            pygame.K_6,
-            pygame.K_7,
-            pygame.K_8,
-            pygame.K_9,
-            pygame.K_0,
+            pygame.K_q,
+            pygame.K_w,
+            pygame.K_e,
+            pygame.K_r,
+            pygame.K_t,
+            pygame.K_y,
+            pygame.K_u,
+            pygame.K_i,
+            pygame.K_o,
+            pygame.K_p,
         ]
         for i, num_key in enumerate(num_keys):
             if key == num_key and i < len(self.current_event.options):
@@ -443,7 +467,7 @@ class Game:
         if key == pygame.K_ESCAPE:
             self.logger.info("Opened menu", category="SYSTEM")
             self.menu_active = True
-        elif key == pygame.K_r:
+        elif key == pygame.K_2:
             self.viewing_relics = True
             self.logger.debug("Viewing relics", category="PLAYER")
 
@@ -451,12 +475,12 @@ class Game:
         if key == pygame.K_ESCAPE:
             self.viewing_deck = False
             self.logger.debug("Closed deck view", category="PLAYER")
-        elif key == pygame.K_LEFT:
+        elif key == pygame.K_h:
             self.current_page = max(0, self.current_page - 1)
             self.logger.debug(
                 f"Moved to deck page {self.current_page}", category="PLAYER"
             )
-        elif key == pygame.K_RIGHT:
+        elif key == pygame.K_l:
             max_page = (
                 len(self.player.get_sorted_full_deck()) - 1
             ) // self.cards_per_page
@@ -466,7 +490,7 @@ class Game:
             )
 
     def handle_relic_view_key_press(self, key):
-        if key == pygame.K_ESCAPE or key == pygame.K_r:
+        if key == pygame.K_ESCAPE or key == pygame.K_2:
             self.viewing_relics = False
             self.logger.debug("Closed relic view", category="PLAYER")
 
@@ -487,11 +511,11 @@ class Game:
         self.select_next_node()
 
     def handle_menu_key_press(self, key):
-        if key == pygame.K_UP:
+        if key == pygame.K_k:
             self.menu_selected = (self.menu_selected - 1) % len(self.menu_options)
-        elif key == pygame.K_DOWN:
+        elif key == pygame.K_j:
             self.menu_selected = (self.menu_selected + 1) % len(self.menu_options)
-        elif key == pygame.K_RETURN:
+        elif key == pygame.K_SPACE:
             self.execute_menu_option()
         elif key == pygame.K_ESCAPE:
             self.menu_active = False
@@ -730,17 +754,29 @@ class Game:
                     self.running = False
                     return 0
                 elif event.type == pygame.KEYDOWN:
+                    # num_keys = [
+                        # pygame.K_1,
+                        # pygame.K_2,
+                        # pygame.K_3,
+                        # pygame.K_4,
+                        # pygame.K_5,
+                        # pygame.K_6,
+                        # pygame.K_7,
+                        # pygame.K_8,
+                        # pygame.K_9,
+                        # pygame.K_0,
+                    # ]
                     num_keys = [
-                        pygame.K_1,
-                        pygame.K_2,
-                        pygame.K_3,
-                        pygame.K_4,
-                        pygame.K_5,
-                        pygame.K_6,
-                        pygame.K_7,
-                        pygame.K_8,
-                        pygame.K_9,
-                        pygame.K_0,
+                        pygame.K_q,
+                        pygame.K_w,
+                        pygame.K_e,
+                        pygame.K_r,
+                        pygame.K_t,
+                        pygame.K_y,
+                        pygame.K_u,
+                        pygame.K_i,
+                        pygame.K_o,
+                        pygame.K_p,
                     ]
                     for i, num_key in enumerate(num_keys):
                         if event.key == num_key and i < len(self.current_node.children):
@@ -768,7 +804,8 @@ class Game:
                 if event.type == pygame.QUIT:
                     return None
                 elif event.type == pygame.KEYDOWN:
-                    num_keys = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4]
+                    # num_keys = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4]
+                    num_keys = [pygame.K_q ,pygame.K_w, pygame.K_e, pygame.K_r]
                     for i, num_key in enumerate(num_keys):
                         if event.key == num_key:
                             if i < 3:
@@ -801,7 +838,8 @@ class Game:
                 if event.type == pygame.QUIT:
                     return None
                 elif event.type == pygame.KEYDOWN:
-                    num_keys = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4]
+                    # num_keys = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4]
+                    num_keys = [pygame.K_q, pygame.K_w, pygame.K_e, pygame.K_r]
                     for i, num_key in enumerate(num_keys):
                         if event.key == num_key:
                             if i < 3:
