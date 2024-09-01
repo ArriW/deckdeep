@@ -24,7 +24,10 @@ class MonsterGroup:
         self.monsters[self.selected_index].selected = True
 
     def random_monster(self) -> Monster:
-        return random.choice(self.monsters)
+        try:
+            return random.choice(self.monsters)
+        except IndexError:
+            return None
 
     def get_power_rating(self) -> int:
         return sum([monster.calculate_power_rating() for monster in self.monsters])
