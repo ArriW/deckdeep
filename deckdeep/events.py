@@ -360,16 +360,16 @@ class DarkMerchant(Event):
 
 def get_random_event():
     events = [
-        # Medic(),
+        Medic(),
         VoodooDoctor(),
-        # Thrifter(),
-        # CursedWell(),
-        # Scribe(),
-        # ForgottenShrine(),
-        # RestSite(),
-        # Defender(),
-        # DarkMerchant(),
-        # Priest(),
-        # AncientLibrary(),
+        Thrifter(),
+        CursedWell(),
+        Scribe(),
+        ForgottenShrine(),
+        RestSite(),
+        Defender(),
+        DarkMerchant(),
+        Priest(),
+        AncientLibrary(),
     ]
     return random.choice(events)
