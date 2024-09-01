@@ -1,5 +1,6 @@
 import random
 from typing import List, Dict
+import pygame
 
 
 class Card:
@@ -32,6 +33,32 @@ class Card:
         self.bleed = int(bleed)
         self.energy_bonus = int(energy_bonus)
         self.health_regain = int(health_regain)
+
+        # Animation properties
+        self.x = 0
+        self.y = 0
+        self.opacity = 255
+        self.is_animating = False
+
+    def start_animation(self, start_x: int, start_y: int):
+        self.x = start_x
+        self.y = start_y
+        self.opacity = 255
+        self.is_animating = True
+
+    def update_animation(self, speed: int = 5, fade_speed: int = 10):
+        if self.is_animating:
+            self.y -= speed
+            # pygame.time.wait(50)
+            self.opacity = max(0, self.opacity - fade_speed)
+            if self.opacity == 0:
+                self.is_animating = False
+
+    def reset_animation(self):
+        # self.is_animating = True
+        self.opacity = (
+            255  # Reset opacity or any other properties involved in animation
+        )
 
     @staticmethod
     def generate_card_pool(num_cards: int = 3) -> List["Card"]:
@@ -101,7 +128,13 @@ class Card:
 
     def to_dict(self) -> Dict:
         return {
-            key: value for key, value in vars(self).items() if not key.startswith("_")
+            key: value
+            for key, value in vars(self).items()
+            if not key.startswith("_")
+            and not key == "is_animating"
+            and not key == "x"
+            and not key == "y"
+            and not key == "opacity"
         }
 
     @classmethod
