@@ -234,8 +234,8 @@ class ForgottenShrine(Event):
             return f"You gained the '{energy_crystal.name}' relic. {energy_crystal.description}"
         return "You don't have enough HP to make the offering."
 
-    def cleanse(self, player):
-        player.remove_curses(len(player.curses))
+    def cleanse(self, player: Player):
+        player.remove_curses(-1)
         return "All curses have been removed from your deck."
 
     def leave(self, player):
