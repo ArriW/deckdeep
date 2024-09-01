@@ -109,12 +109,31 @@ def render_text_with_background(
     font,
     text_color=BLACK,
     background_color=WHITE,
+    max_width=None
 ):
-    text_surface = font.render(text, True, text_color)
-    background_surface = pygame.Surface(text_surface.get_size())
-    background_surface.fill(background_color)
-    screen.blit(background_surface, (x, y))
-    screen.blit(text_surface, (x, y))
+    words = text.split()
+    lines = []
+    current_line = []
+
+    for word in words:
+        test_line = ' '.join(current_line + [word])
+        test_width = font.size(test_line)[0]
+        if max_width and test_width > max_width:
+            lines.append(' '.join(current_line))
+            current_line = [word]
+        else:
+            current_line.append(word)
+    
+    if current_line:
+        lines.append(' '.join(current_line))
+
+    for i, line in enumerate(lines):
+        text_surface = font.render(line, True, text_color)
+        if background_color:
+            background_surface = pygame.Surface(text_surface.get_size())
+            background_surface.fill(background_color)
+            screen.blit(background_surface, (x, y + i * font.get_linesize()))
+        screen.blit(text_surface, (x, y + i * font.get_linesize()))
 
 
 def render_card(
@@ -654,59 +673,54 @@ def render_menu(
 
 def render_text_event(
     screen: pygame.Surface,
-    text: str,
+    event_name: str,
+    event_description: str,
     options: List[str],
     assets: GameAssets,
     player: Player,
 ):
-    screen.blit(assets.background_image, (0, 0))
+    # Render event image
+    event_image = assets.load_event_image(event_name)
+    screen.blit(event_image, (0, 0))
 
-    text_box_width = scale(600)
-    text_box_height = scale(200)
-    text_box_x = (SCREEN_WIDTH - text_box_width) // 2
-    text_box_y = scale(100)
-
-    pygame.draw.rect(
-        screen, BEIGE, (text_box_x, text_box_y, text_box_width, text_box_height)
+    # Render description parchment
+    description_parchment = pygame.transform.scale(
+        assets.parchment_texture,
+        (SCREEN_WIDTH // 2 - scale(20), SCREEN_HEIGHT // 3 - scale(20))
     )
-    pygame.draw.rect(
-        screen, BLACK, (text_box_x, text_box_y, text_box_width, text_box_height), 2
+    screen.blit(description_parchment, (scale(10), SCREEN_HEIGHT * 2 // 3 + scale(10)))
+
+    # Render options parchment
+    options_parchment = pygame.transform.scale(
+        assets.parchment_texture,
+        (SCREEN_WIDTH // 2 - scale(20), SCREEN_HEIGHT // 3 - scale(20))
+    )
+    screen.blit(options_parchment, (SCREEN_WIDTH // 2 + scale(10), SCREEN_HEIGHT * 2 // 3 + scale(10)))
+
+    # Render event description
+    render_text_with_background(
+        screen,
+        event_description,
+        scale(20),
+        SCREEN_HEIGHT * 2 // 3 + scale(20),
+        SMALL_FONT,
+        text_color=BLACK,
+        background_color=None,
+        max_width=SCREEN_WIDTH // 2 - scale(40)
     )
 
-    words = text.split()
-    lines = []
-    current_line = []
-
-    for word in words:
-        test_line = " ".join(current_line + [word])
-        if FONT.size(test_line)[0] <= text_box_width - scale(40):
-            current_line.append(word)
-        else:
-            lines.append(" ".join(current_line))
-            current_line = [word]
-    lines.append(" ".join(current_line))
-
-    for i, line in enumerate(lines):
-        render_text(
-            screen, line, text_box_x + scale(20), text_box_y + scale(20) + i * scale(30)
-        )
-
-    option_height = scale(50)
-    option_spacing = scale(20)
-    options_start_y = text_box_y + text_box_height + scale(50)
-
+    # Render options
     for i, option in enumerate(options):
-        option_y = options_start_y + i * (option_height + option_spacing)
-        pygame.draw.rect(
-            screen, GRAY, (text_box_x, option_y, text_box_width, option_height)
-        )
-        pygame.draw.rect(
-            screen, BLACK, (text_box_x, option_y, text_box_width, option_height), 2
-        )
         render_text(
-            screen, f"#{i+1}: {option}", text_box_x + scale(20), option_y + scale(10)
+            screen,
+            f"{i+1}. {option}",
+            SCREEN_WIDTH // 2 + scale(20),
+            SCREEN_HEIGHT * 2 // 3 + scale(20) + i * scale(30),
+            color=BLACK,
+            font=SMALL_FONT
         )
 
+    # Render player stats
     render_health_bar(
         screen,
         scale(50),

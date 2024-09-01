@@ -713,6 +713,7 @@ class Game:
                 render_text_event(
                     self.screen,
                     self.current_event.name,
+                    self.current_event.description,  # Add this line
                     [option[0] for option in self.current_event.options],
                     self.assets,
                     self.player,

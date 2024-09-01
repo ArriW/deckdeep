@@ -7,8 +7,9 @@ from deckdeep.logger import GameLogger
 
 
 class Event:
-    def __init__(self, name: str, options: list):
+    def __init__(self, name: str, description: str, options: list):
         self.name = name
+        self.description = description
         self.options = options
 
     def execute_option(self, option_method, player, assets):
@@ -23,7 +24,8 @@ class VoodooDoctor(Event):
     def __init__(self):
         healing_charm = get_relic_by_name("Healing Charm")
         super().__init__(
-            f"Voodoo Doctor: A mysterious figure offers you various magical remedies. You can pay 10 HP and gain a curse to be granted a '{healing_charm.name}' relic, or accept a sketchy potion with unknown effects.",
+            "Voodoo Doctor",
+            f"A mysterious figure offers you various magical remedies. You can pay 10 HP and gain a curse to be granted a '{healing_charm.name}' relic, or accept a sketchy potion with unknown effects.",
             [
                 ("Get Healing Charm", "healing_charm"),
                 ("Take sketchy potion", "sketchy_potion"),
@@ -60,7 +62,8 @@ class Medic(Event):
     def __init__(self):
         hair_of_dog = get_relic_by_name("Hair of the Dog")
         super().__init__(
-            f"Medic: You find a medic tent. You can pay 20 HP to gain a {hair_of_dog.name} or heal 50 HP.",
+            "Medic",
+            f"You find a medic tent. You can pay 20 HP to gain a {hair_of_dog.name} or heal 50 HP.",
             [
                 ("Get Hair of the Dog", "grant_hair_of_the_dog"),
                 ("Heal 50 HP", "heal"),
@@ -88,7 +91,8 @@ class Medic(Event):
 class Priest(Event):
     def __init__(self):
         super().__init__(
-            "Priest: A holy figure offers spiritual assistance. You can heal for 50 HP or cleanse one of your misdeeds.",
+            "Priest",
+            "A holy figure offers spiritual assistance. You can heal for 50 HP or cleanse one of your misdeeds.",
             [
                 ("Heal 50 HP", "heal"),
                 ("Remove a curse", "remove_curse"),
@@ -111,7 +115,8 @@ class Priest(Event):
 class Thrifter(Event):
     def __init__(self):
         super().__init__(
-            "Thrifter: A merchant offers to remove a card from your deck for a price of 25% of your current HP.",
+            "Thrifter",
+            "A merchant offers to remove a card from your deck for a price of 25% of your current HP.",
             [
                 ("Remove a card", "remove_card"),
                 ("Leave", "leave"),
@@ -141,7 +146,8 @@ class CursedWell(Event):
     def __init__(self):
         cursed_coin = get_relic_by_name("Cursed Coin")
         super().__init__(
-            f"Cursed Well: A mysterious well emanates dark energy. You can add a curse to your deck and gain a '{cursed_coin.name}' relic.",
+            "Cursed Well",
+            f"A mysterious well emanates dark energy. You can add a curse to your deck and gain a '{cursed_coin.name}' relic.",
             [
                 ("Embrace dark power", "dark_power"),
                 ("Leave", "leave"),
@@ -162,7 +168,8 @@ class CursedWell(Event):
 class Scribe(Event):
     def __init__(self):
         super().__init__(
-            "Scribe\nIn a dimly lit study, you encounter a wizened scribe surrounded by ancient tomes and scrolls. "
+            "Scribe",
+            "In a dimly lit study, you encounter a wizened scribe surrounded by ancient tomes and scrolls. "
             "The air crackles with magical energy as the scribe offers to duplicate one of your cards.",
             [
                 (
@@ -198,7 +205,8 @@ class AncientLibrary(Event):
     def __init__(self):
         paper_weight = get_relic_by_name("Paper Weight")
         super().__init__(
-            f"Ancient Library: A vast library of ancient knowledge stands before you. You can offer a quarter of your health and 1 max energy to gain a '{paper_weight.name}' - {paper_weight.description}",
+            "Ancient Library",
+            f"A vast library of ancient knowledge stands before you. You can offer a quarter of your health and 1 max energy to gain a '{paper_weight.name}' - {paper_weight.description}",
             [
                 ("Gain knowledge", "paper_weight"),
                 ("Leave", "leave"),
@@ -217,7 +225,8 @@ class ForgottenShrine(Event):
     def __init__(self):
         relic = get_relic_by_name("Energy Crystal")
         super().__init__(
-            f"Forgotten Shrine: A shrine stands before you, covered in moss and vines. It seems to be calling out to you. You can offer half of your max health to gain the '{relic.name}' relic or cleanse the shrine to remove all curses from your deck.",
+            "Forgotten Shrine",
+            f"A shrine stands before you, covered in moss and vines. It seems to be calling out to you. You can offer half of your max health to gain the '{relic.name}' relic or cleanse the shrine to remove all curses from your deck.",
             [
                 ("Offer health", "energy_crystal"),
                 ("Cleanse shrine", "cleanse"),
@@ -249,7 +258,8 @@ class RestSite(Event):
         self.damage_gain = 2
 
         super().__init__(
-            "Rest Site: You discover a tranquil clearing in the forest. A mystical fountain bubbles nearby, and an ancient altar stands silent. The air is thick with restorative energy.",
+            "Rest Site",
+            "You discover a tranquil clearing in the forest. A mystical fountain bubbles nearby, and an ancient altar stands silent. The air is thick with restorative energy.",
             [
                 (f"Drink from the fountain (Heal {self.heal_amount} HP)", "heal"),
                 (
@@ -294,7 +304,8 @@ class Defender(Event):
         self.shield_rune = get_relic_by_name("Shield Rune")
 
         super().__init__(
-            f"Defender: A caravan of travelers has been ambushed by bandits. Defend and help them, suffering {self.damage_percentage}% of your current health as damage, and be rewarded the '{self.shield_rune.name}'.",
+            "Defender",
+            f"A caravan of travelers has been ambushed by bandits. Defend and help them, suffering {self.damage_percentage}% of your current health as damage, and be rewarded the '{self.shield_rune.name}'.",
             [
                 (
                     f"Defend caravan (Take {self.damage_percentage}% damage, gain '{self.shield_rune.name}')",
@@ -326,7 +337,8 @@ class DarkMerchant(Event):
     def __init__(self):
         cursed_dagger = get_relic_by_name("Cursed Dagger")
         super().__init__(
-            f"Dark Merchant: A shadowy figure appears offers you a mysterious dagger. A Do you can accept the '{cursed_dagger.name}' in exchange for 15 max HP?",
+            "Dark Merchant",
+            f"A shadowy figure appears offers you a mysterious dagger. A Do you can accept the '{cursed_dagger.name}' in exchange for 15 max HP?",
             [
                 ("Accept dagger", "accept_dagger"),
                 ("Decline and leave", "leave"),
@@ -348,16 +360,16 @@ class DarkMerchant(Event):
 
 def get_random_event():
     events = [
-        Medic(),
+        # Medic(),
         VoodooDoctor(),
-        Thrifter(),
-        CursedWell(),
-        Scribe(),
-        ForgottenShrine(),
-        RestSite(),
-        Defender(),
-        DarkMerchant(),
-        Priest(),
-        AncientLibrary(),
+        # Thrifter(),
+        # CursedWell(),
+        # Scribe(),
+        # ForgottenShrine(),
+        # RestSite(),
+        # Defender(),
+        # DarkMerchant(),
+        # Priest(),
+        # AncientLibrary(),
     ]
     return random.choice(events)
