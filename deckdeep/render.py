@@ -98,11 +98,14 @@ def render_card(
     is_selected: bool,
     assets: GameAssets,
     hotkey=None,
+    opacity=255
 ):
     def render_icon_and_text(icon, text, current_y):
-        screen.blit(icon, (x + x_anchor, current_y))
+        icon_surface = icon.copy()
+        icon_surface.set_alpha(opacity)
+        screen.blit(icon_surface, (x + x_anchor, current_y))
         render_text(
-            screen, text, x + x_offset, current_y + y_text_offset, font=CARD_FONT
+            screen, text, x + x_offset, current_y + y_text_offset, font=CARD_FONT, color=(*BLACK, opacity)
         )
         return current_y + y_offset
 
@@ -111,12 +114,17 @@ def render_card(
     y_offset = ICON_SIZE + scale(3)
     y_text_offset = scale(5)
 
-    screen.blit(assets.parchment_texture, (x, y))
-    pygame.draw.rect(
-        screen, YELLOW if is_selected else BLACK, (x, y, CARD_WIDTH, CARD_HEIGHT), 2
-    )
+    parchment_surface = assets.parchment_texture.copy()
+    parchment_surface.set_alpha(opacity)
+    screen.blit(parchment_surface, (x, y))
+
+    border_color = YELLOW if is_selected else BLACK
+    border_surface = pygame.Surface((CARD_WIDTH, CARD_HEIGHT), pygame.SRCALPHA)
+    pygame.draw.rect(border_surface, (*border_color, opacity), (0, 0, CARD_WIDTH, CARD_HEIGHT), 2)
+    screen.blit(border_surface, (x, y))
 
     name_surface = CARD_FONT.render(card.name, True, BLACK)
+    name_surface.set_alpha(opacity)
     name_x = x + (CARD_WIDTH - name_surface.get_width()) // 2
     screen.blit(name_surface, (name_x, y + scale(10)))
 
@@ -149,8 +157,8 @@ def render_card(
         energy_x,
         energy_y,
         assets.energy_icon,
-        color=RED,
-        font=CARD_FONT,
+        color=(*RED, opacity),
+        font=CARD_FONT
     )
     if hotkey is not None:
         render_text(
@@ -160,6 +168,7 @@ def render_card(
             y + CARD_HEIGHT - x_offset,
             font=CARD_FONT,
         )
+    return x , y
 
 
 def render_button(
@@ -402,6 +411,7 @@ def render_combat_state(
     score: int,
     selected_card: int,
     assets: GameAssets,
+    played_cards: List[Card] = None
 ):
     screen.blit(assets.background_image, (0, 0))
 
@@ -434,7 +444,7 @@ def render_combat_state(
         SCREEN_WIDTH - (len(player.hand) * (CARD_WIDTH + CARD_SPACING) - CARD_SPACING)
     ) // 2
     for i, card in enumerate(player.hand):
-        render_card(
+        card.x , card.y = render_card(
             screen,
             card,
             card_start_x + i * (CARD_WIDTH + CARD_SPACING),
@@ -443,6 +453,25 @@ def render_combat_state(
             assets,
             hotkey=i + 1,
         )
+
+    # Render played cards with animation
+    if played_cards:
+        for card in played_cards:
+            if card.is_animating:
+                render_card(
+                    screen,
+                    card,
+                    card.x,
+                    card.y,
+                    False,
+                    assets,
+                    opacity=card.opacity
+                )
+                card.update_animation()
+                if not card.is_animating:  # Check if the animation is complete
+                    card.reset_animation()  # Reset animation properties for reuse
+            else:
+                print("Card is not animating")
 
     render_button(
         screen,
