@@ -4,6 +4,7 @@ from deckdeep.card import Card, get_player_starting_deck
 from typing import Dict, Optional
 from deckdeep.status_effect import StatusEffectManager, Bleed
 from deckdeep.relic import Relic
+from deckdeep.relic import TriggerWhen
 
 
 class Player:
@@ -32,6 +33,20 @@ class Player:
         self.cards_per_turn = 5
         self.phoenix_feather_active = False
         self.extra_turn_chance = 0
+
+    def add_relic(self, relic: Relic) -> str:
+        msg = f"Adding New relic {relic.name}"
+        self.relics.append(relic)
+        if relic.trigger_when == TriggerWhen.PERMANENT:
+            msg += ". " + relic.apply_effect(self, None)
+        return msg
+
+    def apply_relic_effects(self, trigger: TriggerWhen) -> str:
+        msg = ""
+        for relic in self.relics:
+            if relic.trigger_when == trigger:
+                msg += relic.apply_effect(self, None) + " "
+        return msg.strip()
 
     def draw_card(self):
         if not self.deck:
@@ -163,6 +178,15 @@ class Player:
             self.max_energy += 1
             self.energy = self.max_energy
 
+    def increase_max_health(self, amount: int):
+        self.max_health += amount
+
+    def grant_temporary_energy(self, amount: int):
+        self.energy += amount
+
+    def increase_strength(self, amount: int):
+        self.strength += amount
+
     def add_card_to_deck(self, card: Card):
         self.deck.append(card)
 
@@ -172,16 +196,9 @@ class Player:
         for _ in range(self.cards_per_turn):
             self.draw_card()
 
-    def increase_max_health(self, amount: int):
-        self.max_health += amount
-
     def discard_card(self, index: int):
         if 0 <= index < len(self.hand):
             self.discard_pile.append(self.hand.pop(index))
-
-    def add_relic(self, relic: Relic):
-        print("Adding New relic", relic.name)
-        self.relics.append(relic)
 
     def to_dict(self) -> Dict:
         base_dict = {
