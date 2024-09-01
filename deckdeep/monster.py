@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 import random
 import math
 from deckdeep.status_effect import StatusEffectManager, Bleed, HealthRegain
@@ -272,11 +272,11 @@ class PoisonDart(Ability):
         damage = round(user.spell_power * 0.5)
         target.take_damage(damage)
         return (
-            f"{user.name} fires a Poison Dart for {damage} damage and applies Weakness!"
+            f"{user.name} fires a Poison Dart for {damage} damage!"
         )
 
     def calculate_power_contribution(self, user):
-        return round(user.spell_power * 0.5) + 4  # Estimating the value of weakness
+        return round(user.spell_power * 0.5)
 
 
 class ThunderClap(Ability):
@@ -316,6 +316,7 @@ class MonsterType:
         spell_power_mult: float,
         rarity: float,
         abilities: List[Ability] = None,
+        monster_level_limits: Tuple = None
     ):
         self.name = name
         self.symbol = symbol
@@ -324,6 +325,7 @@ class MonsterType:
         self.spell_power_mult = spell_power_mult
         self.rarity = rarity
         self.abilities = abilities or []
+        self.monster_level_limits = monster_level_limits 
 
 
 class Monster:
@@ -450,8 +452,8 @@ class Monster:
         MonsterType(
             "Troll",
             "TK",
-            2.4,
-            1.4,
+            4.4,
+            1.5,
             1.0,
             1.0,
             [
@@ -463,8 +465,8 @@ class Monster:
         MonsterType(
             "Dragon",
             "DR",
-            1.8,
-            1.6,
+            2.8,
+            2.2,
             1.3,
             1.0,
             [
@@ -476,15 +478,15 @@ class Monster:
         MonsterType(
             "Corrupted Paladin",
             "CP",
-            1.5,
-            1.2,
-            1.7,
+            2.5,
+            2.0,
+            2.0,
             1.0,
             [
-                BasicAttack("Chalice of the wicked", 0.6),
+                BasicAttack("Chalice of the wicked", 0.5),
                 Corruption("Corruption", 0.2),
                 HolyLight("Holy Light", 0.10),
-                DivineShield("Divine Shield", 0.1),
+                DivineShield("Divine Shield", 0.2),
             ],
         ),
     ]
@@ -674,6 +676,7 @@ class Monster:
             "level": self.level,
             "power_rating": self.power_rating,
             "intention": self.intention.__class__.__name__ if self.intention else None,
+            "monster_level_limits" : self.monster_type.monster_level_limits if self.monster_type else None
         }
 
     @classmethod

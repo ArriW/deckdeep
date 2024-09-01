@@ -89,8 +89,11 @@ class Player:
         self.shield += amount
 
     def remove_curses(self, amount: int = 1):
+        """
+        -1 is for all curses to be removed
+        """
         for card in self.deck:
-            if card.name == "Curse":
+            if "Curse" in card.name:
                 self.deck.remove(card)
                 amount -= 1
             if amount == 0:
