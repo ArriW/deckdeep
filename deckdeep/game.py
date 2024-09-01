@@ -59,6 +59,8 @@ from collections import Counter
 from deckdeep.logger import GameLogger
 from pygame.surface import Surface
 
+def get_key_name(key: int) -> str:
+    return pygame.key.name(key).upper()
 
 class VictorySequence:
     def __init__(self, screen: Surface, assets: GameAssets):
@@ -691,6 +693,7 @@ class Game:
                 self.current_page,
                 total_pages,
                 self.assets,
+                self.player,
             )
         elif self.viewing_relics:
             render_relic_view(self.screen, self.player.relics, self.assets)
