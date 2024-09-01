@@ -22,19 +22,14 @@ class Relic:
         self.description = description
         self.effect = effect
         self.trigger_when = trigger_when
-        self.triggered_once = False
 
     def apply_effect(self, player, game) -> str:
-
         if self.trigger_when == TriggerWhen.PERMANENT:
-            if not self.triggered_once:
-                self.effect(player, game)
-                self.triggered_once = True
-                return f"Permanet {self.name} {self.description}"
+            self.effect(player, game)
+            return f"Applied permanent effect: {self.name}"
         else:
             self.effect(player, game)
             return f"{self.name} triggered!"
-        return "Did not trigger"
 
     def to_dict(self) -> Dict:
         return {
@@ -69,7 +64,7 @@ ALL_RELICS = {
     "Cursed Coin": Relic(
         "Cursed Coin",
         "Your attacks deal 1 additional damage.",
-        lambda p, g: setattr(p, "strength", p.strength + 1),
+        lambda p, g: p.increase_strength(1),
         TriggerWhen.PERMANENT,
     ),
     "Healing Charm": Relic(
@@ -81,13 +76,13 @@ ALL_RELICS = {
     "Energy Crystal": Relic(
         "Energy Crystal",
         "Start each combat with 1 additional energy.",
-        lambda p, g: setattr(p, "energy", p.energy + 1),
+        lambda p, g: p.grant_temporary_energy(1),
         TriggerWhen.START_OF_COMBAT,
     ),
     "Strength Amulet": Relic(
         "Strength Amulet",
         "Your attacks deal 2 additional damage.",
-        lambda p, g: setattr(p, "strength", p.strength + 2),
+        lambda p, g: p.increase_strength(2),
         TriggerWhen.PERMANENT,
     ),
     "Shield Rune": Relic(

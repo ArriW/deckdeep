@@ -672,7 +672,7 @@ class Game:
         self.stage += 1
         new_relic = self.relic_selection_screen(self.assets)
         if new_relic:
-            self.player.add_relic(new_relic)
+            self.logger.info(self.player.add_relic(new_relic), category="PLAYER")
             self.logger.info(f"New relic acquired: {new_relic.name}", category="PLAYER")
         self.generate_node_tree()
         self.current_node = self.node_tree
@@ -953,6 +953,9 @@ class Game:
         return os.path.exists("save_game.json")
 
     def apply_relic_effects(self, trigger: TriggerWhen):
+        msg = self.player.apply_relic_effects(trigger)
+        if msg:
+            self.logger.debug(msg, category="PLAYER")
         for relic in self.player.relics:
             if isinstance(relic, dict):
                 # If the relic is a dictionary (serialized data), create a Relic object
