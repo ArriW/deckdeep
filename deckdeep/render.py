@@ -1006,11 +1006,11 @@ def handle_card_selection(full_deck: List[Card], assets: GameAssets, player: Pla
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     return None
-                elif event.key == pygame.K_UP:
+                elif event.key == pygame.K_k:
                     selected_index = max(0, selected_index - 1)
-                elif event.key == pygame.K_DOWN:
+                elif event.key == pygame.K_j:
                     selected_index = min(len(full_deck) - 1, selected_index + 1)
-                elif event.key == pygame.K_RETURN:
+                elif event.key == pygame.K_SPACE:
                     return selected_index
 
         clock.tick(30)
