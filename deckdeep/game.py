@@ -213,6 +213,7 @@ class Game:
         # for relic view
         self.viewing_relics = False
         self.monster_intentions = []
+        self.played_cards = []
 
     def run(self):
         while True:
@@ -549,6 +550,9 @@ class Game:
                     )
                 self.selected_card = -1
                 self.apply_relic_effects(TriggerWhen.ON_ATTACK)
+                card.is_animating = True
+                self.played_cards.append(card)
+                
             else:
                 self.logger.info(
                     f"Player tried to play card: {card.name} but didn't have enough energy",
@@ -605,6 +609,9 @@ class Game:
         if not self.monster_group.monsters:
             self.player.end_turn()
             self.combat_victory()
+
+        if all(not card.is_animating for card in self.played_cards):
+            self.played_cards.clear()  # Clear played cards after all animations are complete
 
     # In the Game class, modify the combat_victory method:
     def combat_victory(self):
@@ -696,6 +703,7 @@ class Game:
                 self.score,
                 self.selected_card,
                 self.assets,
+                self.played_cards
             )
         elif self.current_node.node_type == "event":
             if self.current_event:
