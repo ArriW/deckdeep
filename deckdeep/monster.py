@@ -331,7 +331,7 @@ class MonsterType:
 class Monster:
     monster_types: List[MonsterType] = [
         MonsterType(
-            "Goblin",
+            "goblin_1",
             "G",
             0.7,
             0.9,
@@ -407,7 +407,7 @@ class Monster:
             [Regenerate("Regenerate", 0.35), BasicAttack("Fist", 0.65)],
         ),
         MonsterType(
-            "Witch",
+            "witch_1",
             "W",
             0.6,
             0.6,
@@ -450,7 +450,7 @@ class Monster:
 
     boss_types: List[MonsterType] = [
         MonsterType(
-            "Troll King",
+            "troll_king",
             "TK",
             4.4,
             1.5,
