@@ -269,7 +269,7 @@ def render_health_bar(
 
 
 def render_status_effects(
-    screen: pygame.Surface, x: int, y: int, status_effects: dict, assets: GameAssets
+    screen: pygame.Surface, x: int, y: int, status_effects: List, assets: GameAssets
 ):
     icon_spacing = scale(35)
     effect_icons = {
@@ -279,7 +279,8 @@ def render_status_effects(
         "PlayerBonus": (assets.attack_icon, PURPLE),
         "Strength": (assets.strength_icon, PURPLE),
     }
-    for effect_name, effect in status_effects.items():
+    for effect in status_effects:
+        effect_name = effect.__class__.__name__
         if effect_name in effect_icons:
             icon, color = effect_icons[effect_name]
             screen.blit(icon, (x, y))
@@ -305,15 +306,11 @@ def render_player(screen: pygame.Surface, player: Player, assets: GameAssets):
     # Render status effects above the player
     status_effects = player.status_effects.effects.copy()
 
-    # HACK should make these more formal status effects so we dont hae to attempt them like this
+    # HACK should make these more formal status effects so we don't have to attempt them like this
     if player.bonus_damage > 0:
-        status_effects["PlayerBonus"] = type(
-            "obj", (object,), {"value": player.bonus_damage}
-        )()
+        status_effects.append(type("PlayerBonus", (), {"value": player.bonus_damage})())
     if player.strength > 0:
-        status_effects["Strength"] = type(
-            "obj", (object,), {"value": player.strength}
-        )()
+        status_effects.append(type("Strength", (), {"value": player.strength})())
     render_status_effects(screen, x, y - scale(50), status_effects, assets)
 
     # Render player image
