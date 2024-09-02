@@ -155,8 +155,10 @@ class CursedWell(Event):
         )
 
     def dark_power(self, player):
-        curse = Card("Cursed Coin", 99, 0.1, health_cost=5)
-        player.deck.append(curse)
+        player.deck.append(
+            Card("Cursed Coin", 99, 0.1, health_cost=5),
+            Card("Cursed Coin", 99, 0.1, health_cost=5),
+        )
         relic = get_relic_by_name("Cursed Coin")
         player.add_relic(relic)
         return f"You gained the '{relic.name}' relic ({relic.description}) and added a curse to your deck."
