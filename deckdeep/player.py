@@ -33,12 +33,30 @@ class Player:
         self.cards_per_turn = 5
         self.phoenix_feather_active = False
         self.extra_turn_chance = 0
+        self.applied_permanent_effects: Dict[str, Set[str]] = {}
+
+    def add_applied_permanent_effect(self, effect_name: str, relic_id: str):
+        if effect_name not in self.applied_permanent_effects:
+            self.applied_permanent_effects[effect_name] = set()
+        self.applied_permanent_effects[effect_name].add(relic_id)
+
+    def has_applied_permanent_effect(self, effect_name: str, relic_id: str) -> bool:
+        return (effect_name in self.applied_permanent_effects and 
+                relic_id in self.applied_permanent_effects[effect_name])
 
     def add_relic(self, relic: Relic) -> str:
-        msg = f"Adding New relic {relic.name}"
+        msg = f"Adding new relic {relic.name}"
+        
+        # Reset the application status for the new relic
+        relic.reset_application_status()
+        
+        # Always add the new relic instance
         self.relics.append(relic)
+        
+        # Always apply the effect for new relics, regardless of whether it's a duplicate
         if relic.trigger_when == TriggerWhen.PERMANENT:
             msg += ". " + relic.apply_effect(self, None)
+        
         return msg
 
     def apply_relic_effects(self, trigger: TriggerWhen) -> str:
@@ -201,31 +219,63 @@ class Player:
             self.discard_pile.append(self.hand.pop(index))
 
     def to_dict(self) -> Dict:
-        base_dict = {
-            key: value for key, value in vars(self).items() if not key.startswith("_")
+        return {
+            "name": self.name,
+            "health": self.health,
+            "max_health": self.max_health,
+            "shield": self.shield,
+            "bonus_damage": self.bonus_damage,
+            "energy": self.energy,
+            "max_energy": self.max_energy,
+            "symbol": self.symbol,
+            "hand_limit": self.hand_limit,
+            "deck": [card.to_dict() for card in self.deck],
+            "hand": [card.to_dict() for card in self.hand],
+            "discard_pile": [card.to_dict() for card in self.discard_pile],
+            "size": self.size,
+            "shake": self.shake,
+            "health_gain_on_skip": self.health_gain_on_skip,
+            "cards_drawn_per_turn": self.cards_drawn_per_turn,
+            "hp_regain_per_level": self.hp_regain_per_level,
+            "status_effects": self.status_effects.to_dict(),
+            "relics": [relic.to_dict() for relic in self.relics],
+            "strength": self.strength,
+            "dodge_chance": self.dodge_chance,
+            "cards_per_turn": self.cards_per_turn,
+            "phoenix_feather_active": self.phoenix_feather_active,
+            "extra_turn_chance": self.extra_turn_chance,
+            "applied_permanent_effects": {
+                k: list(v) for k, v in self.applied_permanent_effects.items()
+            },
         }
-        base_dict["deck"] = [card.to_dict() for card in self.deck]
-        base_dict["hand"] = [card.to_dict() for card in self.hand]
-        base_dict["discard_pile"] = [card.to_dict() for card in self.discard_pile]
-        base_dict["status_effects"] = self.status_effects.to_dict()
-        base_dict["relics"] = [relic.to_dict() for relic in self.relics]
-        return base_dict
 
     @classmethod
     def from_dict(cls, data: Dict) -> "Player":
-        player = cls(data["name"], data["max_health"], data["symbol"])
-        for key, value in data.items():
-            if key not in ["deck", "hand", "discard_pile", "status_effects", "relics"]:
-                setattr(player, key, value)
+        player = cls(data["name"], data["health"], data["symbol"])
+        player.max_health = data["max_health"]
+        player.shield = data["shield"]
+        player.bonus_damage = data["bonus_damage"]
+        player.energy = data["energy"]
+        player.max_energy = data["max_energy"]
+        player.hand_limit = data["hand_limit"]
         player.deck = [Card.from_dict(card_data) for card_data in data["deck"]]
         player.hand = [Card.from_dict(card_data) for card_data in data["hand"]]
-        player.discard_pile = [
-            Card.from_dict(card_data) for card_data in data["discard_pile"]
-        ]
+        player.discard_pile = [Card.from_dict(card_data) for card_data in data["discard_pile"]]
+        player.size = data["size"]
+        player.shake = data["shake"]
+        player.health_gain_on_skip = data["health_gain_on_skip"]
+        player.cards_drawn_per_turn = data["cards_drawn_per_turn"]
+        player.hp_regain_per_level = data["hp_regain_per_level"]
         player.status_effects = StatusEffectManager.from_dict(data["status_effects"])
-        player.relics = [
-            Relic.from_dict(relic_data) for relic_data in data.get("relics", [])
-        ]
+        player.relics = [Relic.from_dict(relic_data) for relic_data in data["relics"]]
+        player.strength = data["strength"]
+        player.dodge_chance = data["dodge_chance"]
+        player.cards_per_turn = data["cards_per_turn"]
+        player.phoenix_feather_active = data["phoenix_feather_active"]
+        player.extra_turn_chance = data["extra_turn_chance"]
+        player.applied_permanent_effects = {
+            k: set(v) for k, v in data["applied_permanent_effects"].items()
+        }
         return player
 
     def get_sorted_full_deck(self) -> List[Card]:
