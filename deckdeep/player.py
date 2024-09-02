@@ -14,8 +14,8 @@ class Player:
         self.max_health = health
         self.shield = 0
         self.bonus_damage = 0
-        self.energy = 3
-        self.max_energy = 3
+        self.energy = 10
+        self.max_energy = 10
         self.symbol = symbol
         self.hand_limit = 7
         self.deck: List[Card] = get_player_starting_deck()
@@ -28,7 +28,7 @@ class Player:
         self.hp_regain_per_level = 2
         self.status_effects = StatusEffectManager()
         self.relics: List[Relic] = []
-        self.strength = 0
+        self.strength = 100
         self.dodge_chance = 0
         self.cards_per_turn = 5
         self.phoenix_feather_active = False

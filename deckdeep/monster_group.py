@@ -78,7 +78,7 @@ class MonsterGroup:
 
         boss_groups = {
             "Corrupted Paladin": ["Guardian_1", "Guardian_1"],
-            "Troll King": ["Goblin", "Goblin"],
+            "Troll King": ["goblin_1", "goblin_1"],
             "Dragon": []
         }
 
