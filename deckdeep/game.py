@@ -266,13 +266,8 @@ class Game:
     def generate_node_tree(self):
         root_level = (self.stage - 1) * 9 + 1
         monster_group, target_power, actual_power = MonsterGroup.generate(root_level)
-        self.node_tree = Node(
-            "combat", self.stage, 1, root_level, {"monsters": monster_group}
-        )
-        self.logger.info(
-            f"Generated root node monster group: Target power: {target_power:.2f}, Actual power: {actual_power:.2f}",
-            category="SYSTEM",
-        )
+        self.node_tree = Node("combat", self.stage, 1, root_level, {"monsters": monster_group})
+        self.logger.info(f"Generated root node monster group: Target power: {target_power:.2f}, Actual power: {actual_power:.2f}", category="SYSTEM")
         current_level = [self.node_tree]
 
         for level in range(2, 10):
@@ -283,41 +278,23 @@ class Game:
                     true_level = (self.stage - 1) * 9 + level
 
                     if level == 9:
-                        monster_group, target_power, actual_power = (
-                            MonsterGroup.generate(true_level, is_boss=True)
-                        )
-                        child = Node(
-                            "boss",
-                            self.stage,
-                            level,
-                            true_level,
-                            {"monsters": monster_group},
-                        )
-                        self.logger.info(
-                            f"Generated boss node monster group: Level {true_level}, Target power: {target_power:.2f}, Actual power: {actual_power:.2f}",
-                            category="SYSTEM",
-                        )
+                        boss_type = random.choice(["Troll King", "Dragon", "Corrupted Paladin"])
+                        monster_group, target_power, actual_power = MonsterGroup.generate(true_level, is_boss=True, boss_type=boss_type)
+                        child = Node("boss", self.stage, level, true_level, {"monsters": monster_group})
+                        self.logger.info(f"Generated boss node monster group: Level {true_level}, Target power: {target_power:.2f}, Actual power: {actual_power:.2f}", category="SYSTEM")
                     else:
                         node_type = random.choice(["combat", "event", "combat"])
                         if node_type == "combat":
-                            monster_group, target_power, actual_power = (
-                                MonsterGroup.generate(true_level)
-                            )
+                            monster_group, target_power, actual_power = MonsterGroup.generate(true_level)
                             content = {"monsters": monster_group}
-                            
-                            self.logger.info(
-                                f"Generated combat node monster group: Level {true_level}, Target power: {target_power:.2f}, Actual power: {actual_power:.2f} , Delta: {round(actual_power-target_power)}",
-                                category="SYSTEM",
-                            )
+                            self.logger.info(f"Generated combat node monster group: Level {true_level}, Target power: {target_power:.2f}, Actual power: {actual_power:.2f} , Delta: {round(actual_power-target_power)}", category="SYSTEM")
                         else:
                             content = {"event": get_random_event()}
                         child = Node(node_type, self.stage, level, true_level, content)
                     parent.add_child(child)
                     next_level.append(child)
             current_level = next_level
-        self.logger.info(
-            f"Node tree generated for stage {self.stage}", category="SYSTEM"
-        )
+        self.logger.info(f"Node tree generated for stage {self.stage}", category="SYSTEM")
 
     def handle_events(self, music_manager: BackgroundMusicManager):
         for event in pygame.event.get():

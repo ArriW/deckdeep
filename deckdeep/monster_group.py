@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from deckdeep.monster import Monster
 import random
 from typing import Dict
@@ -63,44 +63,45 @@ class MonsterGroup:
         return sum(monster.power_rating for monster in self.monsters)
 
     @staticmethod
-    def generate(
-        level: int, is_boss: bool = False
-    ) -> Tuple["MonsterGroup", float, float]:
+    def generate(level: int, is_boss: bool = False, boss_type: Optional[str] = None) -> Tuple["MonsterGroup", float, float]:
         monster_group = MonsterGroup()
 
-        # Adjusted scaling function
         def scaling_factor(lvl):
             return 1 + math.log(lvl + 1, 2)  # Logarithmic scaling
 
         base_power = 15
         target_power = base_power * scaling_factor(level)
-
-        # Add a small amount of randomness (±10%)
         target_power *= random.uniform(0.9, 1.1)
 
         current_power = 0
         max_monsters = 5
+
+        boss_groups = {
+            "Corrupted Paladin": ["Guardian_1", "Guardian_1"],
+            "Troll King": ["Goblin", "Goblin"],
+            "Dragon": []
+        }
+
         if is_boss:
             boss = Monster.generate(level, is_boss=True)
             monster_group.add_monster(boss)
-            return monster_group, target_power, boss.power_rating
+            
+            print(f"Boss: {boss.name}")
+            # Remove "L##" from the boss name from the right such that Corrupted Paladin L9 becomes Corrupted Paladin
+            print(f"Boss Monsters: {boss_groups.get(boss.name, [])}")
+            print(f"is in boss groups: {boss.name in boss_groups}")
+            for minion_type in boss_groups.get(boss.name, []):
+                minion = Monster.generate(max(level-10,2), monster_type=minion_type)
+                monster_group.add_monster(minion)
+            return monster_group, target_power, monster_group.get_power_rating()
         else:
             attempts = 0
-            while (
-                current_power < target_power
-                and len(monster_group.monsters) < max_monsters
-            ):
+            while current_power < target_power and len(monster_group.monsters) < max_monsters:
                 new_monster = Monster.generate(level)
-                if current_power + new_monster.power_rating > target_power*1.2 and attempts < 5:
+                if current_power + new_monster.power_rating > target_power * 1.2 and attempts < 5:
                     continue
                 monster_group.add_monster(new_monster)
                 current_power += new_monster.power_rating
-
-            # # Add elite monster with a certain probability
-            # if random.random() < 0.15 and len(monster_group.monsters) < max_monsters:
-            #     elite_level = min(level + 2, int(level * 1.3))
-            #     elite_monster = Monster.generate(elite_level)
-            #     monster_group.add_monster(elite_monster)
 
             actual_power = monster_group.get_power_rating()
         return monster_group, target_power, actual_power
