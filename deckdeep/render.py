@@ -707,15 +707,18 @@ def render_text_event(
     )
 
     # Render options
+    key_mapping = ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P']
     for i, option in enumerate(options):
-        render_text(
-            screen,
-            f"{i+1}. {option}",
-            SCREEN_WIDTH // 2 + scale(20),
-            SCREEN_HEIGHT * 2 // 3 + scale(20) + i * scale(30),
-            color=BLACK,
-            font=SMALL_FONT
-        )
+        if i < len(key_mapping):
+            render_text(
+                screen,
+                f"{key_mapping[i]}: {option}",
+                SCREEN_WIDTH // 2 + scale(20),
+                SCREEN_HEIGHT * 2 // 3 + scale(20) + i * scale(30),
+                color=BLACK,
+                font=SMALL_FONT
+            )
+
 
     # Render player stats
     render_health_bar(
@@ -1043,7 +1046,7 @@ def render_card_selection(
     )
     screen.blit(parchment, (0, 0))
 
-    render_text(screen, "Choose a card:", scale(20), scale(15), color=BLACK)
+    render_text(screen, "Choose a card. (navigate with K & J and select with SPACE)", scale(20), scale(15), color=BLACK)
 
     card_list_width = scale(400)
     card_list_height = SCREEN_HEIGHT - header_height - scale(60)
