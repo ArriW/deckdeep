@@ -450,7 +450,7 @@ class Monster:
 
     boss_types: List[MonsterType] = [
         MonsterType(
-            "Troll",
+            "Troll King",
             "TK",
             4.4,
             1.5,
@@ -619,41 +619,48 @@ class Monster:
             return "No Action"
 
     @staticmethod
-    def generate(level: int, is_boss: bool = False):
+    def generate(level: int, is_boss: bool = False, monster_type: Optional[str] = None):
         if is_boss:
-            monster_type = random.choice(Monster.boss_types)
-        else:
-            monster_type = random.choices(
-                Monster.monster_types,
-                weights=[1 / mt.rarity for mt in Monster.monster_types],
+            # selected_monster_type = next(mt for mt in Monster.boss_types if mt.name == monster_type)
+            selected_monster_type = random.choices(
+                Monster.boss_types,
+                weights=[1 / mt.rarity for mt in Monster.boss_types],
                 k=1,
             )[0]
+        else:
+            if monster_type:
+                selected_monster_type = next(mt for mt in Monster.monster_types if mt.name == monster_type)
+            else:
+                selected_monster_type = random.choices(
+                    Monster.monster_types,
+                    weights=[1 / mt.rarity for mt in Monster.monster_types],
+                    k=1,
+                )[0]
 
         base_health = 12 + math.log(level + 1, 3) * 8
         base_damage = 6 + math.log(level + 1, 3) * 3
         base_spell_power = 6 + math.log(level + 1, 3) * 3
 
         health = round(
-            base_health * monster_type.health_mult * random.uniform(0.9, 1.1)
+            base_health * selected_monster_type.health_mult * random.uniform(0.9, 1.1)
         )
         damage = round(
-            base_damage * monster_type.damage_mult * random.uniform(0.9, 1.1)
+            base_damage * selected_monster_type.damage_mult * random.uniform(0.9, 1.1)
         )
         spell_power = round(
-            base_spell_power * monster_type.spell_power_mult * random.uniform(0.9, 1.1)
+            base_spell_power * selected_monster_type.spell_power_mult * random.uniform(0.9, 1.1)
         )
 
-        name = f"{monster_type.name} L{level}"
-        image_path = f"./assets/images/characters/{monster_type.name.lower().replace(' ', '_')}.png"
+        image_path = f"./assets/images/characters/{selected_monster_type.name.lower().replace(' ', '_')}.png"
 
         return Monster(
-            name,
+            selected_monster_type.name,
             health,
             damage,
             spell_power,
             image_path,
-            monster_type.symbol,
-            monster_type=monster_type,
+            selected_monster_type.symbol,
+            monster_type=selected_monster_type,
             is_boss=is_boss,
             level=level,
         )
