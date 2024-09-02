@@ -58,46 +58,38 @@ class EnergyBonus(StatusEffect):
 
 class StatusEffectManager:
     def __init__(self):
-        self.effects: Dict[str, StatusEffect] = {}
+        self.effects = []
 
     def add_effect(self, effect: StatusEffect) -> None:
-        if effect.name in self.effects.keys():
+        existing_effect = next((e for e in self.effects if e.name == effect.name), None)
+        if existing_effect:
             if effect.stack:
-                self.effects[effect.name].value += effect.value
+                existing_effect.value += effect.value
             else:
-                self.effects[effect.name].value = max(
-                    self.effects[effect.name].value, effect.value
-                )
+                existing_effect.value = max(existing_effect.value, effect.value)
         else:
-            self.effects[effect.name] = effect
+            self.effects.append(effect)
 
     def apply_effects(self, target: Any) -> None:
-        for effect in list(self.effects.values()):
+        for effect in list(self.effects):
             effect.apply(target)
             if effect.is_expired():
-                del self.effects[effect.name]
+                self.effects.remove(effect)
 
     def clear_effects(self) -> None:
-        self.effects = {}
+        self.effects = []
 
     def clear_debuff(self) -> None:
-        for effect in list(self.effects.values()):
-            if effect.type == "debuff":
-                del self.effects[effect.name]
+        self.effects = [effect for effect in self.effects if effect.type != "debuff"]
 
     def clear_buff(self) -> None:
-        for effect in list(self.effects.values()):
-            if effect.type == "buff":
-                del self.effects[effect.name]
+        self.effects = [effect for effect in self.effects if effect.type != "buff"]
 
-    def to_dict(self) -> Dict[str, Dict[str, Any]]:
-        return {name: effect.to_dict() for name, effect in self.effects.items()}
+    def to_dict(self) -> Dict[str, Any]:
+        return {"effects": [effect.to_dict() for effect in self.effects]}
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Dict[str, Any]]) -> "StatusEffectManager":
+    def from_dict(cls, data: Dict[str, Any]) -> "StatusEffectManager":
         manager = cls()
-        for effect_data in data.values():
-            effect_class = globals()[effect_data["name"]]
-            del effect_data["name"]
-            manager.add_effect(effect_class.from_dict(effect_data))
+        manager.effects = [StatusEffect.from_dict(effect_data) for effect_data in data["effects"]]
         return manager

@@ -505,6 +505,7 @@ class Game:
             option_method, self.player, self.assets
         )
         for relic in self.player.relics:
+            self.logger.debug(f"{relic.name}:{str(relic)}", category="PLAYER")
             if relic.trigger_when == TriggerWhen.PERMANENT:
                 msg = relic.apply_effect(self.player, self)
                 self.logger.debug(msg, category="PLAYER")
@@ -959,20 +960,17 @@ class Game:
             self.logger.debug(msg, category="PLAYER")
         for relic in self.player.relics:
             if isinstance(relic, dict):
-                # If the relic is a dictionary (serialized data), create a Relic object
                 relic_obj = Relic.from_dict(relic)
             elif isinstance(relic, Relic):
-                # If it's already a Relic object, use it directly
                 relic_obj = relic
             else:
-                # If it's neither a dict nor a Relic object, skip it
                 self.logger.warning(
                     f"Invalid relic type: {type(relic)}", category="SYSTEM"
                 )
                 continue
 
             if relic_obj.trigger_when == trigger:
-                relic_obj.apply_effect(self.player, self)
+                effect_msg = relic_obj.apply_effect(self.player, self)
                 self.logger.debug(
-                    f"Applied relic effect: {relic_obj.name}", category="PLAYER"
+                    f"Applied relic effect: {effect_msg}", category="PLAYER"
                 )
