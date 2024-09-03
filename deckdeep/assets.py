@@ -55,7 +55,15 @@ class GameAssets:
         self.health_cost: pygame.Surface = self.load_and_scale_ui(
             "./assets/images/icons/health_cost.png", (ICON_SIZE, ICON_SIZE)
         )
-
+        self.weakness_icon: pygame.Surface = self.load_and_scale_ui(
+            "./assets/images/icons/weakness.png", (ICON_SIZE, ICON_SIZE)
+        )
+        self.bolster_icon: pygame.Surface = self.load_and_scale_ui(
+            "./assets/images/icons/bolster.png", (ICON_SIZE, ICON_SIZE)
+        )
+        self.burn_icon: pygame.Surface = self.load_and_scale_ui(
+            "./assets/images/icons/burn.png", (ICON_SIZE, ICON_SIZE)
+        )
         # New status effect icons
         self.bleed_icon: pygame.Surface = self.load_and_scale_ui(
             "./assets/images/icons/bleed.png", (ICON_SIZE, ICON_SIZE)

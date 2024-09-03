@@ -4,6 +4,7 @@ from deckdeep.relic import get_relic_by_name, Relic
 from deckdeep.player import Player
 from deckdeep.render import handle_card_selection
 from deckdeep.logger import GameLogger
+from deckdeep.card import Rarity
 
 
 class Event:
@@ -36,7 +37,7 @@ class VoodooDoctor(Event):
     def healing_charm(self, player):
         if player.health > 10:
             player.health -= 10
-            curse = Card("Cursed Coin", 99, 0.1, health_cost=5)
+            curse = Card("Cursed Coin", 99, Rarity.UNCOMMON, health_cost=5)
             player.deck.append(curse)
             healing_charm = get_relic_by_name("Healing Charm")
             player.relics.append(healing_charm)
@@ -156,9 +157,9 @@ class CursedWell(Event):
 
     def dark_power(self, player):
         player.deck.append(
-            Card("Cursed Coin", 99, 0.1, health_cost=5),
+            Card("Cursed Coin", 99, Rarity.UNCOMMON, health_cost=5),
         )
-        player.deck.append(Card("Cursed Coin", 99, 0.1, health_cost=5))
+        player.deck.append(Card("Cursed Coin", 99, Rarity.UNCOMMON, health_cost=5))
         relic = get_relic_by_name("Cursed Coin")
         player.add_relic(relic)
         return f"You gained the '{relic.name}' relic ({relic.description}) and added a curse to your deck."
