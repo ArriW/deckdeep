@@ -91,7 +91,7 @@ class Burn(StatusEffect):
 
     def apply(self, target: Any) -> None:
         if self.value >= 3:
-            damage = self.value * 6
+            damage = self.value * 4
             target.take_damage(damage)
             self.value = 0
         else:
