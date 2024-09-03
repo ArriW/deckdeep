@@ -73,8 +73,8 @@ class InfectiousBite(Ability):
         super().__init__(name, probability, [IconType.ATTACK, IconType.BLEED])
 
     def use(self,user,target) -> str:
-        target.take_damage(user.damage * 0.25)
-        bleed_damage = max(round(user.damage * 0.25), 1)
+        target.take_damage(damage := round(user.damage * 0.25))
+        bleed_damage = max(damage, 1)
         bleed = Bleed(bleed_damage)
         target.status_effects.add_effect(bleed)
         return f"{user.name} inflicts an Infectious Bite, causing {bleed_damage} Bleed!"
@@ -85,7 +85,7 @@ class InfectiousBite(Ability):
 
 class Rage(Ability):
     def __init__(self, name: str, probability: float):
-        super().__init__(name, probability, [IconType.BUFF, IconType.ATTACK])
+        super().__init__(name, probability, [IconType.BUFF])
 
     def use(self,user,target) -> str:
         old_damage = user.damage
@@ -454,7 +454,7 @@ class Monster:
             ],
         ),
         MonsterType(
-            "Dragon",
+            "dragon_1",
             "DR",
             2.8,
             2.2,
@@ -467,7 +467,7 @@ class Monster:
             ],
         ),
         MonsterType(
-            "Corrupted Paladin",
+            "corrupted_paladin",
             "CP",
             2.5,
             2.0,
