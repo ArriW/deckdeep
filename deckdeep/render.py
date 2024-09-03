@@ -29,6 +29,7 @@ from deckdeep.relic import Relic
 import random
 from collections import Counter
 from deckdeep.monster import IconType
+import math
 
 # Imports only for type checking to avoid circular imports
 if TYPE_CHECKING:
@@ -236,36 +237,40 @@ def render_button(
     render_text(screen, text, x + scale(10), y + scale(10))
 
 
-def render_health_bar(
+def render_circular_health_bar(
     screen: pygame.Surface,
     x: int,
     y: int,
-    width: int,
-    height: int,
+    radius: int,
     current: int,
     maximum: int,
     color,
     shield=0,
 ):
-    pygame.draw.rect(
-        screen, BLACK, (x - scale(1), y - scale(1), width + scale(2), height + scale(2))
-    )
-    pygame.draw.rect(screen, GRAY, (x, y, width, height))
-    current_width = int(width * (current / maximum))
-    pygame.draw.rect(screen, color, (x, y, current_width, height))
-
+    # Draw background circle
+    pygame.draw.circle(screen, GRAY, (x, y), radius)
+    
+    # Calculate the angle for the health arc
+    angle = 360 * (current / maximum)
+    
+    # Draw the health arc
+    pygame.draw.arc(screen, color, (x - radius, y - radius, radius * 2, radius * 2), 
+                    math.radians(-90), math.radians(angle - 90), radius)
+    
+    # Draw shield arc if applicable
     if shield > 0:
-        shield_width = int(width * (shield / maximum))
-        s = pygame.Surface((shield_width, height))
-        s.set_alpha(128)
-        s.fill(BLUE)
-        screen.blit(s, (x + current_width - shield_width, y))
-
-    health_text = f"{current}/{maximum}"
-    if shield > 0:
-        health_text += f" (+{shield})"
-    text_x = x + (width - SMALL_FONT.size(health_text)[0]) // 2
-    render_text(screen, health_text, text_x, y + scale(2), color=WHITE, font=SMALL_FONT,outline=True)
+        shield_angle = 360 * (shield / maximum)
+        pygame.draw.arc(screen, BLUE, (x - radius, y - radius, radius * 2, radius * 2), 
+                        math.radians(angle - 90), math.radians(angle + shield_angle - 90), radius)
+    
+    # Draw the border
+    pygame.draw.circle(screen, BLACK, (x, y), radius, 2)
+    
+    # Render current health text
+    health_text = str(current)
+    text_x = x - SMALL_FONT.size(health_text)[0] // 2
+    text_y = y - SMALL_FONT.size(health_text)[1] // 2
+    render_text(screen, health_text, text_x, text_y, color=WHITE, font=SMALL_FONT, outline=True)
 
 
 def render_status_effects(
@@ -296,11 +301,11 @@ def render_status_effects(
             x += icon_spacing
 
 
-def render_player(screen: pygame.Surface, player: Player, assets: GameAssets):
+def render_player(screen: pygame.Surface, player: Player, assets: GameAssets, monster_center_y: int):
     player_image = pygame.transform.scale(assets.player, (PLAYER_SIZE, PLAYER_SIZE))
 
     x = scale(120)
-    y = SCREEN_HEIGHT // 2 - PLAYER_SIZE // 2
+    y = monster_center_y - PLAYER_SIZE // 2
     offset = random.randint(-player.shake, player.shake)
 
     # Render status effects above the player
@@ -369,92 +374,104 @@ def render_monsters(
     screen: pygame.Surface, monster_group: MonsterGroup, assets: GameAssets
 ):
     num_monsters = len(monster_group.monsters)
-    start_x = (
-        SCREEN_WIDTH
-        - scale(120)
-        - PLAYER_SIZE * num_monsters
-        - scale(50) * (num_monsters - 1)
-    )
+    monsters_per_row = 3
+    num_rows = (num_monsters + monsters_per_row - 1) // monsters_per_row
+    
+    monster_size = PLAYER_SIZE
+    monster_spacing = scale(50)
+    
+    total_height = num_rows * (monster_size + monster_spacing) - monster_spacing
+    start_y = (SCREEN_HEIGHT - total_height) // 2 - monster_size
+    
+    for row in range(num_rows):
+        start_index = row * monsters_per_row
+        end_index = min((row + 1) * monsters_per_row, num_monsters)
+        monsters_in_row = end_index - start_index
+        
+        row_width = monsters_in_row * monster_size + (monsters_in_row - 1) * monster_spacing
+        start_x = SCREEN_WIDTH - scale(120) - row_width
+        
+        for i, monster in enumerate(monster_group.monsters[start_index:end_index]):
+            monster_image = pygame.transform.scale(
+                GameAssets.load_and_scale_ui(
+                    monster.image_path, (monster_size, monster_size)
+                ),
+                (monster_size, monster_size),
+            )
+            x = start_x + i * (monster_size + monster_spacing)
+            y = start_y + row * (monster_size + monster_spacing)
+            offset = random.randint(-monster.shake, monster.shake)
 
-    for i, monster in enumerate(monster_group.monsters):
-        monster_image = pygame.transform.scale(
-            GameAssets.load_and_scale_ui(
-                monster.image_path, (PLAYER_SIZE, PLAYER_SIZE)
-            ),
-            (PLAYER_SIZE, PLAYER_SIZE),
-        )
-        x = start_x + i * (PLAYER_SIZE + scale(50))
-        y = SCREEN_HEIGHT // 2 - PLAYER_SIZE // 2
-        offset = random.randint(-monster.shake, monster.shake)
+            # Render status effects above the monster
+            render_status_effects(
+                screen, x, y - scale(30), monster.status_effects.effects, assets
+            )
 
-        # Render status effects above the monster
-        render_status_effects(
-            screen, x, y - scale(30), monster.status_effects.effects, assets
-        )
+            # Render monster image
+            screen.blit(monster_image, (x + offset, y + offset))
 
-        # Render monster image
-        screen.blit(monster_image, (x + offset, y + offset))
+            # Render circular health bar below the monster
+            health_bar_radius = scale(30)
+            render_circular_health_bar(
+                screen,
+                x + monster_size // 2,
+                y + monster_size + health_bar_radius + scale(10),
+                health_bar_radius,
+                monster.health,
+                monster.max_health,
+                RED,
+                monster.shields,
+            )
 
-        # Render health bar below the monster
-        health_bar_width = PLAYER_SIZE
-        health_bar_height = scale(20)
-        render_health_bar(
-            screen,
-            x,
-            y + PLAYER_SIZE + scale(10),
-            health_bar_width,
-            health_bar_height,
-            monster.health,
-            monster.max_health,
-            RED,
-            monster.shields,
-        )
+            try:
+                # Render yellow frame for selected monster
+                if monster.selected:
+                    frame_padding = scale(5)
+                    pygame.draw.rect(
+                        screen,
+                        YELLOW,
+                        (
+                            x - frame_padding,
+                            y - frame_padding,
+                            monster_size + 2 * frame_padding,
+                            monster_size + 2 * frame_padding,
+                        ),
+                        3,
+                    )
 
-        try:
-            # Render yellow frame for selected monster
-            if monster.selected:
-                frame_padding = scale(5)
-                pygame.draw.rect(
+                # Render monster damage in top right corner of the frame
+                damage_x = x + scale(12)
+                damage_y = y + scale(12)
+                render_text(
                     screen,
-                    YELLOW,
-                    (
-                        x - frame_padding,
-                        y - frame_padding,
-                        PLAYER_SIZE + 2 * frame_padding,
-                        PLAYER_SIZE + 2 * frame_padding,
-                    ),
-                    3,
+                    str(monster.damage),
+                    damage_x,
+                    damage_y,
+                    color=BLACK,
+                    font=FONT,
+                    circle=True,
+                    outline_color=BLACK,
                 )
 
-            # Render monster damage in top right corner of the frame
-            damage_x = x + PLAYER_SIZE - scale(25)
-            damage_y = y - scale(25)
-            render_text(
-                screen,
-                str(monster.damage),
-                damage_x,
-                damage_y,
-                color=RED,
-                font=SMALL_FONT,
-                circle=True,
-            )
+                # Render monster intention icons
+                intention_icons = get_intention_icons(monster.intention_icon_types, assets)
+                icon_width = ICON_SIZE
+                total_width = len(intention_icons) * icon_width
+                icon_start_x = x + (monster_size - total_width) // 2
+                icon_y = y + monster_size - ICON_SIZE - scale(5)
 
-            # Render monster intention icons
-            intention_icons = get_intention_icons(monster.intention_icon_types, assets)
-            icon_width = ICON_SIZE
-            total_width = len(intention_icons) * icon_width
-            icon_start_x = x + (PLAYER_SIZE - total_width) // 2
-            icon_y = y + PLAYER_SIZE - ICON_SIZE - scale(5)
+                for j, icon in enumerate(intention_icons):
+                    screen.blit(icon, (icon_start_x + j * icon_width, icon_y))
 
-            for j, icon in enumerate(intention_icons):
-                screen.blit(icon, (icon_start_x + j * icon_width, icon_y))
+                if monster.shake > 0:
+                    monster.shake -= 1
+            except AttributeError as e:
+                print(
+                    f"Error rendering monster intention icons, maybe game just loaded? {e}"
+                )
 
-            if monster.shake > 0:
-                monster.shake -= 1
-        except AttributeError as e:
-            print(
-                f"Error rendering monster intention icons, maybe game just loaded? {e}"
-            )
+    # Return the center y-coordinate of the monster group
+    return start_y + total_height // 2
 
 
 def render_combat_state(
@@ -486,8 +503,8 @@ def render_combat_state(
         screen, level_text, (SCREEN_WIDTH - level_width) // 2, scale(15), color=BLACK
     )
 
-    render_player(screen, player, assets)
-    render_monsters(screen, monster_group, assets)
+    monster_center_y = render_monsters(screen, monster_group, assets)
+    render_player(screen, player, assets, monster_center_y)
 
     s = pygame.Surface((SCREEN_WIDTH, CARD_HEIGHT + scale(40)))
     s.set_alpha(128)
