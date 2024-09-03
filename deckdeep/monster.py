@@ -349,7 +349,7 @@ class Monster:
             [InfectiousBite("Infectious Bite", 0.7), BasicAttack("Claw", 0.3)],
         ),
         MonsterType(
-            "Zombie_1",
+            "Zombie_2",
             "Z",
             0.8,
             1.0,
@@ -361,16 +361,7 @@ class Monster:
             "Zombie_3",
             "Z",
             0.3,
-            0.3,
-            0.3,
-            1.0,
-            [InfectiousBite("Infectious Bite", 0.7), BasicAttack("Claw", 0.3)],
-        ),
-        MonsterType(
-            "Zombie_4",
-            "Z",
-            0.3,
-            0.3,
+            1.3,
             0.3,
             1.0,
             [InfectiousBite("Infectious Bite", 0.7), BasicAttack("Claw", 0.3)],
@@ -398,7 +389,7 @@ class Monster:
             ],
         ),
         MonsterType(
-            "Troll",
+            "troll_1",
             "T",
             1.3,
             1.1,
@@ -409,8 +400,8 @@ class Monster:
         MonsterType(
             "witch_1",
             "W",
-            0.6,
-            0.6,
+            .8,
+            1.0,
             1.2,
             0.7,
             [
@@ -424,7 +415,7 @@ class Monster:
             "Guardian_1",
             "GL",
             1.5,
-            0.7,
+            0.8,
             0.5,
             0.5,
             [
@@ -436,7 +427,7 @@ class Monster:
         MonsterType(
             "Guardian_2",
             "D",
-            0.7,
+            1.5,
             1.2,
             1.0,
             0.4,
