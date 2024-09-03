@@ -190,6 +190,9 @@ def render_card(
         "bleed": (assets.bleed_icon, f"{card.bleed}"),
         "energy_bonus": (assets.energy_bonus_icon, f"+{card.energy_bonus}"),
         "health_regain": (assets.health_regain_icon, f"+{card.health_regain}"),
+        "weakness": (assets.weakness_icon, f"{card.weakness}"),
+        "bolster": (assets.bolster_icon, f"{card.bolster}"),
+        "burn": (assets.burn_icon, f"{card.burn}"),
     }
 
     for attr, (icon, text) in icon_map.items():
@@ -246,14 +249,36 @@ def render_health_bar(
     maximum: int,
     color,
     shield=0,
+    assets: GameAssets = None,
 ):
+    # Draw rounded rectangle for the border
     pygame.draw.rect(
-        screen, BLACK, (x - scale(1), y - scale(1), width + scale(2), height + scale(2))
+        screen, BLACK, (x - scale(1), y - scale(1), width + scale(2), height + scale(2)), border_radius=scale(5)
     )
-    pygame.draw.rect(screen, GRAY, (x, y, width, height))
+    
+    # Draw rounded rectangle for the background
+    pygame.draw.rect(screen, GRAY, (x, y, width, height), border_radius=scale(5))
+    
+    # Calculate current width
     current_width = int(width * (current / maximum))
-    pygame.draw.rect(screen, color, (x, y, current_width, height))
-
+    
+    # Draw rounded rectangle for the current health/energy
+    pygame.draw.rect(screen, color, (x, y, current_width, height), border_radius=scale(5))
+    
+    # Draw parchment texture overlay
+    if assets:
+        parchment = assets.parchment_texture
+        parchment_rect = parchment.get_rect()
+        scale_x = width / parchment_rect.width
+        scale_y = height / parchment_rect.height
+        scaled_parchment = pygame.transform.scale(parchment, (width, height))
+        screen.blit(scaled_parchment, (x, y), special_flags=pygame.BLEND_MULT)
+    
+    # Draw ticks every 10%
+    for i in range(1, 10):
+        tick_x = x + (width * i // 10)
+        pygame.draw.line(screen, BLACK, (tick_x, y), (tick_x, y + height), 1)
+    
     if shield > 0:
         shield_width = int(width * (shield / maximum))
         s = pygame.Surface((shield_width, height))
@@ -261,11 +286,12 @@ def render_health_bar(
         s.fill(BLUE)
         screen.blit(s, (x + current_width - shield_width, y))
 
-    health_text = f"{current}/{maximum}"
+    # health_text = f"{current}/{maximum}"
+    health_text = str(current)
     if shield > 0:
         health_text += f" (+{shield})"
     text_x = x + (width - SMALL_FONT.size(health_text)[0]) // 2
-    render_text(screen, health_text, text_x, y + scale(2), color=WHITE, font=SMALL_FONT,outline=True)
+    render_text(screen, health_text, text_x, y + scale(2), color=WHITE, font=SMALL_FONT, outline=True)
 
 
 def render_status_effects(
@@ -278,6 +304,9 @@ def render_status_effects(
         "EnergyBonus": (assets.energy_bonus_icon, PURPLE),
         "PlayerBonus": (assets.attack_icon, PURPLE),
         "Strength": (assets.strength_icon, PURPLE),
+        "Weakness": (assets.weakness_icon, RED),
+        "Bolster": (assets.bolster_icon, BLUE),
+        "Burn": (assets.burn_icon, RED),
     }
     for effect in status_effects:
         effect_name = effect.__class__.__name__
@@ -329,6 +358,7 @@ def render_player(screen: pygame.Surface, player: Player, assets: GameAssets, mo
         player.max_health,
         GREEN,
         player.shield,
+        assets,
     )
 
     # Render energy bar below the health bar
@@ -341,6 +371,8 @@ def render_player(screen: pygame.Surface, player: Player, assets: GameAssets, mo
         player.energy,
         player.max_energy,
         BLUE,
+        0,
+        assets,
     )
 
     if player.shake > 0:
@@ -418,6 +450,7 @@ def render_monsters(
                 monster.max_health,
                 RED,
                 monster.shields,
+                assets,
             )
 
             try:
@@ -623,6 +656,8 @@ def render_victory_state(
         player.health,
         player.max_health,
         GREEN,
+        0,
+        assets,
     )
     render_health_bar(
         screen,
@@ -633,6 +668,8 @@ def render_victory_state(
         player.energy,
         player.max_energy,
         BLUE,
+        0,
+        assets,
     )
 
     pygame.display.flip()
@@ -744,6 +781,8 @@ def render_text_event(
         player.health,
         player.max_health,
         GREEN,
+        0,
+        assets,
     )
     render_health_bar(
         screen,
@@ -754,6 +793,8 @@ def render_text_event(
         player.energy,
         player.max_energy,
         BLUE,
+        0,
+        assets,
     )
 
     pygame.display.flip()

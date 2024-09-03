@@ -2,7 +2,7 @@ from typing import List
 import random
 from deckdeep.card import Card, get_player_starting_deck
 from typing import Dict, Optional
-from deckdeep.status_effect import StatusEffectManager, Bleed
+from deckdeep.status_effect import StatusEffectManager, Bleed, Weakness, Bolster, Burn
 from deckdeep.relic import Relic
 from deckdeep.relic import TriggerWhen
 
@@ -97,11 +97,23 @@ class Player:
                 for monster in monster_group.monsters:
                     if hasattr(card, "bleed") and card.bleed > 0:
                         monster.status_effects.add_effect(Bleed(card.bleed))
+                    if hasattr(card, "weakness") and card.weakness > 0:
+                        monster.status_effects.add_effect(Weakness(card.weakness))
+                    if hasattr(card, "burn") and card.burn > 0:
+                        monster.status_effects.add_effect(Burn(card.burn))
             else:
                 target_monster = monster_group.get_selected_monster()
                 score += target_monster.receive_damage(total_damage)
                 if hasattr(card, "bleed") and card.bleed > 0:
                     target_monster.status_effects.add_effect(Bleed(card.bleed))
+                if hasattr(card, "weakness") and card.weakness > 0:
+                    target_monster.status_effects.add_effect(Weakness(card.weakness))
+                if hasattr(card, "burn") and card.burn > 0:
+                    target_monster.status_effects.add_effect(Burn(card.burn))
+
+            # Apply Bolster to the player
+            if hasattr(card, "bolster") and card.bolster > 0:
+                self.status_effects.add_effect(Bolster(card.bolster))
 
             self.heal(round(card.healing))
             self.health -= card.health_cost
@@ -139,6 +151,11 @@ class Player:
 
         old_health = self.health
 
+        # Apply Bolster effect
+        bolster_effect = next((effect for effect in self.status_effects.effects if isinstance(effect, Bolster)), None)
+        if bolster_effect:
+            damage = max(0, damage - bolster_effect.value)
+
         # Handle shield absorption
         if self.shield > 0:
             if damage <= self.shield:
@@ -149,7 +166,7 @@ class Player:
                 self.shield = 0
 
         # Apply remaining damage to health
-        self.health = self.health - damage
+        self.health = max(0, self.health - damage)
 
         # Phoenix Feather effect
         if self.health <= 0 and self.phoenix_feather_active:
@@ -323,3 +340,6 @@ class Player:
                 self.discard_pile.append(new_card)
             return new_card
         return None
+
+    def diminish_effects_at_turn_start(self):
+        self.status_effects.diminish_effects_at_turn_start()
