@@ -14,8 +14,8 @@ class Player:
         self.max_health = health
         self.shield = 0
         self.bonus_damage = 0
-        self.energy = 10
-        self.max_energy = 10
+        self.energy = 3
+        self.max_energy = 3
         self.symbol = symbol
         self.hand_limit = 7
         self.deck: List[Card] = get_player_starting_deck()
@@ -28,7 +28,7 @@ class Player:
         self.hp_regain_per_level = 2
         self.status_effects = StatusEffectManager()
         self.relics: List[Relic] = []
-        self.strength = 100
+        self.strength = 0
         self.dodge_chance = 0
         self.cards_per_turn = 5
         self.phoenix_feather_active = False
@@ -187,7 +187,7 @@ class Player:
         level: Optional[int] = None,
         force: bool = False,
     ):
-        if level is not None and level % 3 == 0 and self.max_energy < 10:
+        if level is not None and level % 5 == 0 and self.max_energy < 10:
             print(f"{self.name} gained +1 max energy!")
             self.max_energy += 1
             self.energy = self.max_energy
