@@ -1,6 +1,7 @@
 import random
 from typing import List, Dict
 import pygame
+from deckdeep.status_effect import Weakness, Bolster, Burn
 
 
 class Card:
@@ -19,6 +20,10 @@ class Card:
         bleed: int = 0,
         energy_bonus: int = 0,
         health_regain: int = 0,
+        weakness: int = 0,
+        bolster: int = 0,
+        burn: int = 0,
+        cleanse: bool = False,
     ):
         self.name = name
         self.damage = int(damage)
@@ -33,6 +38,10 @@ class Card:
         self.bleed = int(bleed)
         self.energy_bonus = int(energy_bonus)
         self.health_regain = int(health_regain)
+        self.weakness = weakness
+        self.bolster = bolster
+        self.burn = burn
+        self.cleanse = cleanse
 
         # Animation properties
         self.x = 0
@@ -144,16 +153,21 @@ class Card:
 
 def get_player_starting_deck() -> List[Card]:
     return [
-        Card("Quick Strike", 1, 1, damage=6),
-        Card("Quick Strike", 1, 1, damage=6),
-        Card("Quick Strike", 1, 1, damage=6),
-        Card("Quick Strike", 1, 1, damage=6),
-        Card("Soulful Persuit", 0, 1, bonus_damage=2),
-        Card("Soulful Persuit", 0, 1, bonus_damage=2),
-        Card("Shield", 1, 1, shield=6),
-        Card("Shield", 1, 1, shield=6),
-        Card("Shield", 1, 1, shield=6),
-        Card("Shield", 1, 1, shield=6),
-        Card("Power Strike", 2, 1, damage=15),
-        Card("AW's Gift", 0, 1, card_draw=1, health_regain=1, healing=3),
+        # Card("Quick Strike", 1, 1, damage=6),
+        # Card("Quick Strike", 1, 1, damage=6),
+        # Card("Quick Strike", 1, 1, damage=6),
+        # Card("Quick Strike", 1, 1, damage=6),
+        # Card("Soulful Persuit", 0, 1, bonus_damage=2),
+        # Card("Soulful Persuit", 0, 1, bonus_damage=2),
+        # Card("Shield", 1, 1, shield=6),
+        # Card("Shield", 1, 1, shield=6),
+        # Card("Shield", 1, 1, shield=6),
+        # Card("Shield", 1, 1, shield=6),
+        # Card("Power Strike", 2, 1, damage=15),
+        # Card("AW's Gift", 0, 1, card_draw=1, health_regain=1, healing=3),
+        Card("Weaken", 0, 0.5, 0, 0, 0, 0, False, 0, 0, weakness=2),
+        Card("Fortify", 0, 0.5, 0, 0, 0, 0, False, 0, 0, bolster=2),
+        Card("Ignite", 0, 0.5, 0, 0, 0, 0, False, 0, 0, burn=2),
+        Card("Ignite", 0, 0.5, 0, 0, 0, 0, False, 0, 0, burn=2),
+        Card("Cleanse", 0, 0.5, 0, 0, 0, 0, False, 0, 0, cleanse=True),
     ]
