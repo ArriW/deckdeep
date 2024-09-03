@@ -77,19 +77,15 @@ class MonsterGroup:
         max_monsters = 5
 
         boss_groups = {
-            "Corrupted Paladin": ["Guardian_1", "Guardian_1"],
-            "Troll King": ["goblin_1", "goblin_1"],
-            "Dragon": []
+            "corrupted_paladin": ["Guardian_1", "Guardian_1"],
+            "troll_king": ["goblin_1", "goblin_1"],
+            "dragon_1": [],
         }
 
         if is_boss:
             boss = Monster.generate(level, is_boss=True)
             monster_group.add_monster(boss)
             
-            print(f"Boss: {boss.name}")
-            # Remove "L##" from the boss name from the right such that Corrupted Paladin L9 becomes Corrupted Paladin
-            print(f"Boss Monsters: {boss_groups.get(boss.name, [])}")
-            print(f"is in boss groups: {boss.name in boss_groups}")
             for minion_type in boss_groups.get(boss.name, []):
                 minion = Monster.generate(max(level-10,2), monster_type=minion_type)
                 monster_group.add_monster(minion)

@@ -29,7 +29,6 @@ from deckdeep.relic import Relic
 import random
 from collections import Counter
 from deckdeep.monster import IconType
-import math
 
 # Imports only for type checking to avoid circular imports
 if TYPE_CHECKING:
@@ -237,40 +236,36 @@ def render_button(
     render_text(screen, text, x + scale(10), y + scale(10))
 
 
-def render_circular_health_bar(
+def render_health_bar(
     screen: pygame.Surface,
     x: int,
     y: int,
-    radius: int,
+    width: int,
+    height: int,
     current: int,
     maximum: int,
     color,
     shield=0,
 ):
-    # Draw background circle
-    pygame.draw.circle(screen, GRAY, (x, y), radius)
-    
-    # Calculate the angle for the health arc
-    angle = 360 * (current / maximum)
-    
-    # Draw the health arc
-    pygame.draw.arc(screen, color, (x - radius, y - radius, radius * 2, radius * 2), 
-                    math.radians(-90), math.radians(angle - 90), radius)
-    
-    # Draw shield arc if applicable
+    pygame.draw.rect(
+        screen, BLACK, (x - scale(1), y - scale(1), width + scale(2), height + scale(2))
+    )
+    pygame.draw.rect(screen, GRAY, (x, y, width, height))
+    current_width = int(width * (current / maximum))
+    pygame.draw.rect(screen, color, (x, y, current_width, height))
+
     if shield > 0:
-        shield_angle = 360 * (shield / maximum)
-        pygame.draw.arc(screen, BLUE, (x - radius, y - radius, radius * 2, radius * 2), 
-                        math.radians(angle - 90), math.radians(angle + shield_angle - 90), radius)
-    
-    # Draw the border
-    pygame.draw.circle(screen, BLACK, (x, y), radius, 2)
-    
-    # Render current health text
-    health_text = str(current)
-    text_x = x - SMALL_FONT.size(health_text)[0] // 2
-    text_y = y - SMALL_FONT.size(health_text)[1] // 2
-    render_text(screen, health_text, text_x, text_y, color=WHITE, font=SMALL_FONT, outline=True)
+        shield_width = int(width * (shield / maximum))
+        s = pygame.Surface((shield_width, height))
+        s.set_alpha(128)
+        s.fill(BLUE)
+        screen.blit(s, (x + current_width - shield_width, y))
+
+    health_text = f"{current}/{maximum}"
+    if shield > 0:
+        health_text += f" (+{shield})"
+    text_x = x + (width - SMALL_FONT.size(health_text)[0]) // 2
+    render_text(screen, health_text, text_x, y + scale(2), color=WHITE, font=SMALL_FONT,outline=True)
 
 
 def render_status_effects(
@@ -410,13 +405,15 @@ def render_monsters(
             # Render monster image
             screen.blit(monster_image, (x + offset, y + offset))
 
-            # Render circular health bar below the monster
-            health_bar_radius = scale(30)
-            render_circular_health_bar(
+            # Render health bar below the monster
+            health_bar_width = monster_size
+            health_bar_height = scale(20)
+            render_health_bar(
                 screen,
-                x + monster_size // 2,
-                y + monster_size + health_bar_radius + scale(10),
-                health_bar_radius,
+                x,
+                y + monster_size + scale(10),
+                health_bar_width,
+                health_bar_height,
                 monster.health,
                 monster.max_health,
                 RED,
