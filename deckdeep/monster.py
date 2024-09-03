@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Dict, Optional, Tuple
 import random
 import math
-from deckdeep.status_effect import StatusEffectManager, Bleed, HealthRegain
+from deckdeep.status_effect import StatusEffectManager, Bleed, HealthRegain, Weakness, Bolster, Burn
 from deckdeep.config import scale
 
 from enum import Enum
@@ -41,13 +41,19 @@ class Ability(ABC):
     def power_contribution(self, value):
         self._power_contribution = value
 
+    def apply_weakness(self, user, damage: int) -> int:
+        weakness_effect = next((effect for effect in user.status_effects.effects if isinstance(effect, Weakness)), None)
+        if weakness_effect:
+            return max(0, damage - weakness_effect.value)
+        return damage
+
 
 class BasicAttack(Ability):
     def __init__(self, name: str, probability: float):
         super().__init__(name, probability, [IconType.ATTACK])
 
     def use(self,user,target) -> str:
-        damage = user.damage
+        damage = self.apply_weakness(user, user.damage)
         target.take_damage(damage)
         return f"{user.name} attacks for {damage} damage!"
 
@@ -60,7 +66,7 @@ class SneakAttack(Ability):
         super().__init__(name, probability, [IconType.ATTACK])
 
     def use(self,user,target) -> str:
-        damage = round(user.damage * 1.5)
+        damage = self.apply_weakness(user, round(user.damage * 1.5))
         target.take_damage(damage)
         return f"{user.name} performs a Sneak Attack for {damage} damage!"
 
@@ -73,7 +79,8 @@ class InfectiousBite(Ability):
         super().__init__(name, probability, [IconType.ATTACK, IconType.BLEED])
 
     def use(self,user,target) -> str:
-        target.take_damage(damage := round(user.damage * 0.25))
+        damage = self.apply_weakness(user, round(user.damage * 0.25))
+        target.take_damage(damage)
         bleed_damage = max(damage, 1)
         bleed = Bleed(bleed_damage)
         target.status_effects.add_effect(bleed)
@@ -154,7 +161,7 @@ class PowerOverTime(Ability):
 
     def use(self,user,target) -> str:
         old_damage = user.damage
-        damage_dealt = round(user.damage)
+        damage_dealt = self.apply_weakness(user, round(user.damage))
         user.damage = round(user.damage * 1.2)
         target.take_damage(damage_dealt)
         return f"{user.name}'s power increases from {old_damage} to {user.damage} and deals {damage_dealt} damage!"
@@ -183,7 +190,7 @@ class MagicMissile(Ability):
 
     def use(self,user,target) -> str:
         user.heal(round(user.spell_power * 0.4))
-        damage = round(user.spell_power)
+        damage = self.apply_weakness(user, round(user.spell_power))
         target.take_damage(damage)
         return f"{user.name} casts Magic Missile for {damage} damage!"
 
@@ -212,7 +219,7 @@ class FireBreath(Ability):
         super().__init__(name, probability, [IconType.ATTACK, IconType.BLEED])
 
     def use(self,user,target) -> str:
-        damage = round(user.spell_power * 1.5)
+        damage = self.apply_weakness(user, round(user.spell_power * 1.5))
         bleed = Bleed(v := round(damage * 0.1))
         target.take_damage(damage)
         target.status_effects.add_effect(bleed)
@@ -269,7 +276,7 @@ class PoisonDart(Ability):
         super().__init__(name, probability, [IconType.ATTACK, IconType.BLEED])
 
     def use(self,user,target) -> str:
-        damage = round(user.spell_power * 0.5)
+        damage = self.apply_weakness(user, round(user.spell_power * 0.5))
         target.take_damage(damage)
         return (
             f"{user.name} fires a Poison Dart for {damage} damage!"
@@ -284,10 +291,14 @@ class ThunderClap(Ability):
         super().__init__(name, probability, [IconType.ATTACK, IconType.BUFF])
 
     def use(self,user,target) -> str:
-        raise NotImplementedError("ThunderClap is not implemented yet")
+        damage = self.apply_weakness(user, round(user.damage * 0.8))
+        target.take_damage(damage)
+        weakness = Weakness(1)
+        target.status_effects.add_effect(weakness)
+        return f"{user.name} uses Thunder Clap for {damage} damage and applies 1 Weakness!"
 
     def calculate_power_contribution(self, user):
-        return round(user.damage * 0.8 * 1.25)  # Estimating the value of vulnerable
+        return round(user.damage * 0.8 * 1.25)  # Estimating the value of Weakness
 
 
 class LifeDrain(Ability):
@@ -295,7 +306,7 @@ class LifeDrain(Ability):
         super().__init__(name, probability, [IconType.ATTACK, IconType.HEAL])
 
     def use(self,user,target) -> str:
-        damage = round(user.spell_power * 0.7)
+        damage = self.apply_weakness(user, round(user.spell_power * 0.7))
         heal = round(damage * 0.5)
         target.take_damage(damage)
         user.heal(heal)
@@ -581,7 +592,34 @@ class Monster:
         self.health = min(self.max_health, self.health + amount)
 
     def take_damage(self, damage: int) -> int:
-        return self.receive_damage(damage)
+        old_health = self.health
+
+        # Apply Bolster effect
+        bolster_effect = next((effect for effect in self.status_effects.effects if isinstance(effect, Bolster)), None)
+        if bolster_effect:
+            damage = max(0, damage - bolster_effect.value)
+
+        # Handle shield absorption
+        if self.shields > 0:
+            if damage <= self.shields:
+                self.shields -= damage
+                damage = 0
+            else:
+                damage -= self.shields
+                self.shields = 0
+
+        # Apply remaining damage to health
+        self.health = max(0, self.health - damage)
+
+        # ... rest of the existing code ...
+
+    def deal_damage(self, base_damage: int) -> int:
+        # Apply Weakness effect
+        weakness_effect = next((effect for effect in self.status_effects.effects if isinstance(effect, Weakness)), None)
+        if weakness_effect:
+            base_damage = max(0, base_damage - weakness_effect.value)
+
+        return base_damage
 
     def apply_status_effects(self):
         self.status_effects.apply_effects(self)
@@ -707,3 +745,6 @@ class Monster:
         if data["intention"]:
             monster.intention = next((a for a in monster.monster_type.abilities if a.__class__.__name__ == data["intention"]), None)
         return monster
+
+    def diminish_effects_at_turn_start(self):
+        self.status_effects.diminish_effects_at_turn_start()

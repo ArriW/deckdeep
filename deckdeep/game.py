@@ -558,9 +558,14 @@ class Game:
             self.player.apply_status_effects()
             self.monster_group.remove_dead_monsters()
 
+            # Diminish effects for monsters at the start of their turn
+            for monster in self.monster_group.monsters:
+                monster.diminish_effects_at_turn_start()
+
             for monster in self.monster_group.monsters:
                 monster.apply_status_effects()
                 self.monster_group.remove_dead_monsters()
+
             # Execute previous intentions
             for i, monster in enumerate(self.monster_group.monsters):
                 result = monster.execute_action(self.player)
@@ -578,6 +583,10 @@ class Game:
             self.apply_relic_effects(TriggerWhen.ON_DAMAGE_TAKEN)
             self.player.end_turn()
             self.player_turn = True
+            
+            # Diminish effects for the player at the start of their turn
+            self.player.diminish_effects_at_turn_start()
+            
             self.apply_relic_effects(TriggerWhen.START_OF_TURN)
             self.logger.debug("Turn ended, new turn started", category="COMBAT")
         else:
