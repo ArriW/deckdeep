@@ -34,6 +34,8 @@ class Player:
         self.phoenix_feather_active = False
         self.extra_turn_chance = 0
         self.applied_permanent_effects: Dict[str, Set[str]] = {}
+        self.is_dying = False
+        self.death_start_time = 0
 
     def add_applied_permanent_effect(self, effect_name: str, relic_id: str):
         if effect_name not in self.applied_permanent_effects:
@@ -259,6 +261,8 @@ class Player:
             "applied_permanent_effects": {
                 k: list(v) for k, v in self.applied_permanent_effects.items()
             },
+            "is_dying": self.is_dying,
+            "death_start_time": self.death_start_time,
         }
 
     @classmethod
@@ -288,6 +292,8 @@ class Player:
         player.applied_permanent_effects = {
             k: set(v) for k, v in data["applied_permanent_effects"].items()
         }
+        player.is_dying = data["is_dying"]
+        player.death_start_time = data["death_start_time"]
         return player
 
     def get_sorted_full_deck(self) -> List[Card]:
