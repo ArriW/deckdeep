@@ -86,30 +86,17 @@ class Player:
         score = 0
         if self.can_play_card(card):
             self.bonus_damage += card.bonus_damage
-            total_damage = (
-                round(card.damage + self.bonus_damage + self.strength)
-                if card.damage > 0
-                else 0
-            )
+            total_damage = card.calculate_total_damage(self.bonus_damage, self.strength)
 
-            if card.targets_all:
-                score += monster_group.receive_damage(total_damage)
-                for monster in monster_group.monsters:
-                    if hasattr(card, "bleed") and card.bleed > 0:
-                        monster.status_effects.add_effect(Bleed(card.bleed))
-                    if hasattr(card, "weakness") and card.weakness > 0:
-                        monster.status_effects.add_effect(Weakness(card.weakness))
-                    if hasattr(card, "burn") and card.burn > 0:
-                        monster.status_effects.add_effect(Burn(card.burn))
-            else:
-                target_monster = monster_group.get_selected_monster()
-                score += target_monster.receive_damage(total_damage)
-                if hasattr(card, "bleed") and card.bleed > 0:
-                    target_monster.status_effects.add_effect(Bleed(card.bleed))
-                if hasattr(card, "weakness") and card.weakness > 0:
-                    target_monster.status_effects.add_effect(Weakness(card.weakness))
-                if hasattr(card, "burn") and card.burn > 0:
-                    target_monster.status_effects.add_effect(Burn(card.burn))
+            for _ in range(card.num_attacks):
+                if card.targets_all:
+                    score += monster_group.receive_damage(total_damage // card.num_attacks)
+                    for monster in monster_group.monsters:
+                        self.apply_card_effects(card, monster)
+                else:
+                    target_monster = monster_group.get_selected_monster()
+                    score += target_monster.receive_damage(total_damage // card.num_attacks)
+                    self.apply_card_effects(card, target_monster)
 
             # Apply Bolster to the player
             if hasattr(card, "bolster") and card.bolster > 0:
@@ -126,6 +113,14 @@ class Player:
             self.discard_pile.append(card)
             self.hand.remove(card)
         return score
+
+    def apply_card_effects(self, card: Card, monster):
+        if hasattr(card, "bleed") and card.bleed > 0:
+            monster.status_effects.add_effect(Bleed(card.bleed))
+        if hasattr(card, "weakness") and card.weakness > 0:
+            monster.status_effects.add_effect(Weakness(card.weakness))
+        if hasattr(card, "burn") and card.burn > 0:
+            monster.status_effects.add_effect(Burn(card.burn))
 
     def heal(self, amount: int):
         self.health = min(self.max_health, self.health + amount)
