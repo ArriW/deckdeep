@@ -387,8 +387,13 @@ def render_player(screen: pygame.Surface, player: Player, assets: GameAssets, mo
         status_effects.append(type("Strength", (), {"value": player.strength})())
     render_status_effects(screen, int(current_x), y - scale(50), status_effects, assets)
 
-    # Render player image
-    screen.blit(player_image, (int(current_x) + offset, y + offset))
+    # Render player image with death animation if applicable
+    if player.is_dying:
+        death_progress = min(1.0, (pygame.time.get_ticks() - player.death_start_time) / 1000)
+        opacity = int(255 * (1 - death_progress))
+        render_with_opacity(screen, player_image, int(current_x) + offset, y + offset, opacity)
+    else:
+        screen.blit(player_image, (int(current_x) + offset, y + offset))
 
     # Render health bar below the player
     health_bar_width = PLAYER_SIZE
@@ -481,8 +486,13 @@ def render_monsters(
                 screen, x, y - scale(30), monster.status_effects.effects, assets
             )
 
-            # Render monster image
-            screen.blit(monster_image, (x + offset, y + offset))
+            # Render monster image with death animation if applicable
+            if monster.is_dying:
+                death_progress = min(1.0, (pygame.time.get_ticks() - monster.death_start_time) / 1000)
+                opacity = int(255 * (1 - death_progress))
+                render_with_opacity(screen, monster_image, x + offset, y + offset, opacity)
+            else:
+                screen.blit(monster_image, (x + offset, y + offset))
 
             # Render health bar below the monster
             health_bar_width = monster_size
@@ -1211,3 +1221,9 @@ def render_card_selection(
         font=SMALL_FONT,
     )
     pygame.display.flip()
+
+def render_with_opacity(screen: pygame.Surface, image: pygame.Surface, x: int, y: int, opacity: int):
+    temp = pygame.Surface(image.get_size(), pygame.SRCALPHA)
+    temp.blit(image, (0, 0))
+    temp.fill((255, 255, 255, opacity), None, pygame.BLEND_RGBA_MULT)
+    screen.blit(temp, (x, y))

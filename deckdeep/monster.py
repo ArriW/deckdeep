@@ -552,6 +552,9 @@ class Monster:
 
         self.power_rating: float = self.calculate_power_rating()
 
+        self.is_dying = False
+        self.death_start_time = 0
+
     def calculate_power_rating(self):
         base_survivability = (
             self.max_health / 6

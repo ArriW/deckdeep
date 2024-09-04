@@ -398,11 +398,21 @@ class Game:
             self.player_turn = False
             self.logger.info("Player ended turn", category="PLAYER")
         elif key == pygame.K_h:
-            self.monster_group.select_previous()
-            self.logger.debug("Selected previous monster", category="PLAYER")
+            if self.monster_group.monsters:
+                self.monster_group.select_previous()
+                selected_monster = self.monster_group.get_selected_monster()
+                if selected_monster:
+                    self.logger.debug(f"Selected previous monster: {selected_monster.name}", category="PLAYER")
+                else:
+                    self.logger.debug("No valid monsters to select", category="PLAYER")
         elif key == pygame.K_l:
-            self.monster_group.select_next()
-            self.logger.debug("Selected next monster", category="PLAYER")
+            if self.monster_group.monsters:
+                self.monster_group.select_next()
+                selected_monster = self.monster_group.get_selected_monster()
+                if selected_monster:
+                    self.logger.debug(f"Selected next monster: {selected_monster.name}", category="PLAYER")
+                else:
+                    self.logger.debug("No valid monsters to select", category="PLAYER")
         elif key == pygame.K_ESCAPE:
             self.logger.info("Opened Menu", category="SYSTEM")
             self.menu_active = True
@@ -516,29 +526,22 @@ class Game:
             self.running = False
 
     def play_card(self):
-        if self.selected_card != -1:
+        if self.selected_card >= 0 and self.selected_card < len(self.player.hand):
             card = self.player.hand[self.selected_card]
-            if self.player.can_play_card(card):
-                self.score += self.player.play_card(card, self.monster_group)
-                self.logger.info(f"Player played card: {card.name}", category="COMBAT")
-                if card.energy_bonus > 0:
-                    self.player.status_effects.add_effect(
-                        EnergyBonus(card.energy_bonus)
-                    )
-                if card.health_regain > 0:
-                    self.player.status_effects.add_effect(
-                        HealthRegain(card.health_regain)
-                    )
-                self.selected_card = -1
-                self.apply_relic_effects(TriggerWhen.ON_ATTACK)
-                card.is_animating = True
-                self.played_cards.append(card)
-                
-            else:
-                self.logger.info(
-                    f"Player tried to play card: {card.name} but didn't have enough energy",
-                    category="COMBAT",
-                )
+            target_monster = self.monster_group.get_selected_monster()
+            
+            if target_monster is None:
+                self.logger.debug("No valid monsters to target", category="COMBAT")
+                return
+
+            if target_monster.is_dying:
+                self.logger.debug(f"Cannot target dying monster: {target_monster.name}", category="COMBAT")
+                return
+
+            self.score += self.player.play_card(card, self.monster_group)
+            self.logger.info(f"Player played card: {card.name} on {target_monster.name}", category="COMBAT")
+            self.selected_card = -1
+            self.update_combat()
 
     def update(self):
         if self.current_node.node_type in ["combat", "boss"]:
@@ -594,7 +597,20 @@ class Game:
             # It's the player's turn, so we don't need to do anything here
             pass
 
-        self.monster_group.remove_dead_monsters()
+        # Check for player death
+        if self.player.health <= 0 and not self.player.is_dying:
+            self.player.is_dying = True
+            self.player.death_start_time = pygame.time.get_ticks()
+
+        # Check for monster deaths
+        for monster in self.monster_group.monsters:
+            if monster.health <= 0 and not monster.is_dying:
+                monster.is_dying = True
+                monster.death_start_time = pygame.time.get_ticks()
+
+        # Remove dead monsters after death animation
+        current_time = pygame.time.get_ticks()
+        self.monster_group.monsters = [m for m in self.monster_group.monsters if not (m.is_dying and current_time - m.death_start_time > 1000)]
 
         if not self.monster_group.monsters:
             self.player.end_turn()
@@ -602,6 +618,12 @@ class Game:
 
         if all(not card.is_animating for card in self.played_cards):
             self.played_cards.clear()  # Clear played cards after all animations are complete
+
+        # Check for game over after death animation
+        if self.player.is_dying and pygame.time.get_ticks() - self.player.death_start_time > 1000:
+            self.game_over = True
+            self.logger.info("Game over", category="SYSTEM")
+            self.auto_save()
 
     # In the Game class, modify the combat_victory method:
     def combat_victory(self):

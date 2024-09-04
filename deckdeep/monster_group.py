@@ -18,10 +18,23 @@ class MonsterGroup:
         if len(self.monsters) == 1:
             monster.selected = True
 
+    def _update_selection(self):
+        alive_monsters = [m for m in self.monsters if m.is_alive() and not m.is_dying]
+        if not alive_monsters:
+            self.selected_index = 0
+            return
+        
+        self.selected_index = self.selected_index % len(alive_monsters)
+        for i, monster in enumerate(self.monsters):
+            monster.selected = (monster == alive_monsters[self.selected_index])
+
     def select_next(self):
-        self.monsters[self.selected_index].selected = False
-        self.selected_index = (self.selected_index + 1) % len(self.monsters)
-        self.monsters[self.selected_index].selected = True
+        alive_monsters = [m for m in self.monsters if m.is_alive() and not m.is_dying]
+        if not alive_monsters:
+            return
+        current_index = alive_monsters.index(self.get_selected_monster())
+        self.selected_index = (current_index + 1) % len(alive_monsters)
+        self._update_selection()
 
     def random_monster(self) -> Monster:
         try:
@@ -33,18 +46,23 @@ class MonsterGroup:
         return sum([monster.calculate_power_rating() for monster in self.monsters])
 
     def select_previous(self):
-        self.monsters[self.selected_index].selected = False
-        self.selected_index = (self.selected_index - 1) % len(self.monsters)
-        self.monsters[self.selected_index].selected = True
+        alive_monsters = [m for m in self.monsters if m.is_alive() and not m.is_dying]
+        if not alive_monsters:
+            return
+        current_index = alive_monsters.index(self.get_selected_monster())
+        self.selected_index = (current_index - 1) % len(alive_monsters)
+        self._update_selection()
 
-    def get_selected_monster(self) -> Monster:
-        return self.monsters[self.selected_index]
+    def get_selected_monster(self) -> Optional[Monster]:
+        alive_monsters = [m for m in self.monsters if m.is_alive() and not m.is_dying]
+        if not alive_monsters:
+            return None
+        self._update_selection()
+        return alive_monsters[self.selected_index]
 
     def remove_dead_monsters(self):
         self.monsters = [monster for monster in self.monsters if monster.is_alive()]
-        if self.monsters:
-            self.selected_index = min(self.selected_index, len(self.monsters) - 1)
-            self.monsters[self.selected_index].selected = True
+        self._update_selection()
 
     def attack(self, player):
         for monster in self.monsters:
