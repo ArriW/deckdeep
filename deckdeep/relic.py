@@ -99,8 +99,8 @@ ALL_RELICS = {
         "trigger_when": TriggerWhen.START_OF_COMBAT,
     },
     "Strength Amulet": {
-        "description": "Your attacks deal 2 additional damage.",
-        "effect": lambda p, g: p.increase_strength(2),
+        "description": "Your attacks deal 1 additional damage.",
+        "effect": lambda p, g: p.increase_strength(1),
         "trigger_when": TriggerWhen.PERMANENT,
     },
     "Shield Rune": {

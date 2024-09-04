@@ -31,6 +31,7 @@ class Card:
         bolster: int = 0,
         burn: int = 0,
         cleanse: bool = False,
+        num_attacks: int = 1,  # New attribute for multi-attack
     ):
         self.name = name
         self.damage = int(damage)
@@ -49,6 +50,7 @@ class Card:
         self.bolster = bolster
         self.burn = burn
         self.cleanse = cleanse
+        self.num_attacks = num_attacks
 
         # Animation properties
         self.x = 0
@@ -91,7 +93,7 @@ class Card:
             Card("Blood Pact", 4, Rarity.RARE, damage=20, health_cost=10, bleed=5),
             Card("Meditation", 1, Rarity.COMMON, shield=5, health_regain=2),
             Card("Chain Lightning", 3, Rarity.RARE, damage=12, targets_all=True, energy_bonus=1),
-            Card("Siphon Soul", 2, Rarity.UNCOMMON, damage=8, healing=4, bleed=2),
+            Card("Soul Shred", 2, Rarity.UNCOMMON, damage=8, healing=4, bleed=2),
             Card("Fortify", 2, Rarity.UNCOMMON, shield=10, bolster=2),
             Card("Rage", 1, Rarity.COMMON, bonus_damage=5, health_cost=3),
             Card("Time Warp", 3, Rarity.UNIQUE, card_draw=3, energy_bonus=1),
@@ -130,11 +132,15 @@ class Card:
             Card("Dragon Fire", 6, Rarity.LEGENDARY, damage=25, burn=5, targets_all=True),
             Card("@allcosts", 1, Rarity.LEGENDARY, energy_bonus=2, health_cost=20, bonus_damage=6),
             Card("Flame Burst", 2, Rarity.UNCOMMON, damage=8, burn=2),
+            Card("Devestating Strike", 5, Rarity.UNCOMMON, damage=40),
             Card("Inferno", 4, Rarity.RARE, damage=12, burn=4, targets_all=True),
             Card("Ember Shield", 5, Rarity.UNCOMMON, shield=20, burn=1),
             Card("Rally Troops", 2, Rarity.UNCOMMON, bolster=3, card_draw=1),
             Card("Warcry", 2, Rarity.RARE, bolster=2, bonus_damage=4, targets_all=True),
             Card("Defensive Stance", 1, Rarity.COMMON, shield=8, bolster=1),
+            Card("Double Strike", 2, Rarity.UNCOMMON, damage=4, num_attacks=2),
+            Card("Triple Slash", 3, Rarity.RARE, damage=5, num_attacks=3),
+            Card("Flurry of Blows", 1, Rarity.COMMON, damage=2, num_attacks=2),
         ]
         return random.choices(
             card_pool, weights=[card.rarity.value for card in card_pool], k=num_cards
@@ -159,6 +165,15 @@ class Card:
             data['rarity'] = Rarity[data['rarity']]
         return cls(**data)
 
+    def calculate_total_damage(self, player_bonus_damage: int, player_strength: int) -> int:
+        if self.damage == 0:
+            return 0
+
+        base_damage = self.damage + self.bonus_damage
+        total_damage = (base_damage + player_strength) * self.num_attacks + player_bonus_damage
+        return total_damage
+        
+
 def get_player_starting_deck() -> List[Card]:
     return [
         Card("Quick Strike", 1, Rarity.COMMON, damage=6),
@@ -172,6 +187,6 @@ def get_player_starting_deck() -> List[Card]:
         Card("Shield", 1, Rarity.COMMON, shield=6),
         Card("Shield", 1, Rarity.COMMON, shield=6),
         Card("Power Strike", 2, Rarity.COMMON, damage=15),
-        Card("Power Strike", 2, Rarity.COMMON, damage=15),
+        Card("Doubletap", 1, Rarity.RARE, damage=3, num_attacks=2),
         Card("Awals Gift", 0, Rarity.COMMON, card_draw=1, health_regain=2, healing=3),
     ]

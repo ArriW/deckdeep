@@ -23,12 +23,13 @@ from deckdeep.config import (
 
 from deckdeep.player import Player
 from deckdeep.monster_group import MonsterGroup
-from deckdeep.card import Card
+from deckdeep.card import Card, Rarity
 from deckdeep.assets import GameAssets
 from deckdeep.relic import Relic
 import random
 from collections import Counter
 from deckdeep.monster import IconType
+import pygame.gfxdraw
 
 # Imports only for type checking to avoid circular imports
 if TYPE_CHECKING:
@@ -145,42 +146,46 @@ def render_card(
     assets: GameAssets,
     player_energy: int,
     player_max_energy: int,
+    player_bonus_damage: int,
+    player_strength: int,
     hotkey=None,
     opacity=255
 ):
-    def render_icon_and_text(icon, text, current_y):
-        icon_surface = icon.copy()
-        icon_surface.set_alpha(opacity)
-        screen.blit(icon_surface, (x + x_anchor, current_y))
-        render_text(
-            screen, text, x + x_offset, current_y + y_text_offset, font=CARD_FONT, color=(*BLACK, opacity)
-        )
-        return current_y + y_offset
-
     x_offset = ICON_SIZE + scale(16)
     x_anchor = scale(15)
     y_offset = ICON_SIZE + scale(3)
     y_text_offset = scale(5)
 
-    parchment_surface = assets.parchment_texture.copy()
-    parchment_surface.set_alpha(opacity)
-    screen.blit(parchment_surface, (x, y))
+    # Create a new surface for the card
+    card_surface = pygame.Surface((CARD_WIDTH, CARD_HEIGHT), pygame.SRCALPHA)
 
-    border_color = YELLOW if is_selected else BLACK
-    border_surface = pygame.Surface((CARD_WIDTH, CARD_HEIGHT), pygame.SRCALPHA)
-    pygame.draw.rect(border_surface, (*border_color, opacity), (0, 0, CARD_WIDTH, CARD_HEIGHT), 2)
-    screen.blit(border_surface, (x, y))
+    # 1. Bottom layer: Parchment texture
+    card_surface.blit(assets.parchment_texture, (0, 0))
 
+    # # 2. Middle layer: Rarity hue
+    # rarity_colors = {
+    #     Rarity.COMMON: None,
+    #     Rarity.UNCOMMON: (0, 255, 0, 40),
+    #     Rarity.RARE: (0, 0, 255, 40),
+    #     Rarity.UNIQUE: (128, 0, 128, 40),
+    #     Rarity.LEGENDARY: (255, 0, 0, 40),
+    # }
+    
+    # if card.rarity in rarity_colors and rarity_colors[card.rarity] is not None:
+    #     color_surface = pygame.Surface((CARD_WIDTH, CARD_HEIGHT), pygame.SRCALPHA)
+    #     color_surface.fill(rarity_colors[card.rarity])
+    #     card_surface.blit(color_surface, (0, 0))
+
+    # 3. Top layer: Card content (name, icons, text)
     name_surface = CARD_FONT.render(card.name, True, BLACK)
-    name_surface.set_alpha(opacity)
-    name_x = x + (CARD_WIDTH - name_surface.get_width()) // 2
-    screen.blit(name_surface, (name_x, y + scale(10)))
-    current_y = y + y_offset + scale(15)
+    name_x = (CARD_WIDTH - name_surface.get_width()) // 2
+    card_surface.blit(name_surface, (name_x, scale(10)))
+    current_y = y_offset + scale(15)
 
     icon_map = {
         "damage": (
             assets.attack_icon,
-            f"{card.damage}{' (AOE)' if card.targets_all else ''}",
+            f"{card.calculate_total_damage(player_bonus_damage, player_strength)}{' (AOE)' if card.targets_all else ''}",
         ),
         "bonus_damage": (assets.dice_icon, f"{card.bonus_damage}"),
         "healing": (assets.heal_icon, f"{card.healing}"),
@@ -197,21 +202,45 @@ def render_card(
 
     for attr, (icon, text) in icon_map.items():
         if getattr(card, attr, 0) > 0:
-            current_y = render_icon_and_text(icon, text, current_y)
+            icon_surface = icon.copy()
+            icon_y = current_y
+            
+            if attr == "damage" and card.num_attacks > 1:
+                # Render multiple attack icons
+                overlap = ICON_SIZE // 3  # Reduced overlap for better visibility
+                total_width = x_anchor + (card.num_attacks - 1) * overlap + ICON_SIZE
+                for i in range(card.num_attacks):
+                    card_surface.blit(icon_surface, (x_anchor + i * overlap, icon_y))
+                
+                # Dynamically calculate text position
+                text_width = CARD_FONT.size(text)[0]
+                text_x = max(x_offset, total_width + scale(5))  # Ensure minimum x_offset
+                if text_x + text_width > CARD_WIDTH - scale(10):
+                    text_x = CARD_WIDTH - text_width - scale(10)  # Adjust if text would overflow
+                
+                render_text(
+                    card_surface, str(int(text) // card.num_attacks), text_x, icon_y + y_text_offset, font=CARD_FONT, color=BLACK
+                )
+            else:
+                card_surface.blit(icon_surface, (x_anchor, icon_y))
+                render_text(
+                    card_surface, text, x_offset, icon_y + y_text_offset, font=CARD_FONT, color=BLACK
+                )
+            current_y += y_offset
 
-    energy_x = x + CARD_WIDTH - round(1.25 * ICON_SIZE)
-    energy_y = y + CARD_HEIGHT - round(1.25 * ICON_SIZE)
+
+    energy_x = CARD_WIDTH - round(1.25 * ICON_SIZE)
+    energy_y = CARD_HEIGHT - round(1.25 * ICON_SIZE)
     
-    # Determine the color of the energy cost
     if player_energy >= card.energy_cost:
-        energy_color = (*GREEN, opacity)
+        energy_color = GREEN
     elif player_max_energy >= card.energy_cost:
-        energy_color = (*RED, opacity)
+        energy_color = RED
     else:
-        energy_color = (*RED, opacity)
+        energy_color = RED
 
     render_text_in_icon(
-        screen,
+        card_surface,
         f"{card.energy_cost}",
         energy_x,
         energy_y,
@@ -219,15 +248,27 @@ def render_card(
         color=energy_color,
         font=CARD_FONT
     )
+
     if hotkey is not None:
         render_text(
-            screen,
+            card_surface,
             f"{get_key_name(hotkey)}",
-            x + x_anchor,
-            y + CARD_HEIGHT - x_offset,
+            x_anchor,
+            CARD_HEIGHT - x_offset,
             font=CARD_FONT,
-            color=(*BLACK, opacity)
+            color=BLACK
         )
+
+    # Apply opacity to the entire card surface
+    card_surface.set_alpha(opacity)
+
+    # Blit the card surface to the screen
+    screen.blit(card_surface, (x, y))
+
+    # Draw border
+    border_color = YELLOW if is_selected else BLACK
+    pygame.draw.rect(screen, border_color, (x, y, CARD_WIDTH, CARD_HEIGHT), 2)
+
     return x , y
 
 
@@ -546,7 +587,7 @@ def render_combat_state(
     ) // 2
     num_keys = [pygame.K_q, pygame.K_w, pygame.K_e, pygame.K_r, pygame.K_t, pygame.K_y, pygame.K_u, pygame.K_i, pygame.K_o, pygame.K_p]
     for i, card in enumerate(player.hand):
-        card.x , card.y = render_card(
+        card.x, card.y = render_card(
             screen,
             card,
             card_start_x + i * (CARD_WIDTH + CARD_SPACING),
@@ -555,6 +596,8 @@ def render_combat_state(
             assets,
             player.energy,
             player.max_energy,
+            player.bonus_damage,
+            player.strength,
             hotkey=num_keys[i],
         )
 
@@ -571,6 +614,8 @@ def render_combat_state(
                     assets,
                     player.energy,
                     player.max_energy,
+                    player.bonus_damage,
+                    player.strength,
                     opacity=card.opacity
                 )
                 card.update_animation()
@@ -636,6 +681,8 @@ def render_victory_state(
             assets,
             player.energy,
             player.max_energy,
+            player.bonus_damage,
+            player.strength,
             hotkey=num_keys[i],
         )
 
@@ -886,7 +933,7 @@ def render_deck_view(
         x = start_x + col * (CARD_WIDTH + card_spacing_x)
         y = start_y + row * (CARD_HEIGHT + card_spacing_y)
 
-        render_card(screen, card, x, y, False, assets, player.energy, player.max_energy)
+        render_card(screen, card, x, y, False, assets, player.energy, player.max_energy, player.bonus_damage, player.strength)
 
     # Render page information
     render_text(
@@ -1143,6 +1190,8 @@ def render_card_selection(
             assets,
             player.energy,
             player.max_energy,
+            player.bonus_damage,
+            player.strength,
         )
 
     instructions = "Use UP/DOWN arrows to navigate, ENTER to select, ESC to cancel"
