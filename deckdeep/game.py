@@ -58,6 +58,7 @@ from time import sleep
 from collections import Counter
 from deckdeep.logger import GameLogger
 from pygame.surface import Surface
+import time
 
 def get_key_name(key: int) -> str:
     return pygame.key.name(key).upper()
@@ -717,6 +718,42 @@ class Game:
         )
         self.player_turn = True
         self.apply_relic_effects(TriggerWhen.START_OF_COMBAT)
+        self.animate_combat_start()
+
+    def animate_combat_start(self):
+        animation_duration = 1.0  # seconds
+        start_time = time.time()
+        
+        while True:
+            current_time = time.time()
+            elapsed_time = current_time - start_time
+            progress = min(elapsed_time / animation_duration, 1.0)
+            
+            self.render_combat_with_animation(progress)
+            
+            if progress >= 1.0:
+                break
+            
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+                    return
+            
+            self.clock.tick(60)
+
+    def render_combat_with_animation(self, progress):
+        render_combat_state(
+            self.screen,
+            self.player,
+            self.monster_group,
+            f"{self.current_node.stage}:{self.current_node.level}",
+            self.score,
+            self.selected_card,
+            self.assets,
+            self.played_cards,
+            animation_progress=progress
+        )
+        pygame.display.flip()
 
     def select_next_node(self):
         if self.current_node.children:

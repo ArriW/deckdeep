@@ -30,6 +30,7 @@ import random
 from collections import Counter
 from deckdeep.monster import IconType
 import pygame.gfxdraw
+import math
 
 # Imports only for type checking to avoid circular imports
 if TYPE_CHECKING:
@@ -366,10 +367,13 @@ def render_status_effects(
             x += icon_spacing
 
 
-def render_player(screen: pygame.Surface, player: Player, assets: GameAssets, monster_center_y: int):
+def render_player(screen: pygame.Surface, player: Player, assets: GameAssets, monster_center_y: int, animation_progress: float = 1.0):
     player_image = pygame.transform.scale(assets.player, (PLAYER_SIZE, PLAYER_SIZE))
 
-    x = scale(120)
+    target_x = scale(120)
+    start_x = -PLAYER_SIZE
+    current_x = start_x + (target_x - start_x) * animation_progress
+    
     y = monster_center_y - PLAYER_SIZE // 2
     offset = random.randint(-player.shake, player.shake)
 
@@ -381,17 +385,17 @@ def render_player(screen: pygame.Surface, player: Player, assets: GameAssets, mo
         status_effects.append(type("PlayerBonus", (), {"value": player.bonus_damage})())
     if player.strength > 0:
         status_effects.append(type("Strength", (), {"value": player.strength})())
-    render_status_effects(screen, x, y - scale(50), status_effects, assets)
+    render_status_effects(screen, int(current_x), y - scale(50), status_effects, assets)
 
     # Render player image
-    screen.blit(player_image, (x + offset, y + offset))
+    screen.blit(player_image, (int(current_x) + offset, y + offset))
 
     # Render health bar below the player
     health_bar_width = PLAYER_SIZE
     health_bar_height = scale(20)
     render_health_bar(
         screen,
-        x,
+        int(current_x),
         y + PLAYER_SIZE + scale(10),
         health_bar_width,
         health_bar_height,
@@ -405,7 +409,7 @@ def render_player(screen: pygame.Surface, player: Player, assets: GameAssets, mo
     # Render energy bar below the health bar
     render_health_bar(
         screen,
-        x,
+        int(current_x),
         y + PLAYER_SIZE + scale(35),
         health_bar_width,
         health_bar_height,
@@ -439,7 +443,7 @@ def get_intention_icons(
 
 
 def render_monsters(
-    screen: pygame.Surface, monster_group: MonsterGroup, assets: GameAssets
+    screen: pygame.Surface, monster_group: MonsterGroup, assets: GameAssets, animation_progress: float = 1.0
 ):
     num_monsters = len(monster_group.monsters)
     monsters_per_row = 3
@@ -457,7 +461,9 @@ def render_monsters(
         monsters_in_row = end_index - start_index
         
         row_width = monsters_in_row * monster_size + (monsters_in_row - 1) * monster_spacing
-        start_x = SCREEN_WIDTH - scale(120) - row_width
+        target_start_x = SCREEN_WIDTH - scale(120) - row_width
+        start_start_x = SCREEN_WIDTH
+        current_start_x = start_start_x + (target_start_x - start_start_x) * animation_progress
         
         for i, monster in enumerate(monster_group.monsters[start_index:end_index]):
             monster_image = pygame.transform.scale(
@@ -466,7 +472,7 @@ def render_monsters(
                 ),
                 (monster_size, monster_size),
             )
-            x = start_x + i * (monster_size + monster_spacing)
+            x = int(current_start_x + i * (monster_size + monster_spacing))
             y = start_y + row * (monster_size + monster_spacing)
             offset = random.randint(-monster.shake, monster.shake)
 
@@ -553,7 +559,8 @@ def render_combat_state(
     score: int,
     selected_card: int,
     assets: GameAssets,
-    played_cards: List[Card] = None
+    played_cards: List[Card] = None,
+    animation_progress: float = 1.0
 ):
     screen.blit(assets.background_image, (0, 0))
 
@@ -574,8 +581,8 @@ def render_combat_state(
         screen, level_text, (SCREEN_WIDTH - level_width) // 2, scale(15), color=BLACK
     )
 
-    monster_center_y = render_monsters(screen, monster_group, assets)
-    render_player(screen, player, assets, monster_center_y)
+    monster_center_y = render_monsters(screen, monster_group, assets, animation_progress)
+    render_player(screen, player, assets, monster_center_y, animation_progress)
 
     s = pygame.Surface((SCREEN_WIDTH, CARD_HEIGHT + scale(40)))
     s.set_alpha(128)
