@@ -59,6 +59,7 @@ from collections import Counter
 from deckdeep.logger import GameLogger
 from pygame.surface import Surface
 import time
+import sys
 
 def get_key_name(key: int) -> str:
     return pygame.key.name(key).upper()
@@ -231,12 +232,27 @@ class Game:
             with BackgroundMusicManager(self.assets.music_path) as music_manager:
                 while self.running and not self.game_over:
                     self.handle_events(music_manager)
+                    if not self.running:
+                        return
                     self.render()
                     self.update()
                     self.clock.tick(60)
 
             if self.game_over:
                 self.game_over_screen()
+                # Reset game state after game over
+                self.reset_game_state()
+            
+            if not self.running:
+                return
+
+    def reset_game_state(self):
+        self.game_over = False
+        self.player = None
+        self.current_node = None
+        self.dungeon = None
+        # Reset any other necessary game state variables
+        self.logger.info("Game state reset after game over", category="SYSTEM")
 
     def start_screen(self) -> bool:
         render_start_screen(self.screen, self.assets)
@@ -301,6 +317,7 @@ class Game:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
+                return  # Exit the method immediately
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 self.handle_mouse_click(event.pos)
             elif event.type == pygame.KEYDOWN:
@@ -524,6 +541,8 @@ class Game:
             self.load_game()
         elif selected_option == "Quit":
             self.running = False
+            pygame.quit()
+            sys.exit()
 
     def play_card(self):
         if self.selected_card >= 0 and self.selected_card < len(self.player.hand):
@@ -544,17 +563,17 @@ class Game:
             self.update_combat()
 
     def update(self):
-        if self.current_node.node_type in ["combat", "boss"]:
-            self.update_combat()
-        elif self.current_node.node_type == "event":
-            self.update_event()
-
-        if self.player.health <= 0:
+        if self.player and self.player.health <= 0:
             self.apply_relic_effects(TriggerWhen.ON_DEATH)
             if self.player.health <= 0:
                 self.game_over = True
                 self.logger.info("Game over", category="SYSTEM")
                 self.auto_save()
+
+        if self.current_node.node_type in ["combat", "boss"]:
+            self.update_combat()
+        elif self.current_node.node_type == "event":
+            self.update_event()
 
     def update_combat(self):
         if not self.player_turn:
@@ -919,18 +938,28 @@ class Game:
             pygame.time.wait(100)
 
     def game_over_screen(self):
-        render_game_over_screen(self.screen, self.score, self.assets)
-        waiting = True
-        while waiting:
+        self.logger.info("Displaying game over screen", category="SYSTEM")
+        game_over_font = pygame.font.Font(None, 74)
+        game_over_image = pygame.transform.scale(self.assets.game_over_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
+        # game_over_image.set_alpha(128)
+        self.screen.blit(game_over_image, (0, 0))
+        
+        # text = game_over_font.render("Game Over", True, (255, 0, 0))
+        # text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+        
+        while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    waiting = False
+                    self.running = False
+                    return
                 if event.type == pygame.KEYDOWN:
-                    waiting = False
-        self.logger.info(
-            "Game over screen closed, starting new game", category="SYSTEM"
-        )
-        self.new_game()
+                    if event.key == pygame.K_RETURN:
+                        return  # Return to main menu
+            
+            # self.screen.fill((0, 0, 0))
+            # self.screen.blit(text, text_rect)
+            pygame.display.flip()
+            self.clock.tick(60)
 
     def save_game(self):
         save_data = {
