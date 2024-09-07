@@ -28,7 +28,7 @@ from deckdeep.config import (
     CARD_SPACING,
     scale,
 )
-from deckdeep.status_effect import Bleed, HealthRegain, EnergyBonus
+from deckdeep.status_effect import Bleed, HealthRegain, EnergyBonus, TriggerType
 from deckdeep.events import (
     Medic,
     Thrifter,
@@ -578,15 +578,10 @@ class Game:
     def update_combat(self):
         if not self.player_turn:
             self.apply_relic_effects(TriggerWhen.END_OF_TURN)
-            # self.player.apply_status_effects()
             self.monster_group.remove_dead_monsters()
 
-            # Diminish effects for monsters at the start of their turn
             for monster in self.monster_group.monsters:
-                monster.diminish_effects_at_turn_start()
-
-            for monster in self.monster_group.monsters:
-                monster.apply_status_effects()
+                monster.status_effects.trigger_effects(TriggerType.TURN_START, monster)
                 self.monster_group.remove_dead_monsters()
 
             # Execute previous intentions
@@ -607,8 +602,7 @@ class Game:
             self.player.end_turn()
             self.player_turn = True
             
-            # Diminish effects for the player at the start of their turn
-            self.player.diminish_effects_at_turn_start()
+            self.player.status_effects.trigger_effects(TriggerType.TURN_START, self.player)
             
             self.apply_relic_effects(TriggerWhen.START_OF_TURN)
             self.logger.debug("Turn ended, new turn started", category="COMBAT")
