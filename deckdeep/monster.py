@@ -3,7 +3,7 @@ from typing import List, Dict, Optional, Tuple, TYPE_CHECKING
 import random
 import math
 from abc import ABC, abstractmethod
-from deckdeep.status_effect import StatusEffectManager, Bleed, HealthRegain, Weakness, Bolster, Burn
+from deckdeep.status_effect import StatusEffectManager, Bleed, HealthRegain, Weakness, Bolster, Burn, TriggerType
 from deckdeep.config import scale
 
 from enum import Enum
@@ -617,10 +617,7 @@ class Monster:
         self.health = min(self.max_health, self.health + amount)
 
     def take_damage(self, damage: int):
-        # Apply Bolster effect
-        bolster_effect = next((effect for effect in self.status_effects.effects if isinstance(effect, Bolster)), None)
-        if bolster_effect:
-            damage = max(0, damage - bolster_effect.value)
+        self.status_effects.trigger_effects(TriggerType.ON_DAMAGE_TAKEN, self)
 
         # Handle shield absorption
         if self.shields > 0:
@@ -637,17 +634,13 @@ class Monster:
     def deal_damage(self, base_damage: int, num_attacks: int = 1) -> int:
         total_damage = 0
         for _ in range(num_attacks):
-            # Apply Weakness effect
-            weakness_effect = next((effect for effect in self.status_effects.effects if isinstance(effect, Weakness)), None)
-            if weakness_effect:
-                damage = max(0, base_damage - weakness_effect.value)
-            else:
-                damage = base_damage
+            self.status_effects.trigger_effects(TriggerType.BEFORE_ATTACK, self)
+            damage = base_damage
             total_damage += damage
         return total_damage
 
     def apply_status_effects(self):
-        self.status_effects.apply_effects(self)
+        self.status_effects.trigger_effects(TriggerType.TURN_START, self)
 
     def execute_action(self, target):
         if self.intention:
@@ -772,4 +765,4 @@ class Monster:
         return monster
 
     def diminish_effects_at_turn_start(self):
-        self.status_effects.diminish_effects_at_turn_start()
+        self.status_effects.trigger_effects(TriggerType.TURN_START, self)

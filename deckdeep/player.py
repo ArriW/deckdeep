@@ -2,7 +2,7 @@ from typing import List
 import random
 from deckdeep.card import Card, get_player_starting_deck
 from typing import Dict, Optional
-from deckdeep.status_effect import StatusEffectManager, Bleed, Weakness, Bolster, Burn, HealthRegain, EnergyBonus
+from deckdeep.status_effect import StatusEffectManager, Bleed, Weakness, Bolster, Burn, HealthRegain, EnergyBonus, TriggerType
 from deckdeep.relic import Relic
 from deckdeep.relic import TriggerWhen
 
@@ -154,10 +154,7 @@ class Player:
 
         old_health = self.health
 
-        # Apply Bolster effect
-        bolster_effect = next((effect for effect in self.status_effects.effects if isinstance(effect, Bolster)), None)
-        if bolster_effect:
-            damage = max(0, damage - bolster_effect.value)
+        self.status_effects.trigger_effects(TriggerType.ON_DAMAGE_TAKEN, self)
 
         # Handle shield absorption
         if self.shield > 0:
@@ -189,9 +186,6 @@ class Player:
     def end_turn(self):
         print("Player end_turn called")
         self.energy = self.max_energy + self.bonus_energy
-        for effect in self.status_effects.effects:
-            if isinstance(effect, EnergyBonus):
-                effect.value = 0 
         self.bonus_energy = 0
         self.bonus_damage = 0
         self.shield = 0
@@ -199,12 +193,12 @@ class Player:
         self.hand.clear()
         for _ in range(self.cards_per_turn):
             self.draw_card()
-        self.apply_status_effects()
+        self.status_effects.trigger_effects(TriggerType.TURN_END, self)
         print("Player end_turn finished")
 
     def apply_status_effects(self):
         print("Applying status effects")
-        self.status_effects.apply_effects(self)
+        self.status_effects.trigger_effects(TriggerType.TURN_START, self)
 
     def reset_energy(self):
         self.energy = self.max_energy
@@ -356,5 +350,4 @@ class Player:
         return None
 
     def diminish_effects_at_turn_start(self):
-        print("Diminishing effects at turn start")
-        self.status_effects.diminish_effects_at_turn_start()
+        self.status_effects.trigger_effects(TriggerType.TURN_START, self)
