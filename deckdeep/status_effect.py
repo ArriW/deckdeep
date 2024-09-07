@@ -14,9 +14,9 @@ class StatusEffect:
     def is_expired(self) -> bool:
         return self.value <= 0
 
-    def diminish_at_player_turn(self) -> None:
-        if isinstance(self, (Weakness, Bolster)):
-            self.value = max(0, self.value - 1)
+    # def diminish_at_player_turn(self) -> None:
+    #     if isinstance(self, (Weakness, Bolster)):
+    #         self.value = max(0, self.value - 1)
 
     def diminish_at_turn_start(self) -> None:
         if isinstance(self, (Weakness, Bolster)):
@@ -45,6 +45,7 @@ class Bleed(StatusEffect):
 class HealthRegain(StatusEffect):
     def __init__(self, value: int):
         super().__init__("HealthRegain", value=value, stack=True, type="buff")
+        print(f"HealthRegain initialized with value: {value}")
 
     def apply(self, target: Any) -> None:
         target.heal(self.value)
@@ -53,16 +54,17 @@ class HealthRegain(StatusEffect):
     def is_expired(self) -> bool:
         return self.value <= 0
 
+    # def diminish_at_turn_start(self) -> None:
+    #     super().diminish_at_turn_start()
+
 
 class EnergyBonus(StatusEffect):
     def __init__(self, value: int):
         super().__init__("EnergyBonus", value=value, stack=False, type="buff")
 
     def apply(self, target: Any) -> None:
-        target.energy += self.value
-        self.value = max(0, self.value - 1)
-
-
+        target.bonus_energy += self.value
+        
 class Weakness(StatusEffect):
     def __init__(self, value: int):
         super().__init__("Weakness", value=value, stack=True, type="debuff")

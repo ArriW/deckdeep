@@ -2,7 +2,7 @@ from typing import List
 import random
 from deckdeep.card import Card, get_player_starting_deck
 from typing import Dict, Optional
-from deckdeep.status_effect import StatusEffectManager, Bleed, Weakness, Bolster, Burn
+from deckdeep.status_effect import StatusEffectManager, Bleed, Weakness, Bolster, Burn, HealthRegain, EnergyBonus
 from deckdeep.relic import Relic
 from deckdeep.relic import TriggerWhen
 
@@ -16,6 +16,7 @@ class Player:
         self.bonus_damage = 0
         self.energy = 3
         self.max_energy = 3
+        self.bonus_energy = 0
         self.symbol = symbol
         self.hand_limit = 7
         self.deck: List[Card] = get_player_starting_deck()
@@ -102,9 +103,6 @@ class Player:
                     score += target_monster.receive_damage(total_damage // card.num_attacks)
                     self.apply_card_effects(card, target_monster)
 
-            # Apply Bolster to the player
-            if hasattr(card, "bolster") and card.bolster > 0:
-                self.status_effects.add_effect(Bolster(card.bolster))
 
             self.heal(round(card.healing))
             self.health -= card.health_cost
@@ -125,6 +123,12 @@ class Player:
             monster.status_effects.add_effect(Weakness(card.weakness))
         if hasattr(card, "burn") and card.burn > 0:
             monster.status_effects.add_effect(Burn(card.burn))
+        if hasattr(card, "bolster") and card.bolster > 0:
+            self.status_effects.add_effect(Bolster(card.bolster))
+        if hasattr(card, "health_regain") and card.health_regain > 0:
+            self.status_effects.add_effect(HealthRegain(card.health_regain))
+        if hasattr(card, "energy_bonus") and card.energy_bonus > 0:
+            self.status_effects.add_effect(EnergyBonus(card.energy_bonus))
 
     def heal(self, amount: int):
         self.health = min(self.max_health, self.health + amount)
@@ -183,7 +187,12 @@ class Player:
         return actual_damage
 
     def end_turn(self):
-        self.energy = self.max_energy
+        print("Player end_turn called")
+        self.energy = self.max_energy + self.bonus_energy
+        for effect in self.status_effects.effects:
+            if isinstance(effect, EnergyBonus):
+                effect.value = 0 
+        self.bonus_energy = 0
         self.bonus_damage = 0
         self.shield = 0
         self.discard_pile.extend(self.hand)
@@ -191,8 +200,10 @@ class Player:
         for _ in range(self.cards_per_turn):
             self.draw_card()
         self.apply_status_effects()
+        print("Player end_turn finished")
 
     def apply_status_effects(self):
+        print("Applying status effects")
         self.status_effects.apply_effects(self)
 
     def reset_energy(self):
@@ -345,4 +356,5 @@ class Player:
         return None
 
     def diminish_effects_at_turn_start(self):
+        print("Diminishing effects at turn start")
         self.status_effects.diminish_effects_at_turn_start()
