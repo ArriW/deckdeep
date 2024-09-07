@@ -97,6 +97,8 @@ class Player:
                         self.apply_card_effects(card, monster)
                 else:
                     target_monster = monster_group.get_selected_monster()
+                    if target_monster is None:
+                        continue
                     score += target_monster.receive_damage(total_damage // card.num_attacks)
                     self.apply_card_effects(card, target_monster)
 
