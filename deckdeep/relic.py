@@ -1,6 +1,6 @@
 import random
 from enum import Enum
-from typing import Dict, Callable
+from typing import Dict
 from copy import deepcopy
 import uuid
 
@@ -53,9 +53,11 @@ class Relic:
             name=data["name"],
             data={
                 "description": data["description"],
-                "effect": ALL_RELICS[data["name"]]["effect"],  # Get effect from ALL_RELICS
-                "trigger_when": TriggerWhen(data["trigger_when"])
-            }
+                "effect": ALL_RELICS[data["name"]][
+                    "effect"
+                ],  # Get effect from ALL_RELICS
+                "trigger_when": TriggerWhen(data["trigger_when"]),
+            },
         )
         relic.id = data["id"]  # Add this line
         relic.has_been_applied = data["has_been_applied"]
@@ -63,21 +65,13 @@ class Relic:
 
     @staticmethod
     def generate_relic_pool(num_relics):
-        selected_relics = random.sample(list(ALL_RELICS.items()), min(num_relics, len(ALL_RELICS)))
+        selected_relics = random.sample(
+            list(ALL_RELICS.items()), min(num_relics, len(ALL_RELICS))
+        )
         return [Relic(name, deepcopy(relic)) for name, relic in selected_relics]
 
 
 ALL_RELICS = {
-    "Hair of the Dog": {
-        "description": "+10 max HP.",
-        "effect": lambda p, g: p.increase_max_health(10),
-        "trigger_when": TriggerWhen.PERMANENT,
-    },
-    "Cursed Coin": {
-        "description": "Your attacks deal 1 additional damage.",
-        "effect": lambda p, g: p.increase_strength(1),
-        "trigger_when": TriggerWhen.PERMANENT,
-    },
     "Hair of the Dog": {
         "description": "+10 max HP.",
         "effect": lambda p, g: p.increase_max_health(10),
@@ -115,7 +109,7 @@ ALL_RELICS = {
     },
     "Paper Weight": {
         "description": "Draw 1 additional card at the start of each turn. At the cost of permanent energy.",
-        "effect": lambda p, g: (
+        "effect": lambda p, _: (
             setattr(p, "cards_per_turn", p.cards_per_turn + 1),
             setattr(p, "energy", p.max_energy - 1),
         ),
@@ -123,17 +117,21 @@ ALL_RELICS = {
     },
     "Phoenix Feather": {
         "description": "Once, survive a fatal blow with 1 HP.",
-        "effect": lambda p, g: setattr(p, "phoenix_feather_active", True),
+        "effect": lambda p, _: setattr(p, "phoenix_feather_active", True),
         "trigger_when": TriggerWhen.PERMANENT,
     },
     "Cursed Dagger": {
         "description": "Deal 10 damage to a random enemy at the start of each turn.",
-        "effect": lambda p, g: g and g.monster_group and g.monster_group.random_monster() and g.monster_group.random_monster().take_damage(10) or "No valid target for Cursed Dagger",
+        "effect": lambda _, g: g
+        and g.monster_group
+        and g.monster_group.random_monster()
+        and g.monster_group.random_monster().take_damage(10)
+        or "No valid target for Cursed Dagger",
         "trigger_when": TriggerWhen.START_OF_TURN,
     },
     "Time Warp": {
         "description": "12% chance to take an extra turn after your turn ends.",
-        "effect": lambda p, g: setattr(p, "extra_turn_chance", 0.12),
+        "effect": lambda p, _: setattr(p, "extra_turn_chance", 0.12),
         "trigger_when": TriggerWhen.PERMANENT,
     },
 }
