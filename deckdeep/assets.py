@@ -7,7 +7,6 @@ from deckdeep.config import (
     CARD_HEIGHT,
     ICON_SIZE,
     PLAYER_SIZE,
-    scale,
 )
 
 
@@ -122,7 +121,7 @@ class GameAssets:
         try:
             image = pygame.image.load(path)
             return pygame.transform.smoothscale(image, size)
-        except:
+        except :
             print(f"Unable to load image: {path}")
             surface = pygame.Surface(size, pygame.SRCALPHA)
             pygame.draw.rect(
@@ -132,4 +131,6 @@ class GameAssets:
 
     def load_event_image(self, event_name: str) -> pygame.Surface:
         path = f"./assets/images/events/{event_name.lower().replace(' ', '_')}.png"
-        return self.load_and_scale_background(path, (SCREEN_WIDTH, int(SCREEN_HEIGHT * 2/3)))
+        return self.load_and_scale_background(
+            path, (SCREEN_WIDTH, int(SCREEN_HEIGHT * 2 / 3))
+        )

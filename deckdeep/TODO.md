@@ -3,8 +3,8 @@
 ## Bugs
 - [ ] BUG: If bleed effects kill enemies, they still attack on the last round
 - [ ] BUG: bleeds trigger at the start of the round the monsters apply them which is a bit OP
-- [ ] BUG: Is str relic working? No permanent relics are working in the first round of combat
-- [ ] BUG: Cursed coin isnt stacking ?
+- [x] BUG: Is str relic working? No permanent relics are working in the first round of combat
+- [x] BUG: Cursed coin isnt stacking ?
 - [ ] extra card draw only costs temp mana
 - [ ] BUG: Monsters'i block needs to go to 0
 - [x] Healing regain is healing more then the statcks (relics )

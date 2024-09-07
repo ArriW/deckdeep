@@ -6,8 +6,8 @@ import math
 
 
 class MonsterGroup:
-    def __init__(self):
-        self.monsters: List[Monster] = []
+    def __init__(self, monsters: Optional[List[Monster]] = None):
+        self.monsters: List[Monster] = monsters if monsters is not None else []
         self.selected_index = 0
 
     def __str__(self):
@@ -23,34 +23,42 @@ class MonsterGroup:
         if not alive_monsters:
             self.selected_index = 0
             return
-        
+
         self.selected_index = self.selected_index % len(alive_monsters)
-        for i, monster in enumerate(self.monsters):
-            monster.selected = (monster == alive_monsters[self.selected_index])
+        for _, monster in enumerate(self.monsters):
+            monster.selected = monster == alive_monsters[self.selected_index]
 
     def select_next(self):
         alive_monsters = [m for m in self.monsters if m.is_alive() and not m.is_dying]
         if not alive_monsters:
             return
-        current_index = alive_monsters.index(self.get_selected_monster())
-        self.selected_index = (current_index + 1) % len(alive_monsters)
+        selected_monster = self.get_selected_monster()
+        if selected_monster is None:
+            self.selected_index = 0
+        else:
+            current_index = alive_monsters.index(selected_monster)
+            self.selected_index = (current_index + 1) % len(alive_monsters)
         self._update_selection()
 
-    def random_monster(self) -> Monster:
+    def random_monster(self) -> Optional[Monster]:
         try:
             return random.choice(self.monsters)
         except IndexError:
             return None
 
     def get_power_rating(self) -> int:
-        return sum([monster.calculate_power_rating() for monster in self.monsters])
+        return int(sum(monster.calculate_power_rating() for monster in self.monsters))
 
     def select_previous(self):
         alive_monsters = [m for m in self.monsters if m.is_alive() and not m.is_dying]
         if not alive_monsters:
             return
-        current_index = alive_monsters.index(self.get_selected_monster())
-        self.selected_index = (current_index - 1) % len(alive_monsters)
+        selected_monster = self.get_selected_monster()
+        if selected_monster is None:
+            self.selected_index = 0
+        else:
+            current_index = alive_monsters.index(selected_monster)
+            self.selected_index = (current_index - 1) % len(alive_monsters)
         self._update_selection()
 
     def get_selected_monster(self) -> Optional[Monster]:
@@ -78,18 +86,20 @@ class MonsterGroup:
         return total_damage_dealt
 
     def get_total_monster_power(self) -> int:
-        return sum(monster.power_rating for monster in self.monsters)
+        return int(sum(monster.power_rating for monster in self.monsters))
 
-    @staticmethod
-    def generate(level: int, is_boss: bool = False, boss_type: Optional[str] = None) -> Tuple["MonsterGroup", float, float]:
-        monster_group = MonsterGroup()
+    @classmethod
+    def generate(
+        cls, level: int, is_boss: bool = False, boss_type: Optional[str] = None
+    ) -> Tuple["MonsterGroup", int, int]:
+        monster_group = cls()
 
         def scaling_factor(lvl):
             return 1 + math.log(lvl + 1, 2)  # Logarithmic scaling
 
         base_power = 15
-        target_power = base_power * scaling_factor(level)
-        target_power *= random.uniform(0.9, 1.1)
+        target_power = int(base_power * scaling_factor(level))
+        target_power = int(target_power * random.uniform(0.9, 1.1))
 
         current_power = 0
         max_monsters = 5
@@ -103,21 +113,27 @@ class MonsterGroup:
         if is_boss:
             boss = Monster.generate(level, is_boss=True)
             monster_group.add_monster(boss)
-            
+
             for minion_type in boss_groups.get(boss.name, []):
-                minion = Monster.generate(max(level-10,2), monster_type=minion_type)
+                minion = Monster.generate(max(level - 10, 2), monster_type=minion_type)
                 monster_group.add_monster(minion)
-            return monster_group, target_power, monster_group.get_power_rating()
         else:
             attempts = 0
-            while current_power < target_power and len(monster_group.monsters) < max_monsters:
+            while (
+                current_power < target_power
+                and len(monster_group.monsters) < max_monsters
+            ):
                 new_monster = Monster.generate(level)
-                if current_power + new_monster.power_rating > target_power * 1.2 and attempts < 5:
+                if (
+                    current_power + new_monster.power_rating > target_power * 1.2
+                    and attempts < 5
+                ):
                     continue
                 monster_group.add_monster(new_monster)
-                current_power += new_monster.power_rating
+                current_power += int(new_monster.power_rating)
 
-            actual_power = monster_group.get_power_rating()
+        actual_power = monster_group.get_power_rating()
+        assert monster_group.monsters, "Generated MonsterGroup is empty"
         return monster_group, target_power, actual_power
 
     def to_dict(self) -> Dict:
@@ -143,6 +159,6 @@ class MonsterGroup:
         results = []
         for monster in self.monsters:
             if monster.is_alive():
-                result = monster.execute_action(monster.intention, player)
+                result = monster.execute_action(player)
                 results.append(result)
         return results

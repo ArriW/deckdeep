@@ -23,14 +23,13 @@ from deckdeep.config import (
 
 from deckdeep.player import Player
 from deckdeep.monster_group import MonsterGroup
-from deckdeep.card import Card, Rarity
+from deckdeep.card import Card
 from deckdeep.assets import GameAssets
 from deckdeep.relic import Relic
 import random
 from collections import Counter
 from deckdeep.monster import IconType
 import pygame.gfxdraw
-import math
 
 # Imports only for type checking to avoid circular imports
 if TYPE_CHECKING:
@@ -49,7 +48,7 @@ def render_text(
     color=BLACK,
     font=FONT,
     circle=False,
-    outline=False, 
+    outline=False,
     outline_color=BLACK,
     shadow=False,
     shadow_color=(50, 50, 50, 128),
@@ -57,15 +56,27 @@ def render_text(
     if shadow:
         shadow_offset = scale(1)
         render_text(
-            screen, text, x + shadow_offset, y + shadow_offset, color=shadow_color, font=font, outline=False
+            screen,
+            text,
+            x + shadow_offset,
+            y + shadow_offset,
+            color=shadow_color,
+            font=font,
+            outline=False,
         )
-    
+
     if outline:
         for dx, dy in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
             render_text(
-                screen, text, x + dx, y + dy, color=outline_color, font=font, outline=False
+                screen,
+                text,
+                x + dx,
+                y + dy,
+                color=outline_color,
+                font=font,
+                outline=False,
             )
-    
+
     text_surface = font.render(text, True, color)
     if circle:
         text_rect = text_surface.get_rect()
@@ -91,7 +102,7 @@ def render_text_in_icon(
     screen: pygame.Surface, text: str, x: int, y: int, icon, color=BLACK, font=FONT
 ):
     screen.blit(icon, (x, y))
-    
+
     render_text(
         screen,
         text,
@@ -100,8 +111,9 @@ def render_text_in_icon(
         color=color,
         font=font,
         outline=True,
-        shadow=True
+        shadow=True,
     )
+
 
 def render_text_with_background(
     screen: pygame.Surface,
@@ -111,23 +123,23 @@ def render_text_with_background(
     font,
     text_color=BLACK,
     background_color=WHITE,
-    max_width=None
+    max_width=None,
 ):
     words = text.split()
     lines = []
     current_line = []
 
     for word in words:
-        test_line = ' '.join(current_line + [word])
+        test_line = " ".join(current_line + [word])
         test_width = font.size(test_line)[0]
         if max_width and test_width > max_width:
-            lines.append(' '.join(current_line))
+            lines.append(" ".join(current_line))
             current_line = [word]
         else:
             current_line.append(word)
-    
+
     if current_line:
-        lines.append(' '.join(current_line))
+        lines.append(" ".join(current_line))
 
     for i, line in enumerate(lines):
         text_surface = font.render(line, True, text_color)
@@ -150,7 +162,7 @@ def render_card(
     player_bonus_damage: int,
     player_strength: int,
     hotkey=None,
-    opacity=255
+    opacity=255,
 ):
     x_offset = ICON_SIZE + scale(16)
     x_anchor = scale(15)
@@ -171,7 +183,7 @@ def render_card(
     #     Rarity.UNIQUE: (128, 0, 128, 40),
     #     Rarity.LEGENDARY: (255, 0, 0, 40),
     # }
-    
+
     # if card.rarity in rarity_colors and rarity_colors[card.rarity] is not None:
     #     color_surface = pygame.Surface((CARD_WIDTH, CARD_HEIGHT), pygame.SRCALPHA)
     #     color_surface.fill(rarity_colors[card.rarity])
@@ -205,49 +217,62 @@ def render_card(
         if getattr(card, attr, 0) > 0:
             icon_surface = icon.copy()
             icon_y = current_y
-            
+
             if attr == "damage" and card.num_attacks > 1:
                 # Render multiple attack icons
                 overlap = ICON_SIZE // 3  # Reduced overlap for better visibility
                 total_width = x_anchor + (card.num_attacks - 1) * overlap + ICON_SIZE
                 for i in range(card.num_attacks):
                     card_surface.blit(icon_surface, (x_anchor + i * overlap, icon_y))
-                
+
                 # Dynamically calculate text position
                 text_width = CARD_FONT.size(text)[0]
-                text_x = max(x_offset, total_width + scale(5))  # Ensure minimum x_offset
+                text_x = max(
+                    x_offset, total_width + scale(5)
+                )  # Ensure minimum x_offset
                 if text_x + text_width > CARD_WIDTH - scale(10):
-                    text_x = CARD_WIDTH - text_width - scale(10)  # Adjust if text would overflow
-                
+                    text_x = (
+                        CARD_WIDTH - text_width - scale(10)
+                    )  # Adjust if text would overflow
+
                 render_text(
-                    card_surface, str(int(text) // card.num_attacks), text_x, icon_y + y_text_offset, font=CARD_FONT, color=BLACK
+                    card_surface,
+                    str(int(text) // card.num_attacks),
+                    text_x,
+                    icon_y + y_text_offset,
+                    font=CARD_FONT,
+                    color=BLACK,
                 )
             else:
                 card_surface.blit(icon_surface, (x_anchor, icon_y))
                 render_text(
-                    card_surface, text, x_offset, icon_y + y_text_offset, font=CARD_FONT, color=BLACK
+                    card_surface,
+                    text,
+                    x_offset,
+                    icon_y + y_text_offset,
+                    font=CARD_FONT,
+                    color=BLACK,
                 )
             current_y += y_offset
 
-
     energy_x = CARD_WIDTH - round(1.25 * ICON_SIZE)
     energy_y = CARD_HEIGHT - round(1.25 * ICON_SIZE)
-    
-    if player_energy >= card.energy_cost:
+
+    if player_energy >= card.energy_cost.value:
         energy_color = GREEN
-    elif player_max_energy >= card.energy_cost:
+    elif player_max_energy >= card.energy_cost.value:
         energy_color = RED
     else:
         energy_color = RED
 
     render_text_in_icon(
         card_surface,
-        f"{card.energy_cost}",
+        f"{card.energy_cost.value}",
         energy_x,
         energy_y,
         assets.energy_icon,
         color=energy_color,
-        font=CARD_FONT
+        font=CARD_FONT,
     )
 
     if hotkey is not None:
@@ -257,7 +282,7 @@ def render_card(
             x_anchor,
             CARD_HEIGHT - x_offset,
             font=CARD_FONT,
-            color=BLACK
+            color=BLACK,
         )
 
     # Apply opacity to the entire card surface
@@ -270,7 +295,7 @@ def render_card(
     border_color = YELLOW if is_selected else BLACK
     pygame.draw.rect(screen, border_color, (x, y, CARD_WIDTH, CARD_HEIGHT), 2)
 
-    return x , y
+    return x, y
 
 
 def render_button(
@@ -287,53 +312,64 @@ def render_health_bar(
     y: int,
     width: int,
     height: int,
-    current: int,
-    maximum: int,
+    current,
+    maximum,
     color,
+    assets: GameAssets,
     shield=0,
-    assets: GameAssets = None,
 ):
+    current_value = current.value if hasattr(current, "value") else current
+    maximum_value = maximum.value if hasattr(maximum, "value") else maximum
+    current_width = int(width * (current_value / maximum_value))
+
     # Draw rounded rectangle for the border
     pygame.draw.rect(
-        screen, BLACK, (x - scale(1), y - scale(1), width + scale(2), height + scale(2)), border_radius=scale(5)
+        screen,
+        BLACK,
+        (x - scale(1), y - scale(1), width + scale(2), height + scale(2)),
+        border_radius=scale(5),
     )
-    
+
     # Draw rounded rectangle for the background
     pygame.draw.rect(screen, GRAY, (x, y, width, height), border_radius=scale(5))
-    
-    # Calculate current width
-    current_width = int(width * (current / maximum))
-    
+
     # Draw rounded rectangle for the current health/energy
-    pygame.draw.rect(screen, color, (x, y, current_width, height), border_radius=scale(5))
-    
+    pygame.draw.rect(
+        screen, color, (x, y, current_width, height), border_radius=scale(5)
+    )
+
     # Draw parchment texture overlay
     if assets:
         parchment = assets.parchment_texture
-        parchment_rect = parchment.get_rect()
-        scale_x = width / parchment_rect.width
-        scale_y = height / parchment_rect.height
         scaled_parchment = pygame.transform.scale(parchment, (width, height))
         screen.blit(scaled_parchment, (x, y), special_flags=pygame.BLEND_MULT)
-    
+
     # Draw ticks every 10%
     for i in range(1, 10):
         tick_x = x + (width * i // 10)
         pygame.draw.line(screen, BLACK, (tick_x, y), (tick_x, y + height), 1)
-    
+
     if shield > 0:
-        shield_width = int(width * (shield / maximum))
+        shield_width = int(width * (shield / maximum_value))
         s = pygame.Surface((shield_width, height))
         s.set_alpha(128)
         s.fill(BLUE)
         screen.blit(s, (x + current_width - shield_width, y))
 
     # health_text = f"{current}/{maximum}"
-    health_text = str(current)
+    health_text = str(current_value)
     if shield > 0:
         health_text += f" (+{shield})"
     text_x = x + (width - SMALL_FONT.size(health_text)[0]) // 2
-    render_text(screen, health_text, text_x, y + scale(2), color=WHITE, font=SMALL_FONT, outline=True)
+    render_text(
+        screen,
+        health_text,
+        text_x,
+        y + scale(2),
+        color=WHITE,
+        font=SMALL_FONT,
+        outline=True,
+    )
 
 
 def render_status_effects(
@@ -367,13 +403,19 @@ def render_status_effects(
             x += icon_spacing
 
 
-def render_player(screen: pygame.Surface, player: Player, assets: GameAssets, monster_center_y: int, animation_progress: float = 1.0):
+def render_player(
+    screen: pygame.Surface,
+    player: Player,
+    assets: GameAssets,
+    monster_center_y: int,
+    animation_progress: float = 1.0,
+):
     player_image = pygame.transform.scale(assets.player, (PLAYER_SIZE, PLAYER_SIZE))
 
     target_x = scale(120)
     start_x = -PLAYER_SIZE
     current_x = start_x + (target_x - start_x) * animation_progress
-    
+
     y = monster_center_y - PLAYER_SIZE // 2
     offset = random.randint(-player.shake, player.shake)
 
@@ -389,9 +431,13 @@ def render_player(screen: pygame.Surface, player: Player, assets: GameAssets, mo
 
     # Render player image with death animation if applicable
     if player.is_dying:
-        death_progress = min(1.0, (pygame.time.get_ticks() - player.death_start_time) / 1000)
+        death_progress = min(
+            1.0, (pygame.time.get_ticks() - player.death_start_time) / 1000
+        )
         opacity = int(255 * (1 - death_progress))
-        render_with_opacity(screen, player_image, int(current_x) + offset, y + offset, opacity)
+        render_with_opacity(
+            screen, player_image, int(current_x) + offset, y + offset, opacity
+        )
     else:
         screen.blit(player_image, (int(current_x) + offset, y + offset))
 
@@ -407,8 +453,8 @@ def render_player(screen: pygame.Surface, player: Player, assets: GameAssets, mo
         player.health,
         player.max_health,
         GREEN,
-        player.shield,
         assets,
+        player.shield,
     )
 
     # Render energy bar below the health bar
@@ -421,8 +467,8 @@ def render_player(screen: pygame.Surface, player: Player, assets: GameAssets, mo
         player.energy,
         player.max_energy,
         BLUE,
-        0,
         assets,
+        0,
     )
 
     if player.shake > 0:
@@ -448,28 +494,35 @@ def get_intention_icons(
 
 
 def render_monsters(
-    screen: pygame.Surface, monster_group: MonsterGroup, assets: GameAssets, animation_progress: float = 1.0
+    screen: pygame.Surface,
+    monster_group: MonsterGroup,
+    assets: GameAssets,
+    animation_progress: float = 1.0,
 ):
     num_monsters = len(monster_group.monsters)
     monsters_per_row = 3
     num_rows = (num_monsters + monsters_per_row - 1) // monsters_per_row
-    
+
     monster_size = PLAYER_SIZE
     monster_spacing = scale(50)
-    
+
     total_height = num_rows * (monster_size + monster_spacing) - monster_spacing
     start_y = (SCREEN_HEIGHT - total_height) // 2 - monster_size
-    
+
     for row in range(num_rows):
         start_index = row * monsters_per_row
         end_index = min((row + 1) * monsters_per_row, num_monsters)
         monsters_in_row = end_index - start_index
-        
-        row_width = monsters_in_row * monster_size + (monsters_in_row - 1) * monster_spacing
+
+        row_width = (
+            monsters_in_row * monster_size + (monsters_in_row - 1) * monster_spacing
+        )
         target_start_x = SCREEN_WIDTH - scale(120) - row_width
         start_start_x = SCREEN_WIDTH
-        current_start_x = start_start_x + (target_start_x - start_start_x) * animation_progress
-        
+        current_start_x = (
+            start_start_x + (target_start_x - start_start_x) * animation_progress
+        )
+
         for i, monster in enumerate(monster_group.monsters[start_index:end_index]):
             monster_image = pygame.transform.scale(
                 GameAssets.load_and_scale_ui(
@@ -488,9 +541,13 @@ def render_monsters(
 
             # Render monster image with death animation if applicable
             if monster.is_dying:
-                death_progress = min(1.0, (pygame.time.get_ticks() - monster.death_start_time) / 1000)
+                death_progress = min(
+                    1.0, (pygame.time.get_ticks() - monster.death_start_time) / 1000
+                )
                 opacity = int(255 * (1 - death_progress))
-                render_with_opacity(screen, monster_image, x + offset, y + offset, opacity)
+                render_with_opacity(
+                    screen, monster_image, x + offset, y + offset, opacity
+                )
             else:
                 screen.blit(monster_image, (x + offset, y + offset))
 
@@ -506,8 +563,8 @@ def render_monsters(
                 monster.health,
                 monster.max_health,
                 RED,
-                monster.shields,
                 assets,
+                monster.shields,
             )
 
             try:
@@ -541,7 +598,9 @@ def render_monsters(
                 )
 
                 # Render monster intention icons
-                intention_icons = get_intention_icons(monster.intention_icon_types, assets)
+                intention_icons = get_intention_icons(
+                    monster.intention_icon_types, assets
+                )
                 icon_width = ICON_SIZE
                 total_width = len(intention_icons) * icon_width
                 icon_start_x = x + (monster_size - total_width) // 2
@@ -569,8 +628,8 @@ def render_combat_state(
     score: int,
     selected_card: int,
     assets: GameAssets,
-    played_cards: List[Card] = None,
-    animation_progress: float = 1.0
+    played_cards: List[Card] = [],
+    animation_progress: float = 1.0,
 ):
     screen.blit(assets.background_image, (0, 0))
 
@@ -591,7 +650,9 @@ def render_combat_state(
         screen, level_text, (SCREEN_WIDTH - level_width) // 2, scale(15), color=BLACK
     )
 
-    monster_center_y = render_monsters(screen, monster_group, assets, animation_progress)
+    monster_center_y = render_monsters(
+        screen, monster_group, assets, animation_progress
+    )
     render_player(screen, player, assets, monster_center_y, animation_progress)
 
     s = pygame.Surface((SCREEN_WIDTH, CARD_HEIGHT + scale(40)))
@@ -602,7 +663,18 @@ def render_combat_state(
     card_start_x = (
         SCREEN_WIDTH - (len(player.hand) * (CARD_WIDTH + CARD_SPACING) - CARD_SPACING)
     ) // 2
-    num_keys = [pygame.K_q, pygame.K_w, pygame.K_e, pygame.K_r, pygame.K_t, pygame.K_y, pygame.K_u, pygame.K_i, pygame.K_o, pygame.K_p]
+    num_keys = [
+        pygame.K_q,
+        pygame.K_w,
+        pygame.K_e,
+        pygame.K_r,
+        pygame.K_t,
+        pygame.K_y,
+        pygame.K_u,
+        pygame.K_i,
+        pygame.K_o,
+        pygame.K_p,
+    ]
     for i, card in enumerate(player.hand):
         card.x, card.y = render_card(
             screen,
@@ -611,8 +683,8 @@ def render_combat_state(
             SCREEN_HEIGHT - CARD_HEIGHT - scale(20),
             i == selected_card,
             assets,
-            player.energy,
-            player.max_energy,
+            player.energy.value,
+            player.max_energy.value,
             player.bonus_damage,
             player.strength,
             hotkey=num_keys[i],
@@ -629,11 +701,11 @@ def render_combat_state(
                     card.y,
                     False,
                     assets,
-                    player.energy,
-                    player.max_energy,
+                    player.energy.value,
+                    player.max_energy.value,
                     player.bonus_damage,
                     player.strength,
-                    opacity=card.opacity
+                    opacity=card.opacity,
                 )
                 card.update_animation()
                 if not card.is_animating:  # Check if the animation is complete
@@ -696,8 +768,8 @@ def render_victory_state(
             scale(250),
             i == selected_card,
             assets,
-            player.energy,
-            player.max_energy,
+            player.energy.value,
+            player.max_energy.value,
             player.bonus_damage,
             player.strength,
             hotkey=num_keys[i],
@@ -720,8 +792,8 @@ def render_victory_state(
         player.health,
         player.max_health,
         GREEN,
-        0,
         assets,
+        0,
     )
     render_health_bar(
         screen,
@@ -732,8 +804,8 @@ def render_victory_state(
         player.energy,
         player.max_energy,
         BLUE,
-        0,
         assets,
+        0,
     )
 
     pygame.display.flip()
@@ -798,16 +870,19 @@ def render_text_event(
     # Render description parchment
     description_parchment = pygame.transform.scale(
         assets.parchment_texture,
-        (SCREEN_WIDTH // 2 - scale(20), SCREEN_HEIGHT // 3 - scale(20))
+        (SCREEN_WIDTH // 2 - scale(20), SCREEN_HEIGHT // 3 - scale(20)),
     )
     screen.blit(description_parchment, (scale(10), SCREEN_HEIGHT * 2 // 3 + scale(10)))
 
     # Render options parchment
     options_parchment = pygame.transform.scale(
         assets.parchment_texture,
-        (SCREEN_WIDTH // 2 - scale(20), SCREEN_HEIGHT // 3 - scale(20))
+        (SCREEN_WIDTH // 2 - scale(20), SCREEN_HEIGHT // 3 - scale(20)),
     )
-    screen.blit(options_parchment, (SCREEN_WIDTH // 2 + scale(10), SCREEN_HEIGHT * 2 // 3 + scale(10)))
+    screen.blit(
+        options_parchment,
+        (SCREEN_WIDTH // 2 + scale(10), SCREEN_HEIGHT * 2 // 3 + scale(10)),
+    )
 
     # Render event description
     render_text_with_background(
@@ -818,11 +893,11 @@ def render_text_event(
         SMALL_FONT,
         text_color=BLACK,
         background_color=None,
-        max_width=SCREEN_WIDTH // 2 - scale(40)
+        max_width=SCREEN_WIDTH // 2 - scale(40),
     )
 
     # Render options
-    key_mapping = ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P']
+    key_mapping = ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"]
     for i, option in enumerate(options):
         if i < len(key_mapping):
             render_text(
@@ -831,9 +906,8 @@ def render_text_event(
                 SCREEN_WIDTH // 2 + scale(20),
                 SCREEN_HEIGHT * 2 // 3 + scale(20) + i * scale(30),
                 color=BLACK,
-                font=SMALL_FONT
+                font=SMALL_FONT,
             )
-
 
     # Render player stats
     render_health_bar(
@@ -845,8 +919,8 @@ def render_text_event(
         player.health,
         player.max_health,
         GREEN,
-        0,
         assets,
+        0,
     )
     render_health_bar(
         screen,
@@ -857,8 +931,8 @@ def render_text_event(
         player.energy,
         player.max_energy,
         BLUE,
-        0,
         assets,
+        0,
     )
 
     pygame.display.flip()
@@ -892,7 +966,18 @@ def render_node_selection(
         render_text(
             screen, f"Level {node.level}", node_x + scale(10), node_y + scale(50)
         )
-        hotkey_list = [get_key_name(pygame.K_q), get_key_name(pygame.K_w), get_key_name(pygame.K_e), get_key_name(pygame.K_r), get_key_name(pygame.K_t), get_key_name(pygame.K_y), get_key_name(pygame.K_u), get_key_name(pygame.K_i), get_key_name(pygame.K_o), get_key_name(pygame.K_p)]
+        hotkey_list = [
+            get_key_name(pygame.K_q),
+            get_key_name(pygame.K_w),
+            get_key_name(pygame.K_e),
+            get_key_name(pygame.K_r),
+            get_key_name(pygame.K_t),
+            get_key_name(pygame.K_y),
+            get_key_name(pygame.K_u),
+            get_key_name(pygame.K_i),
+            get_key_name(pygame.K_o),
+            get_key_name(pygame.K_p),
+        ]
         render_text(
             screen, hotkey_list[i], node_x + scale(10), node_y + node_height - scale(30)
         )
@@ -950,7 +1035,18 @@ def render_deck_view(
         x = start_x + col * (CARD_WIDTH + card_spacing_x)
         y = start_y + row * (CARD_HEIGHT + card_spacing_y)
 
-        render_card(screen, card, x, y, False, assets, player.energy, player.max_energy, player.bonus_damage, player.strength)
+        render_card(
+            screen,
+            card,
+            x,
+            y,
+            False,
+            assets,
+            player.energy.value,
+            player.max_energy.value,
+            player.bonus_damage,
+            player.strength,
+        )
 
     # Render page information
     render_text(
@@ -1014,7 +1110,7 @@ def render_relic_selection(
 
         words = relic.description.split()
         lines = []
-        current_line = []
+        current_line: List[str] = []
         for word in words:
             test_line = " ".join(current_line + [word])
             if SMALL_FONT.size(test_line)[0] <= relic_width - scale(20):
@@ -1097,7 +1193,7 @@ def render_relic_view(screen: pygame.Surface, relics: List[Relic], assets: GameA
 
         words = relic.description.split()
         lines = []
-        current_line = []
+        current_line: List[str] = []
         for word in words:
             test_line = " ".join(current_line + [word])
             if SMALL_FONT.size(test_line)[0] <= relic_width - scale(20):
@@ -1165,7 +1261,13 @@ def render_card_selection(
     )
     screen.blit(parchment, (0, 0))
 
-    render_text(screen, "Choose a card. (navigate with K & J and select with SPACE)", scale(20), scale(15), color=BLACK)
+    render_text(
+        screen,
+        "Choose a card. (navigate with K & J and select with SPACE)",
+        scale(20),
+        scale(15),
+        color=BLACK,
+    )
 
     card_list_width = scale(400)
     card_list_height = SCREEN_HEIGHT - header_height - scale(60)
@@ -1182,10 +1284,9 @@ def render_card_selection(
     visible_cards = 20
     start_index = max(0, min(selected_index, len(full_deck) - visible_cards))
 
-    num_keys = [pygame.K_q, pygame.K_w, pygame.K_e, pygame.K_r, pygame.K_t, pygame.K_y, pygame.K_u, pygame.K_i, pygame.K_o, pygame.K_p]
     for i, card in enumerate(full_deck[start_index : start_index + visible_cards]):
         color = RED if i + start_index == selected_index else BLACK
-        card_text = f"{i}: {card.name} (Energy: {card.energy_cost})"
+        card_text = f"{i}: {card.name} (Energy: {card.energy_cost.value})"
         render_text(
             screen,
             card_text,
@@ -1205,8 +1306,8 @@ def render_card_selection(
             header_height + scale(20),
             True,
             assets,
-            player.energy,
-            player.max_energy,
+            player.energy.value,
+            player.max_energy.value,
             player.bonus_damage,
             player.strength,
         )
@@ -1222,7 +1323,10 @@ def render_card_selection(
     )
     pygame.display.flip()
 
-def render_with_opacity(screen: pygame.Surface, image: pygame.Surface, x: int, y: int, opacity: int):
+
+def render_with_opacity(
+    screen: pygame.Surface, image: pygame.Surface, x: int, y: int, opacity: int
+):
     temp = pygame.Surface(image.get_size(), pygame.SRCALPHA)
     temp.blit(image, (0, 0))
     temp.fill((255, 255, 255, opacity), None, pygame.BLEND_RGBA_MULT)

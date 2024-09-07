@@ -126,7 +126,7 @@ if __name__ == "__main__":
 
     try:
         1 / 0
-    except Exception as e:
+    except Exception:
         logger.error("Division by zero error", category="COMBAT")
 
     print("\nCategories used:", logger.categories)

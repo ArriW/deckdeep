@@ -1,6 +1,7 @@
 from typing import Dict, Any, List
 from enum import Enum
 
+
 class TriggerType(Enum):
     TURN_START = 1
     TURN_END = 2
@@ -8,6 +9,7 @@ class TriggerType(Enum):
     AFTER_ATTACK = 4
     ON_DAMAGE_TAKEN = 5
     ON_HEAL = 6
+
 
 class StatusEffect:
     def __init__(self, name: str, value: int, stack: bool, type: str):
@@ -35,7 +37,7 @@ class StatusEffect:
             "value": self.value,
             "stack": self.stack,
             "type": self.type,
-            "triggers": [t.value for t in self.triggers]
+            "triggers": [t.value for t in self.triggers],
         }
 
     @classmethod
@@ -43,6 +45,7 @@ class StatusEffect:
         effect = cls(data["name"], data["value"], data["stack"], data["type"])
         effect.triggers = [TriggerType(t) for t in data["triggers"]]
         return effect
+
 
 class Bleed(StatusEffect):
     def __init__(self, value: int):
@@ -55,6 +58,7 @@ class Bleed(StatusEffect):
             target.take_damage(damage)
             self.diminish()
 
+
 class HealthRegain(StatusEffect):
     def __init__(self, value: int):
         super().__init__("HealthRegain", value=value, stack=True, type="buff")
@@ -64,6 +68,7 @@ class HealthRegain(StatusEffect):
         if trigger_type == TriggerType.TURN_START:
             target.heal(self.value)
             self.diminish()
+
 
 class EnergyBonus(StatusEffect):
     def __init__(self, value: int):
@@ -75,6 +80,7 @@ class EnergyBonus(StatusEffect):
             target.bonus_energy += self.value
             self.value = 0
 
+
 class Weakness(StatusEffect):
     def __init__(self, value: int):
         super().__init__("Weakness", value=value, stack=True, type="debuff")
@@ -84,6 +90,7 @@ class Weakness(StatusEffect):
         if trigger_type == TriggerType.TURN_END:
             self.diminish()
 
+
 class Bolster(StatusEffect):
     def __init__(self, value: int):
         super().__init__("Bolster", value=value, stack=True, type="buff")
@@ -92,6 +99,7 @@ class Bolster(StatusEffect):
     def on_trigger(self, trigger_type: TriggerType, target: Any) -> None:
         if trigger_type == TriggerType.TURN_END:
             self.diminish()
+
 
 class Burn(StatusEffect):
     def __init__(self, value: int):
@@ -106,6 +114,7 @@ class Burn(StatusEffect):
                 self.value = 0
             else:
                 self.diminish()
+
 
 class StatusEffectManager:
     def __init__(self):
@@ -143,5 +152,7 @@ class StatusEffectManager:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "StatusEffectManager":
         manager = cls()
-        manager.effects = [StatusEffect.from_dict(effect_data) for effect_data in data["effects"]]
+        manager.effects = [
+            StatusEffect.from_dict(effect_data) for effect_data in data["effects"]
+        ]
         return manager

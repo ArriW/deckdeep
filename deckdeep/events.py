@@ -1,10 +1,10 @@
 import random
 from deckdeep.card import Card
-from deckdeep.relic import get_relic_by_name, Relic
+from deckdeep.relic import get_relic_by_name
 from deckdeep.player import Player
 from deckdeep.render import handle_card_selection
-from deckdeep.logger import GameLogger
 from deckdeep.card import Rarity
+from deckdeep.custom_types import Health
 
 
 class Event:
@@ -55,7 +55,7 @@ class VoodooDoctor(Event):
         select_random_outcome()
         return f"You gained a random benefit from the potion. That benefit was {select_random_outcome.__name__}."
 
-    def leave(self, player):
+    def leave(self, player: Player):
         return "You leave the Voodoo Doctor's tent."
 
 
@@ -73,8 +73,8 @@ class Medic(Event):
         )
 
     def grant_hair_of_the_dog(self, player):
-        if player.health > 20:
-            player.health -= 20
+        if player.health.value > 20:
+            player.take_damage(20)
             relic = get_relic_by_name("Hair of the Dog")
             player.relics.append(relic)
             relic.apply_effect(player, None)
@@ -85,7 +85,7 @@ class Medic(Event):
         player.heal(h := 50)
         return f"You healed {h} HP."
 
-    def leave(self, player):
+    def leave(self, player: Player):
         return "You leave the Medic's tent."
 
 
@@ -109,7 +109,7 @@ class Priest(Event):
         player.remove_curses(1)
         return "You removed a curse from your deck."
 
-    def leave(self, player):
+    def leave(self, player: Player):
         return "You leave the Priest's temple."
 
 
@@ -125,9 +125,9 @@ class Thrifter(Event):
         )
 
     def remove_card(self, player, assets):
-        cost = int(player.health * 0.25)
-        if player.health > cost:
-            player.health -= cost
+        cost = int(player.health.value * 0.25)
+        if player.health.value > cost:
+            player.take_damage(cost)
             full_deck = player.get_sorted_full_deck()
             chosen_index = handle_card_selection(full_deck, assets, player)
             if chosen_index is not None:
@@ -139,7 +139,7 @@ class Thrifter(Event):
             return "No card was selected."
         return "You don't have enough HP to remove a card."
 
-    def leave(self, player, assets):
+    def leave(self, player: Player):
         return "You leave the Thrifter's shop."
 
 
@@ -164,7 +164,7 @@ class CursedWell(Event):
         player.add_relic(relic)
         return f"You gained the '{relic.name}' relic ({relic.description}) and added a curse to your deck."
 
-    def leave(self, player):
+    def leave(self, player: Player):  # type: ignore
         return "You back away from the Cursed Well."
 
 
@@ -197,7 +197,7 @@ class Scribe(Event):
                 return "The scribe frowns. Something went wrong, and no card was duplicated."
         return "You decide not to duplicate any card."
 
-    def leave(self, player, assets):
+    def leave(self, player: Player):
         return (
             "You thank the scribe for their offer but decide to continue on your journey. "
             "The scribe nods understanding, returning to their arcane studies."
@@ -220,7 +220,7 @@ class AncientLibrary(Event):
         player.relics.append(get_relic_by_name("Paper Weight"))
         return "You gained the Paper Weight relic."
 
-    def leave(self, player):
+    def leave(self, player: Player):
         return "You leave the Ancient Library."
 
 
@@ -238,9 +238,9 @@ class ForgottenShrine(Event):
         )
 
     def energy_crystal(self, player):
-        cost = player.max_health // 2
-        if player.health > cost:
-            player.health -= cost
+        cost = player.max_health.value // 2
+        if player.health.value > cost:
+            player.take_damage(cost)
             energy_crystal = get_relic_by_name("Energy Crystal")
             player.relics.append(energy_crystal)
             return f"You gained the '{energy_crystal.name}' relic. {energy_crystal.description}"
@@ -250,7 +250,7 @@ class ForgottenShrine(Event):
         player.remove_curses(-1)
         return "All curses have been removed from your deck."
 
-    def leave(self, player):
+    def leave(self, player: Player):
         return "You leave the Forgotten Shrine undisturbed."
 
 
@@ -277,11 +277,11 @@ class RestSite(Event):
             ],
         )
 
-    def heal(self, player, assets):
+    def heal(self, player):
         player.heal(self.heal_amount)
         return f"You drink from the fountain. Its cool, sparkling water restores {self.heal_amount} HP."
 
-    def boost(self, player, assets):
+    def boost(self, player):
         player.energy += self.energy_gain
         player.bonus_damage += self.damage_gain
         return f"You meditate at the altar. Ancient wisdom flows through you, granting {self.energy_gain} energy and {self.damage_gain} bonus damage."
@@ -297,7 +297,7 @@ class RestSite(Event):
                 return "The spirits reject your offering. No card was removed."
         return "You decide not to make an offering."
 
-    def leave(self, player, assets):
+    def leave(self, player: Player):
         return "You leave the peaceful clearing, feeling refreshed and ready to face new challenges."
 
 
@@ -318,13 +318,13 @@ class Defender(Event):
             ],
         )
 
-    def defend(self, player, assets):
-        damage = int(player.health * (self.damage_percentage / 100))
-        player.health -= damage
+    def defend(self, player):
+        damage = int(player.health.value * (self.damage_percentage / 100))
+        player.health = Health(max(0, player.health.value - damage))
         player.relics.append(self.shield_rune)
         return f"You bravely defended the caravan, taking {damage} damage. You gained the '{self.shield_rune.name}' relic. {self.shield_rune.description}"
 
-    def leave(self, player, assets):
+    def leave(self, player: Player, assets):
         full_deck = player.get_sorted_full_deck()
         chosen_index = handle_card_selection(full_deck, assets, player)
         if chosen_index is not None:
@@ -351,13 +351,13 @@ class DarkMerchant(Event):
     def accept_dagger(self, player):
         if player.max_health > 15:
             player.max_health -= 15
-            player.health = min(player.health, player.max_health)
+            player.health = Health(min(player.health.value, player.max_health.value))
             cursed_dagger = get_relic_by_name("Cursed Dagger")
             player.relics.append(cursed_dagger)
             return f"You accepted the '{cursed_dagger.name}'. Your max HP decreased by 15, but you gained a powerful relic. {cursed_dagger.description}"
         return "You don't have enough max HP to make the exchange."
 
-    def leave(self, player):
+    def leave(self, player: Player):
         return "You decline the mysterious offer and walk away."
 
 
