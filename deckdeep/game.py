@@ -578,7 +578,7 @@ class Game:
     def update_combat(self):
         if not self.player_turn:
             self.apply_relic_effects(TriggerWhen.END_OF_TURN)
-            self.player.apply_status_effects()
+            # self.player.apply_status_effects()
             self.monster_group.remove_dead_monsters()
 
             # Diminish effects for monsters at the start of their turn
