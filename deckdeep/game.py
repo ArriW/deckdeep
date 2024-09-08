@@ -1,62 +1,62 @@
-import pygame
 import json
 import os
 import random
-from typing import Optional, List, Tuple
+import sys
+import time
+from typing import List, Optional, Tuple
+
+import pygame
+from pygame.surface import Surface
+
 from deckdeep.assets import GameAssets
-from deckdeep.player import Player
-from deckdeep.monster_group import MonsterGroup
 from deckdeep.card import Card
-from deckdeep.music_manager import BackgroundMusicManager
-from deckdeep.render import (
-    render_combat_state,
-    render_victory_state,
-    render_start_screen,
-    render_menu,
-    render_text_event,
-    render_node_selection,
-    render_deck_view,
-    render_relic_selection,
-    render_relic_view,
-)
 from deckdeep.config import (
-    SCREEN_WIDTH,
-    SCREEN_HEIGHT,
-    CARD_WIDTH,
+    BUTTON_HEIGHT,
+    BUTTON_WIDTH,
     CARD_HEIGHT,
     CARD_SPACING,
-    scale,
-)
-from deckdeep.status_effect import TriggerType
-from deckdeep.events import (
-    Medic,
-    Thrifter,
-    CursedWell,
-    Scribe,
-    ForgottenShrine,
-    get_random_event,
-    VoodooDoctor,
-    Defender,
-    DarkMerchant,
-    RestSite,
-    Priest,
-    AncientLibrary,
-)
-from deckdeep.relic import Relic, TriggerWhen
-from deckdeep.config import (
-    SCREEN_WIDTH,
+    CARD_WIDTH,
     END_TURN_BUTTON_X,
     END_TURN_BUTTON_Y,
+    KEYBINDS,
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
     VIEW_DECK_BUTTON_X,
     VIEW_DECK_BUTTON_Y,
-    BUTTON_WIDTH,
-    BUTTON_HEIGHT,
+    scale,
 )
-from deckdeep.logger import GameLogger
-from pygame.surface import Surface
-import time
-import sys
+from deckdeep.events import (
+    AncientLibrary,
+    CursedWell,
+    DarkMerchant,
+    Defender,
+    ForgottenShrine,
+    Medic,
+    Priest,
+    RestSite,
+    Scribe,
+    Thrifter,
+    VoodooDoctor,
+    get_random_event,
+)
 from deckdeep.json_encoder import CustomJSONEncoder
+from deckdeep.logger import GameLogger
+from deckdeep.monster_group import MonsterGroup
+from deckdeep.music_manager import BackgroundMusicManager
+from deckdeep.player import Player
+from deckdeep.relic import Relic, TriggerWhen
+from deckdeep.render import (
+    render_combat_state,
+    render_deck_view,
+    render_menu,
+    render_node_selection,
+    render_relic_selection,
+    render_relic_view,
+    render_start_screen,
+    render_text_event,
+    render_victory_state,
+)
+from deckdeep.status_effect import TriggerType
 
 
 def get_key_name(key: int) -> str:
@@ -192,10 +192,10 @@ class Game:
         self.screen = screen
         self.logger = logger
         self.assets = GameAssets()
-        self.player: Player
-        self.monster_group: MonsterGroup
-        self.current_node: Node
-        self.node_tree: Node
+        self.player = Player.create("Hero", 100, "@")
+        self.monster_group = MonsterGroup.generate(1)[0]
+        self.current_node: Optional[Node] = None
+        self.node_tree: Optional[Node] = None
         self.stage = 1
         self.score = 0
         self.selected_card = -1
@@ -209,13 +209,11 @@ class Game:
         self.text_event_selection = 0
         self.deck_scroll = 0
         self.current_event = None
-        # for deck view
         self.viewing_deck = False
         self.current_page = 0
-        self.cards_per_page = 15  # 5 rows x 3 columns, as defined in render_deck_view
-        # for relic view
+        self.cards_per_page = 15
         self.viewing_relics = False
-        self.monster_intentions = []
+        self.monster_intentions: List[str] = []
         self.played_cards: List[Card] = []
 
     def run(self):
@@ -329,7 +327,7 @@ class Game:
                             )
                             content = {"monsters": monster_group}
                             self.logger.info(
-                                f"Generated combat node monster group: Level {true_level}, Target power: {target_power:.2f}, Actual power: {actual_power:.2f} , Delta: {round(actual_power-target_power)}",
+                                f"Generated combat node monster group: Level {true_level}, Target power: {target_power:.2f}, Actual power: {actual_power:.2f} , Delta: {round(actual_power - target_power)}",
                                 category="SYSTEM",
                             )
                         else:
@@ -404,69 +402,45 @@ class Game:
             self.logger.debug("Viewing deck", category="PLAYER")
 
     def handle_key_press(self, key):
-        if self.current_node is None:
-            self.logger.error("Current node is None", category="SYSTEM")
-            return
+        key_name = pygame.key.name(key).upper()
 
-        if self.current_node.node_type in ["combat", "boss"]:
-            self.handle_combat_key_press(key)
-        elif self.current_node.node_type == "event":
-            self.handle_event_key_press(key)
+        # First, check the General keybinds
+        general_binds = KEYBINDS.get("General", {})
+        for keys, action in general_binds.items():
+            if key_name in keys.split(", "):
+                if action == "End turn":
+                    self.player_turn = False
+                elif action == "Open/close menu":
+                    self.menu_active = not self.menu_active
+                elif action == "View deck":
+                    self.viewing_deck = True
+                    self.deck_scroll = 0
+                elif action == "View relics":
+                    self.viewing_relics = True
+                self.logger.debug(f"Action performed: {action}", category="PLAYER")
+                return
 
-    def handle_combat_key_press(self, key):
-        num_keys = [
-            pygame.K_q,
-            pygame.K_w,
-            pygame.K_e,
-            pygame.K_r,
-            pygame.K_t,
-            pygame.K_y,
-            pygame.K_u,
-            pygame.K_i,
-            pygame.K_o,
-            pygame.K_p,
-        ]
-        for i, key_bind in enumerate(num_keys):
-            if self.player and key == key_bind and i < len(self.player.hand):
-                self.selected_card = i
-                self.play_card()
-                break
+        # Then check other categories
+        for category, binds in KEYBINDS.items():
+            if category == "General":
+                continue  # We've already checked this
+            for keys, action in binds.items():
+                if key_name in keys.split(", "):
+                    if "Select and play cards in your hand" in action:
+                        index = keys.split(", ").index(key_name)
+                        if index < len(self.player.hand):
+                            self.selected_card = index
+                            self.play_card()
+                    elif action == "Select previous monster":
+                        self.monster_group.select_previous()
+                    elif action == "Select next monster":
+                        self.monster_group.select_next()
+                    # Add more actions as needed
 
-        if key == pygame.K_SPACE:
-            self.player_turn = False
-            self.logger.info("Player ended turn", category="PLAYER")
-        elif key == pygame.K_h:
-            if self.monster_group and self.monster_group.monsters:
-                self.monster_group.select_previous()
-                selected_monster = self.monster_group.get_selected_monster()
-                if selected_monster:
-                    self.logger.debug(
-                        f"Selected previous monster: {selected_monster.name}",
-                        category="PLAYER",
-                    )
-                else:
-                    self.logger.debug("No valid monsters to select", category="PLAYER")
-        elif key == pygame.K_l:
-            if self.monster_group and self.monster_group.monsters:
-                self.monster_group.select_next()
-                selected_monster = self.monster_group.get_selected_monster()
-                if selected_monster:
-                    self.logger.debug(
-                        f"Selected next monster: {selected_monster.name}",
-                        category="PLAYER",
-                    )
-                else:
-                    self.logger.debug("No valid monsters to select", category="PLAYER")
-        elif key == pygame.K_ESCAPE:
-            self.logger.info("Opened Menu", category="SYSTEM")
-            self.menu_active = True
-        elif key == pygame.K_1:
-            self.viewing_deck = True
-            self.deck_scroll = 0
-            self.logger.debug("Viewing deck", category="PLAYER")
-        elif key == pygame.K_2:
-            self.viewing_relics = True
-            self.logger.debug("Viewing relics", category="PLAYER")
+                    self.logger.debug(f"Action performed: {action}", category="PLAYER")
+                    return
+
+        self.logger.debug(f"No action bound to key: {key_name}", category="PLAYER")
 
     def handle_event_key_press(self, key):
         if not self.current_event:
@@ -540,8 +514,9 @@ class Game:
                 self.logger.debug(msg, category="PLAYER")
         self.logger.info(f"Event option selected: {option_text}", category="EVENT")
         self.logger.info(f"Event result: {result}", category="EVENT")
-        self.player.increase_max_energy(self.current_node.level)
-        self.select_next_node()
+        if self.current_node is not None:
+            self.player.increase_max_energy(1, self.current_node.level)
+            self.select_next_node()
 
     def handle_menu_key_press(self, key):
         if key == pygame.K_k:
@@ -600,10 +575,11 @@ class Game:
                 self.logger.info("Game over", category="SYSTEM")
                 self.auto_save()
 
-        if self.current_node.node_type in ["combat", "boss"]:
-            self.update_combat()
-        elif self.current_node.node_type == "event":
-            self.update_event()
+        if self.current_node is not None:
+            if self.current_node.node_type in ["combat", "boss"]:
+                self.update_combat()
+            elif self.current_node.node_type == "event":
+                self.update_event()
 
     def update_combat(self):
         assert self.player is not None, "Player is None in update_combat"
@@ -697,7 +673,7 @@ class Game:
             f"Combat victory at node level: {self.current_node.level}",
             category="COMBAT",
         )
-        self.player.increase_max_energy(self.current_node.level)
+        self.player.increase_max_energy(1, self.current_node.level)
 
         victory_sequence = VictorySequence(self.screen, self.assets)
         victory_sequence.start()
@@ -733,12 +709,17 @@ class Game:
             self.select_next_node()
 
     def update_event(self):
-        if self.current_event is None:
-            self.current_event = self.current_node.content["event"]
+        if (
+            self.current_event is None
+            and self.current_node is not None
+            and self.current_node.content is not None
+        ):
+            self.current_event = self.current_node.content.get("event")
             self.text_event_selection = 0
-            self.logger.info(
-                f"Event started: {self.current_event.name}", category="EVENT"
-            )
+            if self.current_event:
+                self.logger.info(
+                    f"Event started: {self.current_event.name}", category="EVENT"
+                )
 
     def next_stage(self):
         self.stage += 1
@@ -761,7 +742,10 @@ class Game:
 
     def render(self):
         assert self.player is not None, "Player is None in render"
-        assert self.current_node is not None, "Current node is None in render"
+        if self.current_node is None:
+            self.logger.error("Current node is None in render", category="SYSTEM")
+            return
+
         if self.menu_active:
             render_menu(self.screen, self.menu_options, self.menu_selected, self.assets)
         elif self.viewing_deck:
@@ -779,6 +763,9 @@ class Game:
         elif self.viewing_relics:
             render_relic_view(self.screen, self.player.relics, self.assets)
         elif self.current_node.node_type in ["combat", "boss"]:
+            assert (
+                self.current_node is not None
+            ), "Current node is None in render method"
             render_combat_state(
                 self.screen,
                 self.player,
@@ -794,7 +781,7 @@ class Game:
                 render_text_event(
                     self.screen,
                     self.current_event.name,
-                    self.current_event.description,  # Add this line
+                    self.current_event.description,
                     [option[0] for option in self.current_event.options],
                     self.assets,
                     self.player,
@@ -807,8 +794,18 @@ class Game:
     def initialize_combat(self):
         assert self.player is not None, "Player is None in initialize_combat"
         assert (
+            self.current_node is not None
+        ), "Current node is None in initialize_combat"
+        assert self.current_node.content is not None, "Current node content is None"
+        assert (
+            "monsters" in self.current_node.content
+        ), "No monsters in current node content"
+
+        self.monster_group = self.current_node.content["monsters"]
+        assert (
             self.monster_group is not None
         ), "Monster group is None in initialize_combat"
+
         self.player_turn = True
         self.player.reset_hand()
         self.monster_intentions = self.monster_group.decide_action(self.player)
@@ -840,6 +837,9 @@ class Game:
             self.clock.tick(60)
 
     def render_combat_with_animation(self, progress):
+        assert (
+            self.current_node is not None
+        ), "Current node is None in render_combat_with_animation"
         render_combat_state(
             self.screen,
             self.player,
@@ -854,6 +854,8 @@ class Game:
         pygame.display.flip()
 
     def select_next_node(self):
+        assert self.current_node is not None, "Current node is None in select_next_node"
+
         if self.current_node.children:
             selected = self.node_selection_screen()
             self.current_node = self.current_node.children[selected]
@@ -875,6 +877,10 @@ class Game:
             self.next_stage()
 
     def node_selection_screen(self) -> int:
+        assert (
+            self.current_node is not None
+        ), "Current node is None in node_selection_screen"
+
         selected = -1
         running = True
 
@@ -927,8 +933,10 @@ class Game:
                 if event.type == pygame.QUIT:
                     return None
                 elif event.type == pygame.KEYDOWN:
-                    # num_keys = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4]
-                    num_keys = [pygame.K_q, pygame.K_w, pygame.K_e, pygame.K_r]
+                    victory_keys = next(iter(KEYBINDS["Victory Screen"].keys()))
+                    num_keys = [
+                        pygame.key.key_code(k) for k in victory_keys.split(", ")
+                    ]
                     for i, num_key in enumerate(num_keys):
                         if event.key == num_key:
                             if i < 3:
@@ -962,7 +970,6 @@ class Game:
                 if event.type == pygame.QUIT:
                     return None
                 elif event.type == pygame.KEYDOWN:
-                    # num_keys = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4]
                     num_keys = [pygame.K_q, pygame.K_w, pygame.K_e, pygame.K_r]
                     for i, num_key in enumerate(num_keys):
                         if event.key == num_key:
@@ -983,6 +990,7 @@ class Game:
                                 return None
 
             pygame.time.wait(100)
+
         return None
 
     def game_over_screen(self):
@@ -1011,12 +1019,16 @@ class Game:
             self.clock.tick(60)
 
     def save_game(self):
+        if self.node_tree is None or self.current_node is None:
+            self.logger.error(
+                "Cannot save game: node_tree or current_node is None", category="SYSTEM"
+            )
+            return
+
         save_data = {
             "player": self.player.to_dict(),
-            "node_tree": self.node_tree.to_dict(),  # pylint: # type: ignore
-            "current_node_path": self.get_node_path(
-                self.node_tree, self.current_node
-            ),  # pylint: # type: ignore
+            "node_tree": self.node_tree.to_dict(),
+            "current_node_path": self.get_node_path(self.node_tree, self.current_node),
             "stage": self.stage,
             "score": self.score,
             "game_over": self.game_over,
@@ -1072,17 +1084,21 @@ class Game:
             else:
                 self.player = Player.from_dict(save_data["player"])
                 self.node_tree = Node.from_dict(save_data["node_tree"])
-                self.current_node = self.get_node_from_path(
-                    self.node_tree, save_data["current_node_path"]
-                )
-                self.stage = save_data["stage"]
-                self.score = save_data["score"]
-                self.game_over = save_data.get("game_over", False)
-                if self.current_node.node_type in ["combat", "boss"]:
-                    self.monster_group = self.current_node.content["monsters"]
-                elif self.current_node.node_type == "event":
-                    self.current_event = self.current_node.content["event"]
-                self.logger.info("Game loaded successfully", category="SYSTEM")
+                if self.node_tree is not None:
+                    self.current_node = self.get_node_from_path(
+                        self.node_tree, save_data["current_node_path"]
+                    )
+                    self.stage = save_data["stage"]
+                    self.score = save_data["score"]
+                    self.game_over = save_data.get("game_over", False)
+                    if self.current_node.node_type in ["combat", "boss"]:
+                        self.monster_group = self.current_node.content["monsters"]
+                    elif self.current_node.node_type == "event":
+                        self.current_event = self.current_node.content["event"]
+                    self.logger.info("Game loaded successfully", category="SYSTEM")
+                else:
+                    self.logger.error("Failed to load node tree", category="SYSTEM")
+                    self.new_game()
         except (FileNotFoundError, json.JSONDecodeError) as e:
             self.logger.error(f"Error loading game: {e}", category="SYSTEM")
             self.logger.info("Starting a new game", category="SYSTEM")

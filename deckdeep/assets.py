@@ -110,7 +110,7 @@ class GameAssets:
             final_surface.blit(scaled_image, (x_offset, y_offset))
 
             return final_surface
-        except:
+        except:  # noqa: E722
             print(f"Unable to load image: {path}")
             surface = pygame.Surface(size)
             surface.fill((255, 0, 0))  # Red rectangle as a placeholder
@@ -121,7 +121,7 @@ class GameAssets:
         try:
             image = pygame.image.load(path)
             return pygame.transform.smoothscale(image, size)
-        except :
+        except:  # noqa: E722
             print(f"Unable to load image: {path}")
             surface = pygame.Surface(size, pygame.SRCALPHA)
             pygame.draw.rect(

@@ -18,7 +18,7 @@ class TriggerWhen(Enum):
 
 class Relic:
     def __init__(self, name: str, data: Dict):
-        self.id = str(uuid.uuid4())  # Add this line
+        self.id = str(uuid.uuid4())
         self.name = name
         self.description = data["description"]
         self.effect = data["effect"]
@@ -110,8 +110,8 @@ ALL_RELICS = {
     "Paper Weight": {
         "description": "Draw 1 additional card at the start of each turn. At the cost of permanent energy.",
         "effect": lambda p, _: (
-            setattr(p, "cards_per_turn", p.cards_per_turn + 1),
-            setattr(p, "energy", p.max_energy - 1),
+            p.increase_cards_per_turn(1),
+            p.increase_max_energy(-1, force=True),
         ),
         "trigger_when": TriggerWhen.PERMANENT,
     },

@@ -224,20 +224,24 @@ class Player:
 
     def increase_max_energy(
         self,
+        amount: int,
         level: Optional[int] = None,
         force: bool = False,
     ):
         if level is not None and level % 5 == 0 and self.max_energy.value < 10:
-            print(f"{self.name} gained +1 max energy!")
-            self.max_energy = Energy(self.max_energy.value + 1)
+            print(f"{self.name}  {amount} max energy!")
+            self.max_energy = Energy(self.max_energy.value + amount)
             self.energy = self.max_energy
         elif force:
-            print(f"{self.name} gained +1 max energy!")
-            self.max_energy = Energy(self.max_energy.value + 1)
+            print(f"{self.name} {amount} max energy!")
+            self.max_energy = Energy(self.max_energy.value + amount)
             self.energy = self.max_energy
 
     def increase_max_health(self, amount: int):
         self.max_health = Health(self.max_health.value + amount)
+
+    def increase_cards_per_turn(self, amount: int):
+        self.cards_per_turn += amount
 
     def grant_temporary_energy(self, amount: int):
         self.energy = Energy(self.energy.value + amount)
