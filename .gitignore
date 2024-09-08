@@ -1,6 +1,6 @@
 venv/
 save_game.json
-deckdeep/__pycache__
 TODO.md
 .DS_Store
-test_game.*
+*.log*
+*__pycache__
