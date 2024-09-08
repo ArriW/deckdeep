@@ -45,3 +45,40 @@ VIEW_DECK_BUTTON_X = SCREEN_WIDTH - scale(120)
 VIEW_DECK_BUTTON_Y = HEADER_HEIGHT + scale(110)
 BUTTON_WIDTH = scale(100)
 BUTTON_HEIGHT = scale(40)
+
+# Keybinds
+KEYBINDS = {
+    "General": {
+        "SPACE": "End turn",
+        "ESCAPE": "Open/close menu",
+        "1": "View deck",
+        "2": "View relics",
+    },
+    "Card Selection": {
+        "Q, W, E, R, T, Y, U, I, O, P": "Select and play cards in your hand",
+    },
+    "Relic Selection": {
+        "Q, W, E, R, T, Y, U, I, O, P": "Select relics after boss victoryi",
+    },
+    "Combat": {
+        "H": "Select previous monster",
+        "L": "Select next monster",
+    },
+    "Event": {
+        "Q, W, E, R, T, Y, U, I, O, P": "Select event options",
+    },
+    "Deck View": {
+        "H": "Previous page",
+        "L": "Next page",
+        "ESCAPE": "Close deck view",
+    },
+    "Relic View": {
+        "ESCAPE or 2": "Close relic view",
+    },
+    "Victory Screen": {
+        "Q, W, E, R": "Select new card or skip",
+    },
+    "Node Selection": {
+        "Q, W, E, R, T, Y, U, I, O, P": "Select next node",
+    },
+}

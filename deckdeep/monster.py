@@ -16,6 +16,7 @@ from deckdeep.custom_types import Health
 if TYPE_CHECKING:
     from deckdeep.player import Player
 
+
 class IconType(Enum):
     ATTACK = 1
     DEFEND = 2

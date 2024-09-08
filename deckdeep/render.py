@@ -1,35 +1,44 @@
 import pygame
-from typing import List, TYPE_CHECKING
-from deckdeep.config import (
-    SCREEN_WIDTH,
-    SCREEN_HEIGHT,
-    CARD_WIDTH,
-    CARD_HEIGHT,
-    CARD_SPACING,
-    ICON_SIZE,
-    PLAYER_SIZE,
-    scale,
-)
-from deckdeep.config import WHITE, BLACK, GRAY, YELLOW, GREEN, BLUE, RED, BEIGE, PURPLE
-from deckdeep.config import FONT, SMALL_FONT, CARD_FONT
-from deckdeep.config import (
-    END_TURN_BUTTON_X,
-    END_TURN_BUTTON_Y,
-    VIEW_DECK_BUTTON_X,
-    VIEW_DECK_BUTTON_Y,
-    BUTTON_WIDTH,
-    BUTTON_HEIGHT,
-)
-
-from deckdeep.player import Player
-from deckdeep.monster_group import MonsterGroup
-from deckdeep.card import Card
-from deckdeep.assets import GameAssets
-from deckdeep.relic import Relic
+import pygame.gfxdraw
 import random
 from collections import Counter
+from typing import List, TYPE_CHECKING
+
+from deckdeep.assets import GameAssets
+from deckdeep.card import Card
+from deckdeep.config import (
+    BEIGE,
+    BLACK,
+    BLUE,
+    BUTTON_HEIGHT,
+    BUTTON_WIDTH,
+    CARD_FONT,
+    CARD_HEIGHT,
+    CARD_SPACING,
+    CARD_WIDTH,
+    END_TURN_BUTTON_X,
+    END_TURN_BUTTON_Y,
+    FONT,
+    GRAY,
+    GREEN,
+    ICON_SIZE,
+    KEYBINDS,
+    PLAYER_SIZE,
+    PURPLE,
+    RED,
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
+    SMALL_FONT,
+    VIEW_DECK_BUTTON_X,
+    VIEW_DECK_BUTTON_Y,
+    WHITE,
+    YELLOW,
+    scale,
+)
 from deckdeep.monster import IconType
-import pygame.gfxdraw
+from deckdeep.monster_group import MonsterGroup
+from deckdeep.player import Player
+from deckdeep.relic import Relic
 
 # Imports only for type checking to avoid circular imports
 if TYPE_CHECKING:
@@ -127,7 +136,7 @@ def render_text_with_background(
 ):
     words = text.split()
     lines = []
-    current_line = []
+    current_line: List[str] = []
 
     for word in words:
         test_line = " ".join(current_line + [word])
@@ -663,18 +672,8 @@ def render_combat_state(
     card_start_x = (
         SCREEN_WIDTH - (len(player.hand) * (CARD_WIDTH + CARD_SPACING) - CARD_SPACING)
     ) // 2
-    num_keys = [
-        pygame.K_q,
-        pygame.K_w,
-        pygame.K_e,
-        pygame.K_r,
-        pygame.K_t,
-        pygame.K_y,
-        pygame.K_u,
-        pygame.K_i,
-        pygame.K_o,
-        pygame.K_p,
-    ]
+    combat_keys = next(iter(KEYBINDS["Event"].keys()))
+    num_keys = [pygame.key.key_code(k) for k in combat_keys.split(", ")]
     for i, card in enumerate(player.hand):
         card.x, card.y = render_card(
             screen,
@@ -687,7 +686,7 @@ def render_combat_state(
             player.max_energy.value,
             player.bonus_damage,
             player.strength,
-            hotkey=num_keys[i],
+            hotkey=num_keys[i] if i < len(num_keys) else None,
         )
 
     # Render played cards with animation
@@ -759,7 +758,8 @@ def render_victory_state(
         175,
     )
 
-    num_keys = [pygame.K_q, pygame.K_w, pygame.K_e, pygame.K_r]
+    victory_keys = next(iter(KEYBINDS["Victory Screen"].keys()))
+    num_keys = [pygame.key.key_code(k) for k in victory_keys.split(", ")]
     for i, card in enumerate(new_cards):
         render_card(
             screen,
@@ -772,12 +772,12 @@ def render_victory_state(
             player.max_energy.value,
             player.bonus_damage,
             player.strength,
-            hotkey=num_keys[i],
+            hotkey=num_keys[i] if i < len(num_keys) else None,
         )
 
     render_text(
         screen,
-        f"{get_key_name(pygame.K_r)}: Skip",
+        f"{get_key_name(num_keys[-1])}: Skip",
         scale(250) + 3 * (CARD_WIDTH + CARD_SPACING),
         scale(250),
         color=WHITE,
@@ -846,7 +846,7 @@ def render_menu(
         text_color = YELLOW if i == selected else BLACK
         render_text(
             screen,
-            f"#{i+1}: {option}",
+            f"#{i + 1}: {option}",
             menu_x + scale(20),
             menu_y + scale(20) + i * scale(50),
             color=text_color,
@@ -1089,7 +1089,8 @@ def render_relic_selection(
     start_x = (SCREEN_WIDTH - total_width) // 2
     start_y = scale(250)
 
-    num_keys = [pygame.K_q, pygame.K_w, pygame.K_e, pygame.K_r]
+    relic_keys = next(iter(KEYBINDS["Relic Selection"].keys()))
+    num_keys = [pygame.key.key_code(k) for k in relic_keys.split(", ")]
     for i, relic in enumerate(new_relics):
         relic_x = start_x + i * (relic_width + relic_spacing)
         relic_y = start_y
@@ -1131,7 +1132,7 @@ def render_relic_selection(
 
         render_text(
             screen,
-            f"{get_key_name(num_keys[i])}",
+            f"{get_key_name(num_keys[i]) if i < len(num_keys) else ''}",
             relic_x + relic_width - scale(30),
             relic_y + relic_height - scale(30),
             font=SMALL_FONT,
@@ -1139,7 +1140,7 @@ def render_relic_selection(
 
     render_text(
         screen,
-        f"{get_key_name(pygame.K_r)}: Skip",
+        f"{get_key_name(num_keys[-1])}: Skip",
         start_x + 3 * (relic_width + relic_spacing),
         start_y,
         font=SMALL_FONT,

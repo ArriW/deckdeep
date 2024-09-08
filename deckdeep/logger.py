@@ -24,7 +24,7 @@ class CategoryColoredFormatter(logging.Formatter):
         log_message = super().format(record)
         if hasattr(record, "category"):
             color = self.CATEGORY_COLORS.get(
-                record.category.upper(), self.DEFAULT_COLOR
+                getattr(record, "category", "").upper(), self.DEFAULT_COLOR
             )
         else:
             color = self.DEFAULT_COLOR
