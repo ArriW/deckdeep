@@ -37,62 +37,60 @@ DeckDeep Deckbuilder is a roguelike deck-building game implemented in Python usi
 6. The game ends when your health reaches 0.
 
 ![Gameplay](/assets/images/backgrounds/gp_screenshot.png)
-
-## Game Mechanics
-
-- **Cards**: Each card has various effects such as dealing damage, providing shields, healing, or drawing more cards. Cards now have visual icons representing their attributes.
-- **Energy**: You have a limited amount of energy each turn to play cards. Your energy is represented by a blue bar.
-- **Health**: Your health is represented by a green bar. The monster's health is represented by a red bar.
-- **Monsters**: Each monster has unique health and damage values. Some are tougher than others!
-- **Dungeon Levels**: As you progress, monsters become stronger, but so do you!
-- **Deck Building**: After each victory, choose a new card to add to your deck from a selection of three, making your character stronger.
-- **Card Rarity**: New cards have different rarities, affecting how often they appear as choices after a victory.
-
 ## Controls
 
-### General Controls
-- Use the mouse to interact with the game interface, select cards, and navigate menus.
-- Keyboard shortcuts are available for various actions, enhancing gameplay speed and convenience.
-- The game provides on-screen prompts and indicators to guide you through available actions and controls.
+### General
 
-### Specific Controls
-- **Mouse**: Click on cards to select them, click again to play them. Click on "End Turn" or "Discard" buttons.
-- **Number Keys (1-9)**: Quickly select and play cards in your hand.
-- **E**: End your turn.
-- **Arrow Keys**: Select targets for your attacks.
-- **Number Keys (1-3)**: Select a new card after defeating a monster.
-- **Space**: Skip adding a new card to your deck after a victory.
+| Key | Action |
+|-----|--------|
+| SPACE | End turn |
+| ESC | Open/close menu |
+| 1 | View deck |
+| 2 | View relics |
 
-## Project Structure
+### Card Selection
 
-The game code is now organized in the `deckdeep` package:
+| Key | Action |
+|-----|--------|
+| Q, W, E, R, T, Y, U, I, O, P | Select and play cards in your hand |
 
-- `deckdeep/main.py`: Entry point of the game
-- `deckdeep/game.py`: Contains the main Game class and game loop
-- `deckdeep/config.py`: Game constants and configuration
-- `deckdeep/assets.py`: Asset management
-- `deckdeep/player.py`: Player class definition
-- `deckdeep/monster.py`: Monster and MonsterType class definitions
-- `deckdeep/monster_group.py`: MonsterGroup class for managing multiple monsters
-- `deckdeep/card.py`: Card class definition and card pool generation
-- `deckdeep/music_manager.py`: Background music management
-- `deckdeep/render.py`: Rendering functions for game elements
+### Combat
 
-## Contributing
+| Key | Action |
+|-----|--------|
+| H | Select previous monster |
+| L | Select next monster |
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+### Event
 
-## Attribution
+| Key | Action |
+|-----|--------|
+| Q, W, E, R, T, Y, U, I, O, P | Select event options |
 
-**Album:** Destruction Bringer (Free)  
-**Artist:** [One Man Symphony](https://onemansymphony.bandcamp.com)  
-**Description:** A heavy/progressive metal album with 10 tracks, inspired by Mick Gordon's Doom (2016) and Doom Eternal (2020) soundtracks. The tracks are designed to facilitate seamless transitions in scenes, making them suitable for various media, especially in gaming.
+### Deck View
 
-### Track Themes:
-- **Six Boss Fight Themes**
-- **Three Regular Encounter Themes** (suitable for any battle)
-- **One Main Menu Theme**
+| Key | Action |
+|-----|--------|
+| H | Previous page |
+| L | Next page |
+| ESC | Close deck view |
 
-**Additional Content:** Bonus and extended tracks, along with loop files, are available on the artist's [Patreon page](https://www.patreon.com/onemansymphony).
+### Relic View
 
-This work is licensed under a [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/).
+| Key | Action |
+|-----|--------|
+| ESC or 2 | Close relic view |
+
+### Victory Screen
+
+| Key | Action |
+|-----|--------|
+| Q, W, E | Select new card |
+| R | Skip card selection (gain +5 max HP) |
+
+### Node Selection
+
+| Key | Action |
+|-----|--------|
+| Q, W, E, R, T, Y, U, I, O, P | Select next node |
+

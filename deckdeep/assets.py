@@ -1,37 +1,89 @@
 import pygame
 from typing import Tuple
-from deckdeep.config import SCREEN_WIDTH, SCREEN_HEIGHT, CARD_WIDTH, CARD_HEIGHT, ICON_SIZE, PLAYER_SIZE, scale
+from deckdeep.config import (
+    SCREEN_WIDTH,
+    SCREEN_HEIGHT,
+    CARD_WIDTH,
+    CARD_HEIGHT,
+    ICON_SIZE,
+    PLAYER_SIZE,
+)
+
 
 class GameAssets:
     def __init__(self):
         # background
-        self.background_image: pygame.Surface = self.load_and_scale_background("./assets/images/backgrounds/background.png", (SCREEN_WIDTH, SCREEN_HEIGHT))
-        self.start_screen_image: pygame.Surface = self.load_and_scale_background("./assets/images/backgrounds/deckdeep.png", (SCREEN_WIDTH, SCREEN_HEIGHT))
-        self.game_over_image: pygame.Surface = self.load_and_scale_background("./assets/images/backgrounds/youlost.png", (SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.background_image: pygame.Surface = self.load_and_scale_background(
+            "./assets/images/backgrounds/background.png", (SCREEN_WIDTH, SCREEN_HEIGHT)
+        )
+        self.victory_image: pygame.Surface = self.load_and_scale_background(
+            "./assets/images/backgrounds/victory.png", (SCREEN_WIDTH, SCREEN_HEIGHT)
+        )
+        self.start_screen_image: pygame.Surface = self.load_and_scale_background(
+            "./assets/images/backgrounds/deckdeep.png", (SCREEN_WIDTH, SCREEN_HEIGHT)
+        )
+        self.game_over_image: pygame.Surface = self.load_and_scale_background(
+            "./assets/images/backgrounds/youlost.png", (SCREEN_WIDTH, SCREEN_HEIGHT)
+        )
 
         # ui elements
-        self.parchment_texture: pygame.Surface = self.load_and_scale_ui("./assets/images/ui_elements/parchment_texture.png", (CARD_WIDTH, CARD_HEIGHT))
+        self.parchment_texture: pygame.Surface = self.load_and_scale_ui(
+            "./assets/images/ui_elements/parchment_texture.png",
+            (CARD_WIDTH, CARD_HEIGHT),
+        )
 
         # icons
-        self.attack_icon: pygame.Surface = self.load_and_scale_ui("./assets/images/icons/attack.svg", (ICON_SIZE, ICON_SIZE))
-        self.shield_icon: pygame.Surface = self.load_and_scale_ui("./assets/images/icons/shield.svg", (ICON_SIZE, ICON_SIZE))
-        self.heal_icon: pygame.Surface = self.load_and_scale_ui("./assets/images/icons/heal.svg", (ICON_SIZE, ICON_SIZE))
-        self.energy_icon: pygame.Surface = self.load_and_scale_ui("./assets/images/icons/energy.svg", (ICON_SIZE, ICON_SIZE))
-        self.dice_icon: pygame.Surface = self.load_and_scale_ui("./assets/images/icons/dice.svg", (ICON_SIZE, ICON_SIZE))
-        self.draw_icon: pygame.Surface = self.load_and_scale_ui("./assets/images/icons/draw.svg", (ICON_SIZE, ICON_SIZE))
-        self.health_cost: pygame.Surface = self.load_and_scale_ui("./assets/images/icons/health_cost.svg", (ICON_SIZE, ICON_SIZE))
-        
+        self.attack_icon: pygame.Surface = self.load_and_scale_ui(
+            "./assets/images/icons/attack.png", (ICON_SIZE, ICON_SIZE)
+        )
+        self.shield_icon: pygame.Surface = self.load_and_scale_ui(
+            "./assets/images/icons/shield.png", (ICON_SIZE, ICON_SIZE)
+        )
+        self.heal_icon: pygame.Surface = self.load_and_scale_ui(
+            "./assets/images/icons/heal.png", (ICON_SIZE, ICON_SIZE)
+        )
+        self.energy_icon: pygame.Surface = self.load_and_scale_ui(
+            "./assets/images/icons/energy.png", (ICON_SIZE, ICON_SIZE)
+        )
+        self.dice_icon: pygame.Surface = self.load_and_scale_ui(
+            "./assets/images/icons/dice.png", (ICON_SIZE, ICON_SIZE)
+        )
+        self.draw_icon: pygame.Surface = self.load_and_scale_ui(
+            "./assets/images/icons/draw.png", (ICON_SIZE, ICON_SIZE)
+        )
+        self.health_cost: pygame.Surface = self.load_and_scale_ui(
+            "./assets/images/icons/health_cost.png", (ICON_SIZE, ICON_SIZE)
+        )
+        self.weakness_icon: pygame.Surface = self.load_and_scale_ui(
+            "./assets/images/icons/weakness.png", (ICON_SIZE, ICON_SIZE)
+        )
+        self.bolster_icon: pygame.Surface = self.load_and_scale_ui(
+            "./assets/images/icons/bolster.png", (ICON_SIZE, ICON_SIZE)
+        )
+        self.burn_icon: pygame.Surface = self.load_and_scale_ui(
+            "./assets/images/icons/burn.png", (ICON_SIZE, ICON_SIZE)
+        )
         # New status effect icons
-        self.bleed_icon: pygame.Surface = self.load_and_scale_ui("./assets/images/icons/bleed.svg", (ICON_SIZE, ICON_SIZE))
-        self.energy_bonus_icon: pygame.Surface = self.load_and_scale_ui("./assets/images/icons/energy_bonus.svg", (ICON_SIZE, ICON_SIZE))
-        self.health_regain_icon: pygame.Surface = self.load_and_scale_ui("./assets/images/icons/health_regain.svg", (ICON_SIZE, ICON_SIZE))
-        self.strength_icon: pygame.Surface = self.load_and_scale_ui("./assets/images/icons/strength.svg", (ICON_SIZE, ICON_SIZE))
-        
+        self.bleed_icon: pygame.Surface = self.load_and_scale_ui(
+            "./assets/images/icons/bleed.png", (ICON_SIZE, ICON_SIZE)
+        )
+        self.energy_bonus_icon: pygame.Surface = self.load_and_scale_ui(
+            "./assets/images/icons/energy_bonus.png", (ICON_SIZE, ICON_SIZE)
+        )
+        self.health_regain_icon: pygame.Surface = self.load_and_scale_ui(
+            "./assets/images/icons/health_regain.png", (ICON_SIZE, ICON_SIZE)
+        )
+        self.strength_icon: pygame.Surface = self.load_and_scale_ui(
+            "./assets/images/icons/strength.png", (ICON_SIZE, ICON_SIZE)
+        )
+
         # Units
-        self.player: pygame.Surface = self.load_and_scale_ui("./assets/images/characters/player.png", (PLAYER_SIZE, PLAYER_SIZE))
+        self.player: pygame.Surface = self.load_and_scale_ui(
+            "./assets/images/characters/player.png", (PLAYER_SIZE, PLAYER_SIZE)
+        )
 
         # Misc
-        self.music_path: str = './assets/music/'
+        self.music_path: str = "./assets/music/"
 
     @staticmethod
     def load_and_scale_background(path: str, size: Tuple[int, int]) -> pygame.Surface:
@@ -58,7 +110,7 @@ class GameAssets:
             final_surface.blit(scaled_image, (x_offset, y_offset))
 
             return final_surface
-        except:
+        except:  # noqa: E722
             print(f"Unable to load image: {path}")
             surface = pygame.Surface(size)
             surface.fill((255, 0, 0))  # Red rectangle as a placeholder
@@ -69,8 +121,16 @@ class GameAssets:
         try:
             image = pygame.image.load(path)
             return pygame.transform.smoothscale(image, size)
-        except:
+        except:  # noqa: E722
             print(f"Unable to load image: {path}")
             surface = pygame.Surface(size, pygame.SRCALPHA)
-            pygame.draw.rect(surface, (255, 0, 0, 128), surface.get_rect(), 1)  # Semi-transparent red border as a placeholder
+            pygame.draw.rect(
+                surface, (255, 0, 0, 128), surface.get_rect(), 1
+            )  # Semi-transparent red border as a placeholder
             return surface
+
+    def load_event_image(self, event_name: str) -> pygame.Surface:
+        path = f"./assets/images/events/{event_name.lower().replace(' ', '_')}.png"
+        return self.load_and_scale_background(
+            path, (SCREEN_WIDTH, int(SCREEN_HEIGHT * 2 / 3))
+        )

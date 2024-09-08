@@ -1,6 +1,9 @@
 import random
 from enum import Enum
-from typing import Dict, Callable
+from typing import Dict
+from copy import deepcopy
+import uuid
+
 
 class TriggerWhen(Enum):
     START_OF_TURN = 0
@@ -12,116 +15,129 @@ class TriggerWhen(Enum):
     ON_DEATH = 6
     PERMANENT = 7
 
+
 class Relic:
-    def __init__(self, name: str, description: str, effect: Callable, trigger_when: TriggerWhen):
+    def __init__(self, name: str, data: Dict):
+        self.id = str(uuid.uuid4())
         self.name = name
-        self.description = description
-        self.effect = effect
-        self.trigger_when = trigger_when
-        self.triggered_once = False
+        self.description = data["description"]
+        self.effect = data["effect"]
+        self.trigger_when = data["trigger_when"]
+        self.has_been_applied = False
 
-    def apply_effect(self, player, game):
-
+    def apply_effect(self, player, game) -> str:
         if self.trigger_when == TriggerWhen.PERMANENT:
-            if not self.triggered_once:
-                print(f"Applying {self.name} effect")
+            if not player.has_applied_permanent_effect(self.name, self.id):
                 self.effect(player, game)
-                self.triggered_once = True
+                player.add_applied_permanent_effect(self.name, self.id)
+                return f"Applied permanent effect: {self.name}"
+            return f"Permanent effect already applied for this instance: {self.name}"
         else:
-            print(f"Applying {self.name} effect")
-            self.effect(player, game)
+            return self.effect(player, game) or f"{self.name} triggered!"
 
     def to_dict(self) -> Dict:
         return {
-            'name': self.name,
-            'description': self.description,
-            'trigger_when': self.trigger_when.value
+            "id": self.id,  # Add this line
+            "name": self.name,
+            "description": self.description,
+            "trigger_when": self.trigger_when.value,
+            "has_been_applied": self.has_been_applied,
         }
 
+    def reset_application_status(self):
+        self.has_been_applied = False
+
     @classmethod
-    def from_dict(cls, data: Dict) -> 'Relic':
-        return cls(
-            name=data['name'],
-            description=data['description'],
-            effect=lambda p, g: None,  # We can't serialize functions, so we use a dummy function
-            trigger_when=TriggerWhen(data['trigger_when'])
+    def from_dict(cls, data: Dict) -> "Relic":
+        relic = cls(
+            name=data["name"],
+            data={
+                "description": data["description"],
+                "effect": ALL_RELICS[data["name"]][
+                    "effect"
+                ],  # Get effect from ALL_RELICS
+                "trigger_when": TriggerWhen(data["trigger_when"]),
+            },
         )
+        relic.id = data["id"]  # Add this line
+        relic.has_been_applied = data["has_been_applied"]
+        return relic
 
     @staticmethod
     def generate_relic_pool(num_relics):
-        return random.sample(list(ALL_RELICS.values()), min(num_relics, len(ALL_RELICS)))
+        selected_relics = random.sample(
+            list(ALL_RELICS.items()), min(num_relics, len(ALL_RELICS))
+        )
+        return [Relic(name, deepcopy(relic)) for name, relic in selected_relics]
+
 
 ALL_RELICS = {
-    "Hair of the Dog": Relic(
-        "Hair of the Dog",
-        "+10 max HP.",
-        lambda p, g: p.increase_max_health(10),
-        TriggerWhen.PERMANENT,
-    ),
-    "Cursed Coin": Relic(
-        "Cursed Coin",
-        "Your attacks deal 1 additional damage.",
-        lambda p, g: setattr(p, "strength", p.strength + 1),
-        TriggerWhen.PERMANENT
-    ),
-    "Healing Charm": Relic(
-        "Healing Charm",
-        "Heal 5 HP at the start of each combat.",
-        lambda p, g: p.heal(5),
-        TriggerWhen.START_OF_COMBAT
-    ),
-    "Energy Crystal": Relic(
-        "Energy Crystal",
-        "Start each combat with 1 additional energy.",
-        lambda p, g: setattr(p, "energy", p.energy + 1),
-        TriggerWhen.START_OF_COMBAT
-    ),
-    "Strength Amulet": Relic(
-        "Strength Amulet",
-        "Your attacks deal 2 additional damage.",
-        lambda p, g: setattr(p, "strength", p.strength + 2),
-        TriggerWhen.PERMANENT
-    ),
-    "Shield Rune": Relic(
-        "Shield Rune",
-        "Gain 3 block at the start of each turn.",
-        lambda p, g: p.add_block(3),
-        TriggerWhen.START_OF_TURN
-    ),
-    "Lucky Coin": Relic(
-        "Lucky Coin",
-        "10% chance to dodge enemy attacks.",
-        lambda p, g: setattr(p, "dodge_chance", p.dodge_chance + 0.1),
-        TriggerWhen.PERMANENT
-    ),
-    "Paper Weight": Relic(
-        "Paper Weight",
-        "Draw 1 additional card at the start of each turn. At the cost of permanet energy.",
-        lambda p, g: (setattr(p, "cards_per_turn", p.cards_per_turn + 1), setattr(p, "energy", p.max_energy -1)),
-        TriggerWhen.PERMANENT
-    ),
-    "Phoenix Feather": Relic(
-        "Phoenix Feather",
-        "Once, survive a fatal blow with 1 HP.",
-        lambda p, g: setattr(p, "phoenix_feather_active", True),
-        TriggerWhen.PERMANENT
-    ),
-    "Cursed Dagger": Relic(
-        "Cursed Dagger",
-        "Deal 3 damage to a random enemy at the start of each turn.",
-        lambda p, g: g.monster_group.random_monster().take_damage(3),
-        TriggerWhen.START_OF_TURN
-    ),
-    "Time Warp": Relic(
-        "Time Warp",
-        "3% chance to take an extra turn after your turn ends.",
-        lambda p, g: setattr(p, 'extra_turn_chance', 0.03),
-        TriggerWhen.PERMANENT
-    ),
+    "Hair of the Dog": {
+        "description": "+10 max HP.",
+        "effect": lambda p, g: p.increase_max_health(10),
+        "trigger_when": TriggerWhen.PERMANENT,
+    },
+    "Cursed Coin": {
+        "description": "Your attacks deal 1 additional damage.",
+        "effect": lambda p, g: p.increase_strength(1),
+        "trigger_when": TriggerWhen.PERMANENT,
+    },
+    "Healing Charm": {
+        "description": "Heal 5 HP at the start of each combat.",
+        "effect": lambda p, g: p.heal(5),
+        "trigger_when": TriggerWhen.START_OF_COMBAT,
+    },
+    "Energy Crystal": {
+        "description": "Start each combat with 1 additional energy.",
+        "effect": lambda p, g: p.grant_temporary_energy(1),
+        "trigger_when": TriggerWhen.START_OF_COMBAT,
+    },
+    "Strength Amulet": {
+        "description": "Your attacks deal 1 additional damage.",
+        "effect": lambda p, g: p.increase_strength(1),
+        "trigger_when": TriggerWhen.PERMANENT,
+    },
+    "Shield Rune": {
+        "description": "Gain 3 block at the start of each turn.",
+        "effect": lambda p, g: p.add_block(3),
+        "trigger_when": TriggerWhen.START_OF_TURN,
+    },
+    "Lucky Coin": {
+        "description": "10% chance to dodge enemy attacks.",
+        "effect": lambda p, g: setattr(p, "dodge_chance", p.dodge_chance + 0.1),
+        "trigger_when": TriggerWhen.PERMANENT,
+    },
+    "Paper Weight": {
+        "description": "Draw 1 additional card at the start of each turn. At the cost of permanent energy.",
+        "effect": lambda p, _: (
+            p.increase_cards_per_turn(1),
+            p.increase_max_energy(-1, force=True),
+        ),
+        "trigger_when": TriggerWhen.PERMANENT,
+    },
+    "Phoenix Feather": {
+        "description": "Once, survive a fatal blow with 1 HP.",
+        "effect": lambda p, _: setattr(p, "phoenix_feather_active", True),
+        "trigger_when": TriggerWhen.PERMANENT,
+    },
+    "Cursed Dagger": {
+        "description": "Deal 10 damage to a random enemy at the start of each turn.",
+        "effect": lambda _, g: g
+        and g.monster_group
+        and g.monster_group.random_monster()
+        and g.monster_group.random_monster().take_damage(10)
+        or "No valid target for Cursed Dagger",
+        "trigger_when": TriggerWhen.START_OF_TURN,
+    },
+    "Time Warp": {
+        "description": "12% chance to take an extra turn after your turn ends.",
+        "effect": lambda p, _: setattr(p, "extra_turn_chance", 0.12),
+        "trigger_when": TriggerWhen.PERMANENT,
+    },
 }
 
+
 def get_relic_by_name(name: str) -> Relic:
-    try:
-        return ALL_RELICS[name]
-    except:
+    if name not in ALL_RELICS:
         raise KeyError(f"Relic '{name}' not found in ALL_RELICS")
+    return Relic(name, ALL_RELICS[name])
