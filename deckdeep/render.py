@@ -10,14 +10,10 @@ from deckdeep.config import (
     BEIGE,
     BLACK,
     BLUE,
-    BUTTON_HEIGHT,
-    BUTTON_WIDTH,
     CARD_FONT,
     CARD_HEIGHT,
     CARD_SPACING,
     CARD_WIDTH,
-    END_TURN_BUTTON_X,
-    END_TURN_BUTTON_Y,
     FONT,
     GRAY,
     GREEN,
@@ -29,8 +25,6 @@ from deckdeep.config import (
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
     SMALL_FONT,
-    VIEW_DECK_BUTTON_X,
-    VIEW_DECK_BUTTON_Y,
     WHITE,
     YELLOW,
     scale,
@@ -629,6 +623,28 @@ def render_monsters(
     return start_y + total_height // 2
 
 
+def render_keybinds(screen: pygame.Surface, assets: GameAssets):
+    screen.blit(assets.background_image, (0, 0))
+    render_text(screen, "Keybinds", SCREEN_WIDTH // 2 - scale(50), scale(20))
+
+    y_offset = scale(60)
+    for category, binds in KEYBINDS.items():
+        render_text(screen, category, scale(20), y_offset, color=YELLOW)
+        y_offset += scale(30)
+        for keys, action in binds.items():
+            render_text(screen, f"{keys}: {action}", scale(40), y_offset)
+            y_offset += scale(25)
+        y_offset += scale(10)
+
+    render_text(
+        screen,
+        "Press ESC to close",
+        SCREEN_WIDTH // 2 - scale(100),
+        SCREEN_HEIGHT - scale(30),
+    )
+    pygame.display.flip()
+
+
 def render_combat_state(
     screen: pygame.Surface,
     player: Player,
@@ -709,23 +725,6 @@ def render_combat_state(
                 card.update_animation()
                 if not card.is_animating:  # Check if the animation is complete
                     card.reset_animation()  # Reset animation properties for reuse
-
-    render_button(
-        screen,
-        "End Turn",
-        END_TURN_BUTTON_X,
-        END_TURN_BUTTON_Y,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
-    )
-    render_button(
-        screen,
-        "View Deck",
-        VIEW_DECK_BUTTON_X,
-        VIEW_DECK_BUTTON_Y,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
-    )
 
     pygame.display.flip()
 

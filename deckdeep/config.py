@@ -49,16 +49,17 @@ BUTTON_HEIGHT = scale(40)
 # Keybinds
 KEYBINDS = {
     "General": {
-        "SPACE": "End turn",
         "ESCAPE": "Open/close menu",
+        "SPACE": "End turn",
         "1": "View deck",
         "2": "View relics",
+        "3": "View keybinds",
     },
     "Card Selection": {
         "Q, W, E, R, T, Y, U, I, O, P": "Select and play cards in your hand",
     },
     "Relic Selection": {
-        "Q, W, E, R, T, Y, U, I, O, P": "Select relics after boss victoryi",
+        "Q, W, E, R, T, Y, U, I, O, P": "Select relics after boss victory",
     },
     "Combat": {
         "H": "Select previous monster",
@@ -73,12 +74,18 @@ KEYBINDS = {
         "ESCAPE": "Close deck view",
     },
     "Relic View": {
-        "ESCAPE or 2": "Close relic view",
+        "ESCAPE, 2": "Close relic view",
     },
     "Victory Screen": {
         "Q, W, E, R": "Select new card or skip",
     },
     "Node Selection": {
         "Q, W, E, R, T, Y, U, I, O, P": "Select next node",
+    },
+    "Menu": {
+        "K": "Select previous option",
+        "J": "Select next option",
+        "SPACE": "Execute selected option",
+        "ESCAPE": "Close menu",
     },
 }

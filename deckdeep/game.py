@@ -55,6 +55,7 @@ from deckdeep.render import (
     render_start_screen,
     render_text_event,
     render_victory_state,
+    render_keybinds,
 )
 from deckdeep.status_effect import TriggerType
 
@@ -203,7 +204,16 @@ class Game:
         self.running = True
         self.clock = pygame.time.Clock()
         self.menu_active = False
-        self.menu_options = ["Resume", "Save Game", "Load Game", "Quit"]
+        self.menu_options = [
+            "Resume",
+            "End Turn",
+            "View Deck",
+            "View Relics",
+            "View Keybinds",
+            "Save Game",
+            "Load Game",
+            "Quit",
+        ]
         self.menu_selected = 0
         self.game_over = False
         self.text_event_selection = 0
@@ -364,8 +374,6 @@ class Game:
         if not self.menu_active and not self.viewing_deck and not self.viewing_relics:
             mouse_x, mouse_y = pos
             self.select_card(mouse_x, mouse_y)
-            self.check_end_turn_button(mouse_x, mouse_y)
-            self.check_view_deck_button(mouse_x, mouse_y)
 
     def select_card(self, mouse_x: int, mouse_y: int):
         card_start_x = (
@@ -384,58 +392,35 @@ class Game:
                 self.logger.debug(f"Card {i} selected", category="PLAYER")
                 break
 
-    def check_end_turn_button(self, mouse_x: int, mouse_y: int):
-        end_turn_rect = pygame.Rect(
-            END_TURN_BUTTON_X, END_TURN_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT
-        )
-        if end_turn_rect.collidepoint(mouse_x, mouse_y):
-            self.player_turn = False
-            self.logger.info("Player ended turn", category="PLAYER")
-
-    def check_view_deck_button(self, mouse_x: int, mouse_y: int):
-        view_deck_rect = pygame.Rect(
-            VIEW_DECK_BUTTON_X, VIEW_DECK_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT
-        )
-        if view_deck_rect.collidepoint(mouse_x, mouse_y):
-            self.viewing_deck = True
-            self.deck_scroll = 0
-            self.logger.debug("Viewing deck", category="PLAYER")
-
     def handle_key_press(self, key):
         key_name = pygame.key.name(key).upper()
 
-        # First, check the General keybinds
-        general_binds = KEYBINDS.get("General", {})
-        for keys, action in general_binds.items():
-            if key_name in keys.split(", "):
-                if action == "End turn":
-                    self.player_turn = False
-                elif action == "Open/close menu":
-                    self.menu_active = not self.menu_active
-                elif action == "View deck":
-                    self.viewing_deck = True
-                    self.deck_scroll = 0
-                elif action == "View relics":
-                    self.viewing_relics = True
-                self.logger.debug(f"Action performed: {action}", category="PLAYER")
-                return
-
-        # Then check other categories
         for category, binds in KEYBINDS.items():
-            if category == "General":
-                continue  # We've already checked this
             for keys, action in binds.items():
                 if key_name in keys.split(", "):
-                    if "Select and play cards in your hand" in action:
-                        index = keys.split(", ").index(key_name)
-                        if index < len(self.player.hand):
-                            self.selected_card = index
-                            self.play_card()
-                    elif action == "Select previous monster":
-                        self.monster_group.select_previous()
-                    elif action == "Select next monster":
-                        self.monster_group.select_next()
-                    # Add more actions as needed
+                    if category == "General":
+                        if action == "Open/close menu":
+                            self.menu_active = not self.menu_active
+                        elif action == "End turn":
+                            self.player_turn = False
+                        elif action == "View deck":
+                            self.viewing_deck = True
+                            self.deck_scroll = 0
+                        elif action == "View relics":
+                            self.viewing_relics = True
+                        elif action == "View keybinds":
+                            self.view_keybinds()
+                    elif category == "Card Selection":
+                        if "Select and play cards in your hand" in action:
+                            index = keys.split(", ").index(key_name)
+                            if index < len(self.player.hand):
+                                self.selected_card = index
+                                self.play_card()
+                    elif category == "Combat":
+                        if action == "Select previous monster":
+                            self.monster_group.select_previous()
+                        elif action == "Select next monster":
+                            self.monster_group.select_next()
 
                     self.logger.debug(f"Action performed: {action}", category="PLAYER")
                     return
@@ -443,57 +428,68 @@ class Game:
         self.logger.debug(f"No action bound to key: {key_name}", category="PLAYER")
 
     def handle_event_key_press(self, key):
-        if not self.current_event:
-            self.logger.error("Current event is None", category="SYSTEM")
+        key_name = pygame.key.name(key).upper()
+        if self.current_event is None:
+            self.logger.error("Current event is None", category="EVENT")
             return
-        num_keys = [
-            pygame.K_q,
-            pygame.K_w,
-            pygame.K_e,
-            pygame.K_r,
-            pygame.K_t,
-            pygame.K_y,
-            pygame.K_u,
-            pygame.K_i,
-            pygame.K_o,
-            pygame.K_p,
-        ]
-        for i, num_key in enumerate(num_keys):
-            if key == num_key and i < len(self.current_event.options):
-                self.text_event_selection = i
-                self.handle_event_selection()
-                break
 
-        if key == pygame.K_ESCAPE:
-            self.logger.info("Opened menu", category="SYSTEM")
+        for keys, action in KEYBINDS["Event"].items():
+            if key_name in keys.split(", "):
+                index = keys.split(", ").index(key_name)
+                if index < len(self.current_event.options):
+                    self.text_event_selection = index
+                    self.handle_event_selection()
+                    return
+
+        if key_name in KEYBINDS["General"]["ESCAPE"].split(", "):
             self.menu_active = True
-        elif key == pygame.K_2:
+        elif key_name in KEYBINDS["General"]["2"].split(", "):
             self.viewing_relics = True
-            self.logger.debug("Viewing relics", category="PLAYER")
 
     def handle_deck_view_key_press(self, key):
-        if key == pygame.K_ESCAPE:
-            self.viewing_deck = False
-            self.logger.debug("Closed deck view", category="PLAYER")
-        elif key == pygame.K_h:
-            self.current_page = max(0, self.current_page - 1)
-            self.logger.debug(
-                f"Moved to deck page {self.current_page}", category="PLAYER"
-            )
-        elif key == pygame.K_l:
-            if self.player:
-                max_page = (
-                    len(self.player.get_sorted_full_deck()) - 1
-                ) // self.cards_per_page
-                self.current_page = min(max_page, self.current_page + 1)
-                self.logger.debug(
-                    f"Moved to deck page {self.current_page}", category="PLAYER"
-                )
+        key_name = pygame.key.name(key).upper()
+
+        for keys, action in KEYBINDS["Deck View"].items():
+            if key_name in keys.split(", "):
+                if action == "Previous page":
+                    self.current_page = max(0, self.current_page - 1)
+                elif action == "Next page":
+                    if self.player:
+                        max_page = (
+                            len(self.player.get_sorted_full_deck()) - 1
+                        ) // self.cards_per_page
+                        self.current_page = min(max_page, self.current_page + 1)
+                elif action == "Close deck view":
+                    self.viewing_deck = False
+                self.logger.debug(f"Deck view action: {action}", category="PLAYER")
+                return
 
     def handle_relic_view_key_press(self, key):
-        if key == pygame.K_ESCAPE or key == pygame.K_2:
+        key_name = pygame.key.name(key).upper()
+
+        # Check for keys in the Relic View category
+        for keys, action in KEYBINDS["Relic View"].items():
+            if key_name in keys.split(", "):
+                if "Close relic view" in action:
+                    self.viewing_relics = False
+                    self.logger.debug("Closed relic view", category="PLAYER")
+                    return
+
+        # Check for the "2" key in the General category
+        if key_name in KEYBINDS["General"]["2"].split(", "):
             self.viewing_relics = False
-            self.logger.debug("Closed relic view", category="PLAYER")
+            self.logger.debug("Closed relic view using '2' key", category="PLAYER")
+            return
+
+        # Check for the "ESCAPE" key in the General category
+        if key_name in KEYBINDS["General"]["ESCAPE"].split(", "):
+            self.viewing_relics = False
+            self.logger.debug("Closed relic view using 'ESCAPE' key", category="PLAYER")
+            return
+
+        self.logger.debug(
+            f"No relic view action bound to key: {key_name}", category="PLAYER"
+        )
 
     def handle_event_selection(self):
         if not self.current_event:
@@ -519,21 +515,49 @@ class Game:
             self.select_next_node()
 
     def handle_menu_key_press(self, key):
-        if key == pygame.K_k:
-            self.menu_selected = (self.menu_selected - 1) % len(self.menu_options)
-        elif key == pygame.K_j:
-            self.menu_selected = (self.menu_selected + 1) % len(self.menu_options)
-        elif key == pygame.K_SPACE:
-            self.execute_menu_option()
-        elif key == pygame.K_ESCAPE:
-            self.menu_active = False
-            self.logger.debug("Closed menu", category="SYSTEM")
+        key_name = pygame.key.name(key).upper()
+
+        if "Menu" not in KEYBINDS:
+            self.logger.error("Menu keybinds not found in KEYBINDS", category="SYSTEM")
+            return
+
+        for keys, action in KEYBINDS["Menu"].items():
+            if key_name in keys.split(", "):
+                if action == "Select previous option":
+                    self.menu_selected = (self.menu_selected - 1) % len(
+                        self.menu_options
+                    )
+                elif action == "Select next option":
+                    self.menu_selected = (self.menu_selected + 1) % len(
+                        self.menu_options
+                    )
+                elif action == "Execute selected option":
+                    self.execute_menu_option()
+                elif action == "Close menu":
+                    self.menu_active = False
+                    self.logger.debug("Closed menu", category="SYSTEM")
+                self.logger.debug(f"Menu action performed: {action}", category="PLAYER")
+                return
+
+        self.logger.debug(f"No menu action bound to key: {key_name}", category="PLAYER")
 
     def execute_menu_option(self):
         selected_option = self.menu_options[self.menu_selected]
         self.logger.info(f"Executed menu option: {selected_option}", category="SYSTEM")
         if selected_option == "Resume":
             self.menu_active = False
+        elif selected_option == "End Turn":
+            self.player_turn = False
+            self.menu_active = False
+        elif selected_option == "View Deck":
+            self.viewing_deck = True
+            self.deck_scroll = 0
+            self.menu_active = False
+        elif selected_option == "View Relics":
+            self.viewing_relics = True
+            self.menu_active = False
+        elif selected_option == "View Keybinds":
+            self.view_keybinds()
         elif selected_option == "Save Game":
             self.save_game()
         elif selected_option == "Load Game":
@@ -542,6 +566,20 @@ class Game:
             self.running = False
             pygame.quit()
             sys.exit()
+
+    def view_keybinds(self):
+        # This method will be implemented in render.py
+        render_keybinds(self.screen, self.assets)
+        waiting = True
+        while waiting:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+                    waiting = False
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        waiting = False
+            self.clock.tick(30)
 
     def play_card(self):
         if self.selected_card >= 0 and self.selected_card < len(self.player.hand):
@@ -894,22 +932,15 @@ class Game:
                     self.running = False
                     return 0
                 elif event.type == pygame.KEYDOWN:
-                    num_keys = [
-                        pygame.K_q,
-                        pygame.K_w,
-                        pygame.K_e,
-                        pygame.K_r,
-                        pygame.K_t,
-                        pygame.K_y,
-                        pygame.K_u,
-                        pygame.K_i,
-                        pygame.K_o,
-                        pygame.K_p,
-                    ]
-                    for i, num_key in enumerate(num_keys):
-                        if event.key == num_key and i < len(self.current_node.children):
-                            self.logger.info(f"Selected node {i}", category="PLAYER")
-                            return i
+                    key_name = pygame.key.name(event.key).upper()
+                    for keys, action in KEYBINDS["Node Selection"].items():
+                        if key_name in keys.split(", "):
+                            index = keys.split(", ").index(key_name)
+                            if index < len(self.current_node.children):
+                                self.logger.info(
+                                    f"Selected node {index}", category="PLAYER"
+                                )
+                                return index
 
             pygame.time.wait(100)
         raise ValueError("No node selected")
