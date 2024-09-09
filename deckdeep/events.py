@@ -148,7 +148,7 @@ class CursedWell(Event):
         cursed_coin = get_relic_by_name("Cursed Coin")
         super().__init__(
             "Cursed Well",
-            f"A mysterious well emanates dark energy. You can add a curse to your deck and gain a '{cursed_coin.name}' relic.",
+            f"A mysterious well emanates dark energy. You can add a curse to your deck and gain a '{cursed_coin.name}' - ({cursed_coin.description}) relic.",
             [
                 ("Embrace dark power", "dark_power"),
                 ("Leave", "leave"),
@@ -312,7 +312,7 @@ class Defender(Event):
 
         super().__init__(
             "Defender",
-            f"A caravan of travelers has been ambushed by bandits. Defend and help them, suffering {self.damage_percentage}% of your current health as damage, and be rewarded the '{self.shield_rune.name}'.",
+            f"A caravan of travelers has been ambushed by bandits. Defend and help them, suffering {self.damage_percentage}% of your current health as damage, and be rewarded the '{self.shield_rune.name} - ({self.shield_rune.description})'.",
             [
                 (
                     f"Defend caravan (Take {self.damage_percentage}% damage, gain '{self.shield_rune.name}')",
