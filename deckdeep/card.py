@@ -149,10 +149,12 @@ class Card:
                 "Whirlwind",
                 3,
                 Rarity.RARE,
-                damage=2,
+                damage=4,
                 shield=3,
                 targets_all=True,
                 bleed=2,
+                exhaust=True,
+                num_attacks=3,
             ),
             Card(
                 "Fireball",

@@ -350,7 +350,9 @@ class Player:
             return card_to_remove
         return None
 
-    def duplicate_card_in_deck(self, card_index: int) -> Optional[Card]:
+    def duplicate_card_in_deck(
+        self, card_index: int, always_exhaust: bool = False
+    ) -> Optional[Card]:
         full_deck = self.get_sorted_full_deck()
         if 0 <= card_index < len(full_deck):
             card_to_duplicate = full_deck[card_index]
@@ -368,7 +370,7 @@ class Player:
                 bleed=card_to_duplicate.bleed,
                 energy_bonus=card_to_duplicate.energy_bonus,
                 health_regain=card_to_duplicate.health_regain,
-                exhaust=card_to_duplicate.exhaust,
+                exhaust=always_exhaust if always_exhaust else card_to_duplicate.exhaust,
                 num_attacks=card_to_duplicate.num_attacks,
             )
             # Add the new card to the same pile as the original card

@@ -26,7 +26,7 @@ class VoodooDoctor(Event):
         healing_charm = get_relic_by_name("Healing Charm")
         super().__init__(
             "Voodoo Doctor",
-            f"A mysterious figure offers you various magical remedies. You can pay 10 HP and gain a curse to be granted a '{healing_charm.name}' relic, or accept a sketchy potion with unknown effects.",
+            f"A mysterious figure offers you various magical remedies. You can pay 10 HP and gain a curse to be granted a '{healing_charm.name}'- ({healing_charm.description}) or accept a sketchy potion that grants a random benefit out of 4 possible benefits. (Heal 5 HP, Gain 10 Energy, Gain 10 Strength, Gain 10 Block)",
             [
                 ("Get Healing Charm", "healing_charm"),
                 ("Take sketchy potion", "sketchy_potion"),
@@ -37,7 +37,7 @@ class VoodooDoctor(Event):
     def healing_charm(self, player):
         if player.health > 10:
             player.health -= 10
-            curse = Card("Cursed Coin", 99, Rarity.UNCOMMON, health_cost=5)
+            curse = Card("Cursed Coin", 0, Rarity.UNCOMMON, health_cost=3, exhaust=True)
             player.deck.append(curse)
             healing_charm = get_relic_by_name("Healing Charm")
             player.relics.append(healing_charm)
@@ -64,7 +64,7 @@ class Medic(Event):
         hair_of_dog = get_relic_by_name("Hair of the Dog")
         super().__init__(
             "Medic",
-            f"You find a medic tent. You can pay 20 HP to gain a {hair_of_dog.name} or heal 50 HP.",
+            f"You find a medic tent. You can pay 20 HP to gain a {hair_of_dog.name} - ({hair_of_dog.description}) or heal 50 HP.",
             [
                 ("Get Hair of the Dog", "grant_hair_of_the_dog"),
                 ("Heal 50 HP", "heal"),
@@ -157,9 +157,11 @@ class CursedWell(Event):
 
     def dark_power(self, player):
         player.deck.append(
-            Card("Cursed Coin", 99, Rarity.UNCOMMON, health_cost=5),
+            Card("Cursed Coin", 0, Rarity.UNCOMMON, health_cost=3, exhaust=True)
         )
-        player.deck.append(Card("Cursed Coin", 99, Rarity.UNCOMMON, health_cost=5))
+        player.deck.append(
+            Card("Cursed Coin", 0, Rarity.UNCOMMON, health_cost=3, exhaust=True)
+        )
         relic = get_relic_by_name("Cursed Coin")
         player.add_relic(relic)
         return f"You gained the '{relic.name}' relic ({relic.description}) and added a curse to your deck."
@@ -176,21 +178,23 @@ class Scribe(Event):
             "The air crackles with magical energy as the scribe offers to duplicate one of your cards.",
             [
                 (
-                    "Duplicate a card (Add 1 copy of a card to your deck)",
+                    "Duplicate a card that always exhausts (Add 1 copy of a card to your deck)",
                     "duplicate_card",
                 ),
                 ("Leave", "leave"),
             ],
         )
 
-    def duplicate_card(self, player, assets):
+    def duplicate_card(self, player: Player, assets):
         full_deck = player.get_sorted_full_deck()
         chosen_index = handle_card_selection(full_deck, assets, player)
         if chosen_index is not None:
-            duplicated_card = player.duplicate_card_in_deck(chosen_index)
+            duplicated_card = player.duplicate_card_in_deck(
+                chosen_index, always_exhaust=True
+            )
             if duplicated_card:
                 return (
-                    f"The scribe's quill dances across a blank parchment, creating an exact copy of your '{duplicated_card.name}'. "
+                    f"The scribe's quill dances across a blank parchment, creating a copy of your '{duplicated_card.name}'. "
                     f"A duplicate has been added to your deck."
                 )
             else:
@@ -229,7 +233,7 @@ class ForgottenShrine(Event):
         relic = get_relic_by_name("Energy Crystal")
         super().__init__(
             "Forgotten Shrine",
-            f"A shrine stands before you, covered in moss and vines. It seems to be calling out to you. You can offer half of your max health to gain the '{relic.name}' relic or cleanse the shrine to remove all curses from your deck.",
+            f"A shrine stands before you, covered in moss and vines. It seems to be calling out to you. You can offer half of your max health to gain the '{relic.name}'- ({relic.description}) or cleanse the shrine to remove all curses from your deck.",
             [
                 ("Offer health", "energy_crystal"),
                 ("Cleanse shrine", "cleanse"),
