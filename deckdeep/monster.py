@@ -658,19 +658,6 @@ class Monster:
     def __str__(self):
         return f"{self.name} (HP: {self.health.value}/{self.max_health.value}, DMG: {self.damage}, SP: {self.spell_power})"
 
-    def attack(self, player):
-        total_damage = self.damage
-        player.take_damage(total_damage)
-
-    def defend(self):
-        shield_amount = round(self.spell_power * 0.5)
-        self.grant_shields(shield_amount)
-        return f"{self.name} defends, gaining {shield_amount} shields!"
-
-    def buff(self):
-        buff_amount = round(self.spell_power * 0.2)
-        return f"{self.name} buffs, gaining {buff_amount} Strength for 2 turns!"
-
     def receive_damage(self, damage: int) -> int:
         if self.shields > 0:
             if damage > self.shields:
@@ -727,13 +714,9 @@ class Monster:
 
     def execute_action(self, target):
         if self.intention:
-            print(
-                f"DEBUG: Executing ability {self.intention.__class__.__name__} for {self.name}"
-            )
             return self.intention.use(self, target)
         else:
-            print(f"WARNING: No intention set for {self.name}")
-            return f"{self.name} does nothing."
+            raise ValueError(f"No intention set for {self.name}")
 
     def decide_action(self, player) -> str:
         if self.monster_type and self.monster_type.abilities:
@@ -745,14 +728,10 @@ class Monster:
                 k=1,
             )[0]
             self.intention_icon_types = self.intention.icon_types
-            print(
-                f"DEBUG: {self.name} decided to use {self.intention.__class__.__name__}"
-            )
             return self.intention.__class__.__name__
         else:
-            print(f"WARNING: {self.name} has no abilities")
             self.intention_icon_types = [IconType.UNKNOWN]
-            return "No Action"
+            raise ValueError(f"{self.name} has no abilities")
 
     def to_dict(self) -> Dict:
         return {

@@ -72,10 +72,6 @@ class MonsterGroup:
         self.monsters = [monster for monster in self.monsters if monster.is_alive()]
         self._update_selection()
 
-    def attack(self, player):
-        for monster in self.monsters:
-            monster.attack(player)
-
     def decide_action(self, player) -> List[str]:
         return [monster.decide_action(player) for monster in self.monsters]
 

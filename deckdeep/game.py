@@ -636,17 +636,28 @@ class Game:
 
             # Execute previous intentions
             for i, monster in enumerate(self.monster_group.monsters):
-                result = monster.execute_action(self.player)
-                self.logger.debug(
-                    f"Monster {i} {monster.name} executed action: {result}",
-                    category="COMBAT",
-                )
+                try:
+                    result = monster.execute_action(self.player)
+                    self.logger.debug(
+                        f"Monster {i} {monster.name} executed action: {result}",
+                        category="COMBAT",
+                    )
+                except ValueError as e:
+                    self.logger.error(
+                        f"Error executing monster action: {str(e)}", category="COMBAT"
+                    )
 
             # Set new intentions for the next turn
-            self.monster_intentions = self.monster_group.decide_action(self.player)
-            self.logger.debug(
-                f"New monster intentions: {self.monster_intentions}", category="COMBAT"
-            )
+            try:
+                self.monster_intentions = self.monster_group.decide_action(self.player)
+                self.logger.debug(
+                    f"New monster intentions: {self.monster_intentions}",
+                    category="COMBAT",
+                )
+            except ValueError as e:
+                self.logger.error(
+                    f"Error setting monster intentions: {str(e)}", category="COMBAT"
+                )
 
             self.apply_relic_effects(TriggerWhen.ON_DAMAGE_TAKEN)
             self.player.end_turn()
@@ -1128,8 +1139,7 @@ class Game:
                         self.current_event = self.current_node.content["event"]
                     self.logger.info("Game loaded successfully", category="SYSTEM")
                 else:
-                    self.logger.error("Failed to load node tree", category="SYSTEM")
-                    self.new_game()
+                    raise ValueError("Failed to load node tree")
         except (FileNotFoundError, json.JSONDecodeError) as e:
             self.logger.error(f"Error loading game: {e}", category="SYSTEM")
             self.logger.info("Starting a new game", category="SYSTEM")

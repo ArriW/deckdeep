@@ -160,18 +160,23 @@ def test_player_heal(game):
 
 
 def test_monster_group_attack(game):
-    mock_monster1 = Mock()
-    mock_monster2 = Mock()
-    game.monster_group.monsters = [mock_monster1, mock_monster2]
-    game.monster_group.attack = Mock(
-        side_effect=lambda player: [
-            monster.attack(player) for monster in game.monster_group.monsters
-        ]
-    )
-    game.monster_group.attack(game.player)
-    mock_monster1.attack.assert_called_once_with(game.player)
-    mock_monster2.attack.assert_called_once_with(game.player)
+    monster_group = MonsterGroup()
 
+    mock_monster1 = Mock()
+    mock_monster1.is_alive = Mock(return_value=True)
+    mock_monster1.execute_action = Mock(return_value="Monster 1 attacked")
+    mock_monster2 = Mock()
+    mock_monster2.is_alive = Mock(return_value=True)
+    mock_monster2.execute_action = Mock(return_value="Monster 2 attacked")
+
+    monster_group.monsters = [mock_monster1, mock_monster2]
+
+    results = monster_group.execute_actions(game.player)
+
+    mock_monster1.execute_action.assert_called_once_with(game.player)
+    mock_monster2.execute_action.assert_called_once_with(game.player)
+
+    assert results == ["Monster 1 attacked", "Monster 2 attacked"]
 
 def test_apply_relic_effects(game):
     mock_relic = Mock()
@@ -201,13 +206,13 @@ def test_apply_relic_effects(game):
 def test_save_and_load_game(game):
     mock_player_data = {
         "name": "TestPlayer",
-        "health": 80,  # Change this line
-        "max_health": 100,  # Change this line
+        "health": 80, 
+        "max_health": 100, 
         "symbol": "@",
         "shield": 0,
         "bonus_damage": 0,
-        "energy": 3,  # Change this line
-        "max_energy": 3,  # Change this line
+        "energy": 3,
+        "max_energy": 3,
         "hand_limit": 7,
         "deck": [],
         "hand": [],
@@ -217,7 +222,7 @@ def test_save_and_load_game(game):
         "health_gain_on_skip": 5,
         "cards_drawn_per_turn": 5,
         "hp_regain_per_level": 10,
-        "status_effects": {"effects": []},  # Update this line
+        "status_effects": {"effects": []},
         "relics": [],
         "strength": 0,
         "dodge_chance": 0,
@@ -236,7 +241,7 @@ def test_save_and_load_game(game):
         "stage": 1,
         "level": 1,
         "true_level": 1,
-        "content": {"monsters": mock_monster_group},  # Add mock monster group here
+        "content": {"monsters": mock_monster_group},
         "children": [
             {
                 "node_type": "combat",
@@ -245,14 +250,14 @@ def test_save_and_load_game(game):
                 "true_level": 2,
                 "content": {
                     "monsters": mock_monster_group
-                },  # Add to child node as well
+                },
                 "children": [],
             }
         ],
     }
 
     game.player.to_dict = Mock(return_value=mock_player_data)
-    game.node_tree = Node.from_dict(mock_node_data)  # Create an actual Node object
+    game.node_tree = Node.from_dict(mock_node_data)
     game.get_node_path = Mock(
         return_value=[0]
     )  # Update this to match the new structure
@@ -265,19 +270,19 @@ def test_save_and_load_game(game):
         mock_load.return_value = {
             "player": mock_player_data,
             "node_tree": mock_node_data,
-            "current_node_path": [0],  # Update this to match the new structure
+            "current_node_path": [0],
             "stage": 2,
             "score": 100,
             "game_over": False,
         }
-        mock_monster_group_from_dict.return_value = Mock()  # Return a mock MonsterGroup
+        mock_monster_group_from_dict.return_value = Mock()
         game.save_game()
         game.load_game()
 
     assert game.stage == 2
     assert game.score == 100
     assert game.game_over is False
-    assert game.monster_group is not None  # Add this assertion
+    assert game.monster_group is not None
 
 
 def test_generate_node_tree(game):
@@ -293,8 +298,8 @@ def test_generate_node_tree(game):
 def test_initialize_combat(game):
     mock_node = Mock()
     mock_monster_group = Mock(spec=MonsterGroup)
-    mock_monster_group.monsters = [Mock(), Mock()]  # Create mock monsters
-    mock_monster_group.decide_action.return_value = {}  # Mock the decide_action method
+    mock_monster_group.monsters = [Mock(), Mock()] 
+    mock_monster_group.decide_action.return_value = {}
     mock_node.content = {"monsters": mock_monster_group}
     game.current_node = mock_node
 
@@ -306,11 +311,9 @@ def test_initialize_combat(game):
         "pygame.display.flip"
     ), patch(
         "deckdeep.game.Game.animate_combat_start"
-    ):  # Add this line
+    ):
 
         game.initialize_combat()
-
-        # Check if the game's monster_group was updated with the new monsters
         assert game.monster_group == mock_monster_group
 
     assert game.player_turn is True

@@ -90,8 +90,6 @@ class Player:
             self.shuffle_deck()
         if self.deck and len(self.hand) < self.hand_limit:
             self.hand.append(self.deck.pop())
-        else:
-            print("Player hand is full!")
 
     def shuffle_deck(self):
         self.deck.extend(self.discard_pile)
@@ -152,9 +150,6 @@ class Player:
     def heal(self, amount: int):
         self.health = Health(min(self.max_health.value, self.health.value + amount))
 
-    def add_block(self, amount: int):
-        self.shield += amount
-
     def remove_curses(self, amount: int = 1):
         """
         -1 is for all curses to be removed
@@ -168,7 +163,6 @@ class Player:
 
     def take_damage(self, damage: int) -> int:
         if random.random() < self.dodge_chance:
-            print(f"{self.name} dodged the attack!")
             return 0
 
         old_health = self.health.value
@@ -191,7 +185,6 @@ class Player:
         if self.health.value <= 0 and self.phoenix_feather_active:
             self.health = Health(1)
             self.phoenix_feather_active = False
-            print(f"{self.name} survived with 1 HP thanks to Phoenix Feather!")
 
         # Calculate actual damage taken
         actual_damage = old_health - self.health.value
@@ -203,7 +196,6 @@ class Player:
         return actual_damage
 
     def end_turn(self):
-        print("Player end_turn called")
         self.energy = self.max_energy
         self.bonus_energy = 0
         self.bonus_damage = 0
@@ -213,10 +205,8 @@ class Player:
         for _ in range(self.cards_per_turn):
             self.draw_card()
         self.status_effects.trigger_effects(TriggerType.TURN_END, self)
-        print("Player end_turn finished")
 
     def apply_status_effects(self):
-        print("Applying status effects")
         self.status_effects.trigger_effects(TriggerType.TURN_START, self)
 
     def reset_energy(self):
@@ -229,11 +219,9 @@ class Player:
         force: bool = False,
     ):
         if level is not None and level % 5 == 0 and self.max_energy.value < 10:
-            print(f"{self.name}  {amount} max energy!")
             self.max_energy = Energy(self.max_energy.value + amount)
             self.energy = self.max_energy
         elif force:
-            print(f"{self.name} {amount} max energy!")
             self.max_energy = Energy(self.max_energy.value + amount)
             self.energy = self.max_energy
 
