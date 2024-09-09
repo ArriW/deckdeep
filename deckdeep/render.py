@@ -2,7 +2,7 @@ import pygame
 import pygame.gfxdraw
 import random
 from collections import Counter
-from typing import List, TYPE_CHECKING
+from typing import List, TYPE_CHECKING, Optional
 
 from deckdeep.assets import GameAssets
 from deckdeep.card import Card
@@ -33,6 +33,8 @@ from deckdeep.monster import IconType
 from deckdeep.monster_group import MonsterGroup
 from deckdeep.player import Player
 from deckdeep.relic import Relic
+from deckdeep.node import Node
+from deckdeep.map_generator import NodeType
 
 # Imports only for type checking to avoid circular imports
 if TYPE_CHECKING:
@@ -240,7 +242,9 @@ def render_card(
 
                 render_text(
                     card_surface,
-                    str(int(text) // card.num_attacks),
+                    str(
+                        int(text.split(" ")[0]) // card.num_attacks
+                    ),  # strip out AOE text
                     text_x,
                     icon_y + y_text_offset,
                     font=CARD_FONT,
@@ -665,11 +669,12 @@ def render_combat_state(
     screen: pygame.Surface,
     player: Player,
     monster_group: MonsterGroup,
-    dungeon_level: str,
-    score: int,
-    selected_card: int,
+    player_hand: List[Card],
+    player_turn: bool,
+    monster_intentions: List[str],
+    level_info: str,
     assets: GameAssets,
-    played_cards: List[Card] = [],
+    played_cards: List[Card],
     animation_progress: float = 1.0,
 ):
     screen.blit(assets.background_image, (0, 0))
@@ -681,15 +686,12 @@ def render_combat_state(
     )
     screen.blit(parchment, (0, 0))
 
-    # Render score in the top left
-    render_text(screen, f"Score: {score}", scale(10), scale(15), color=BLACK)
+    # Render level info
+    render_text(screen, level_info, SCREEN_WIDTH - scale(100), scale(10))
 
-    # Render dungeon level in the top center
-    level_text = f"Level: {dungeon_level}"
-    level_width = FONT.size(level_text)[0]
-    render_text(
-        screen, level_text, (SCREEN_WIDTH - level_width) // 2, scale(15), color=BLACK
-    )
+    # Render turn indicator
+    turn_text = "Player's Turn" if player_turn else "Enemy's Turn"
+    render_text(screen, turn_text, SCREEN_WIDTH // 2 - scale(50), scale(10))
 
     monster_center_y = render_monsters(
         screen, monster_group, assets, animation_progress
@@ -702,17 +704,17 @@ def render_combat_state(
     screen.blit(s, (0, SCREEN_HEIGHT - CARD_HEIGHT - scale(40)))
 
     card_start_x = (
-        SCREEN_WIDTH - (len(player.hand) * (CARD_WIDTH + CARD_SPACING) - CARD_SPACING)
+        SCREEN_WIDTH - (len(player_hand) * (CARD_WIDTH + CARD_SPACING) - CARD_SPACING)
     ) // 2
     combat_keys = next(iter(KEYBINDS["Event"].keys()))
     num_keys = [pygame.key.key_code(k) for k in combat_keys.split(", ")]
-    for i, card in enumerate(player.hand):
+    for i, card in enumerate(player_hand):
         card.x, card.y = render_card(
             screen,
             card,
             card_start_x + i * (CARD_WIDTH + CARD_SPACING),
             SCREEN_HEIGHT - CARD_HEIGHT - scale(20),
-            i == selected_card,
+            False,
             assets,
             player.energy.value,
             player.max_energy.value,
@@ -745,13 +747,111 @@ def render_combat_state(
     pygame.display.flip()
 
 
+def render_node_selection(
+    screen: pygame.Surface, nodes: List[Node], selected: int, assets: GameAssets
+):
+    screen.blit(assets.background_image, (0, 0))
+
+    render_text(
+        screen, "Choose your next path:", SCREEN_WIDTH // 2 - scale(100), scale(50)
+    )
+
+    node_width = scale(150)
+    node_height = scale(100)
+    node_spacing = scale(50)
+    total_width = len(nodes) * node_width + (len(nodes) - 1) * node_spacing
+    start_x = (SCREEN_WIDTH - total_width) // 2
+
+    for i, node in enumerate(nodes):
+        node_x = start_x + i * (node_width + node_spacing)
+        node_y = SCREEN_HEIGHT // 2 - node_height // 2
+
+        color = YELLOW if i == selected else WHITE
+        pygame.draw.rect(screen, color, (node_x, node_y, node_width, node_height))
+        pygame.draw.rect(screen, BLACK, (node_x, node_y, node_width, node_height), 2)
+
+        node_type_text = node.node_type.value.capitalize()
+        render_text(screen, node_type_text, node_x + scale(10), node_y + scale(10))
+        render_text(screen, f"Level {node.y}", node_x + scale(10), node_y + scale(50))
+        hotkey_list = [
+            get_key_name(pygame.K_q),
+            get_key_name(pygame.K_w),
+            get_key_name(pygame.K_e),
+            get_key_name(pygame.K_r),
+            get_key_name(pygame.K_t),
+            get_key_name(pygame.K_y),
+            get_key_name(pygame.K_u),
+            get_key_name(pygame.K_i),
+            get_key_name(pygame.K_o),
+            get_key_name(pygame.K_p),
+        ]
+        render_text(
+            screen, hotkey_list[i], node_x + scale(10), node_y + node_height - scale(30)
+        )
+
+    render_text(
+        screen,
+        "Press number keys to select a path",
+        SCREEN_WIDTH // 2 - scale(150),
+        SCREEN_HEIGHT - scale(50),
+    )
+
+    pygame.display.flip()
+
+
+def render_map(
+    screen: pygame.Surface,
+    node_map: List[List[Optional[Node]]],
+    current_node: Node,
+    assets: GameAssets,
+):
+    screen.blit(assets.background_image, (0, 0))
+
+    node_size = scale(30)
+    spacing_x = SCREEN_WIDTH // (len(node_map[0]) + 1)
+    spacing_y = SCREEN_HEIGHT // (len(node_map) + 1)
+
+    for y, row in enumerate(node_map):
+        for x, node in enumerate(row):
+            if node is not None:
+                node_x = (x + 1) * spacing_x
+                node_y = SCREEN_HEIGHT - (y + 1) * spacing_y
+                color = get_node_color(node.node_type)
+                pygame.draw.circle(screen, color, (node_x, node_y), node_size)
+                if node == current_node:
+                    pygame.draw.circle(screen, RED, (node_x, node_y), node_size + 5, 3)
+
+                # Draw connections
+                for child in node.children:
+                    child_x = (child.x + 1) * spacing_x
+                    child_y = SCREEN_HEIGHT - (child.y + 1) * spacing_y
+                    pygame.draw.line(
+                        screen, WHITE, (node_x, node_y), (child_x, child_y), 2
+                    )
+
+    pygame.display.flip()
+
+
+def get_node_color(node_type: NodeType):
+    colors = {
+        NodeType.MONSTER: (200, 0, 0),  # Red
+        NodeType.TREASURE: (255, 215, 0),  # Gold
+        NodeType.REST: (0, 200, 0),  # Green
+        NodeType.EVENT: (0, 0, 200),  # Blue
+        NodeType.ELITE: (128, 0, 128),  # Purple
+        NodeType.BOSS: (255, 0, 0),  # Bright Red
+        NodeType.START: (255, 255, 255),  # White
+    }
+    return colors.get(node_type, (100, 100, 100))  # Gray for unknown types
+
+
 def render_victory_state(
     screen: pygame.Surface,
-    score: int,
     new_cards: List[Card],
     selected_card: int,
-    assets: GameAssets,
+    score: int,
     player: Player,
+    assets: GameAssets,
 ):
     screen.blit(assets.victory_image, (0, 0))
     # screen.fill(BLACK)
@@ -948,60 +1048,6 @@ def render_text_event(
         BLUE,
         assets,
         0,
-    )
-
-    pygame.display.flip()
-
-
-def render_node_selection(
-    screen: pygame.Surface, nodes: List["Node"], selected: int, assets: GameAssets
-):
-    screen.blit(assets.background_image, (0, 0))
-
-    render_text(
-        screen, "Choose your next path:", SCREEN_WIDTH // 2 - scale(100), scale(50)
-    )
-
-    node_width = scale(150)
-    node_height = scale(100)
-    node_spacing = scale(50)
-    total_width = len(nodes) * node_width + (len(nodes) - 1) * node_spacing
-    start_x = (SCREEN_WIDTH - total_width) // 2
-
-    for i, node in enumerate(nodes):
-        node_x = start_x + i * (node_width + node_spacing)
-        node_y = SCREEN_HEIGHT // 2 - node_height // 2
-
-        color = YELLOW if i == selected else WHITE
-        pygame.draw.rect(screen, color, (node_x, node_y, node_width, node_height))
-        pygame.draw.rect(screen, BLACK, (node_x, node_y, node_width, node_height), 2)
-
-        node_type_text = node.node_type.capitalize()
-        render_text(screen, node_type_text, node_x + scale(10), node_y + scale(10))
-        render_text(
-            screen, f"Level {node.level}", node_x + scale(10), node_y + scale(50)
-        )
-        hotkey_list = [
-            get_key_name(pygame.K_q),
-            get_key_name(pygame.K_w),
-            get_key_name(pygame.K_e),
-            get_key_name(pygame.K_r),
-            get_key_name(pygame.K_t),
-            get_key_name(pygame.K_y),
-            get_key_name(pygame.K_u),
-            get_key_name(pygame.K_i),
-            get_key_name(pygame.K_o),
-            get_key_name(pygame.K_p),
-        ]
-        render_text(
-            screen, hotkey_list[i], node_x + scale(10), node_y + node_height - scale(30)
-        )
-
-    render_text(
-        screen,
-        "Press number keys to select a path",
-        SCREEN_WIDTH // 2 - scale(150),
-        SCREEN_HEIGHT - scale(50),
     )
 
     pygame.display.flip()
