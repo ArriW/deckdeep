@@ -692,8 +692,10 @@ class Game:
             if not (m.is_dying and current_time - m.death_start_time > 1000)
         ]
 
+        # End combat
         if not self.monster_group.monsters:
             self.player.end_turn()
+            self.player.end_combat()
             self.combat_victory()
 
         if all(not card.is_animating for card in self.played_cards):

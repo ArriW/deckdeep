@@ -33,6 +33,7 @@ class Card:
         burn: int = 0,
         cleanse: bool = False,
         num_attacks: int = 1,  # New attribute for multi-attack
+        exhaust: bool = False,
     ):
         self.name = name
         self.energy_cost = Energy(energy_cost)
@@ -52,6 +53,7 @@ class Card:
         self.burn = burn
         self.cleanse = cleanse
         self.num_attacks = num_attacks
+        self.exhaust = exhaust
 
         # Animation properties
         self.x = 0
@@ -68,31 +70,35 @@ class Card:
     def update_animation(self, speed: int = 5, fade_speed: int = 10):
         if self.is_animating:
             self.y -= speed
-            # pygame.time.wait(50)
             self.opacity = max(0, self.opacity - fade_speed)
             if self.opacity == 0:
                 self.is_animating = False
 
     def reset_animation(self):
-        # self.is_animating = True
-        self.opacity = (
-            255  # Reset opacity or any other properties involved in animation
-        )
+        self.opacity = 255
 
     @staticmethod
     def generate_card_pool(num_cards: int = 3) -> List["Card"]:
         card_pool = [
-            Card("Weaken", 1, Rarity.UNCOMMON, weakness=4),
-            Card("Fortify", 1, Rarity.COMMON, bolster=3),
+            Card("Weaken", 1, Rarity.UNCOMMON, weakness=5, exhaust=True),
+            Card("Spark", 0, Rarity.COMMON, burn=2, exhaust=True),
+            Card("Fortify", 1, Rarity.UNCOMMON, bolster=5, exhaust=True),
             Card("Ignite", 2, Rarity.UNCOMMON, damage=5, burn=3),
             Card("Kindling", 1, Rarity.COMMON, damage=3, burn=1),
             Card("Poison Dart", 1, Rarity.COMMON, damage=3, bleed=3),
             Card("Mana Surge", 1, Rarity.UNCOMMON, energy_bonus=1, card_draw=1),
             Card("Life Tap", 1, Rarity.UNCOMMON, card_draw=2, health_cost=5),
             Card("Earthquake", 3, Rarity.RARE, damage=8, targets_all=True, shield=5),
-            Card("Inspire", 2, Rarity.UNCOMMON, bonus_damage=3, card_draw=1, healing=5),
+            Card("Inspire", 1, Rarity.UNCOMMON, healing=5, card_draw=1, exhaust=True),
             Card("Blood Pact", 4, Rarity.RARE, damage=20, health_cost=10, bleed=5),
-            Card("Meditation", 1, Rarity.COMMON, shield=5, health_regain=2),
+            Card(
+                "Meditation",
+                3,
+                Rarity.UNCOMMON,
+                shield=10,
+                health_regain=5,
+                exhaust=True,
+            ),
             Card(
                 "Chain Lightning",
                 3,
@@ -102,7 +108,6 @@ class Card:
                 energy_bonus=1,
             ),
             Card("Soul Shred", 2, Rarity.UNCOMMON, damage=8, healing=4, bleed=2),
-            Card("Fortify", 2, Rarity.UNCOMMON, shield=10, bolster=2),
             Card("Rage", 1, Rarity.COMMON, bonus_damage=5, health_cost=3),
             Card("Time Warp", 3, Rarity.UNIQUE, card_draw=3, energy_bonus=1),
             Card("Venomous Strike", 2, Rarity.UNCOMMON, damage=7, bleed=4),
@@ -110,16 +115,26 @@ class Card:
             Card("Drain", 3, Rarity.RARE, damage=10, health_regain=4, weakness=2),
             Card("Major Heal", 2, Rarity.UNCOMMON, healing=15),
             Card("Charm", 2, Rarity.UNCOMMON, shield=15, healing=3),
-            Card("Revive", 9, Rarity.LEGENDARY, healing=100),
+            Card("Posion Vile", 1, Rarity.RARE, weakness=5, bleed=5, exhaust=True),
+            Card("Revive", 9, Rarity.LEGENDARY, healing=100, exhaust=True),
             Card(
                 "Overload", 3, Rarity.RARE, damage=15, health_cost=10, targets_all=True
             ),
-            Card("Healing Potion", 2, Rarity.COMMON, healing=10, health_regain=3),
+            Card(
+                "Healing Potion",
+                2,
+                Rarity.COMMON,
+                healing=10,
+                health_regain=3,
+                exhaust=True,
+            ),
             Card("Crooked Trade", 1, Rarity.UNCOMMON, health_cost=5, bonus_damage=5),
-            Card("Ice Armor", 3, Rarity.UNCOMMON, shield=15, weakness=2),
-            Card("Hidden Dagger", 1, Rarity.COMMON, damage=6, bleed=2),
+            Card(
+                "Ice Armor", 3, Rarity.UNCOMMON, shield=15, weakness=2, targets_all=True
+            ),
+            Card("Hidden Dagger", 3, Rarity.COMMON, damage=6, bleed=6, exhaust=True),
             Card("Lacerate", 1, Rarity.COMMON, bleed=4),
-            Card("Barricade", 6, Rarity.UNIQUE, shield=60),
+            Card("Barricade", 4, Rarity.UNIQUE, shield=60, exhaust=True),
             Card("Battle Stance", 2, Rarity.UNCOMMON, damage=5, shield=8, bolster=1),
             Card("Power Strike", 2, Rarity.COMMON, damage=15),
             Card("Holy Light", 2, Rarity.UNCOMMON, healing=10, shield=5),
@@ -139,11 +154,28 @@ class Card:
                 targets_all=True,
                 bleed=2,
             ),
-            Card("Fireball", 4, Rarity.RARE, damage=12, burn=3, targets_all=True),
+            Card(
+                "Fireball",
+                4,
+                Rarity.RARE,
+                damage=12,
+                burn=3,
+                targets_all=True,
+                exhaust=True,
+            ),
             Card("Vampiric Touch", 2, Rarity.UNCOMMON, damage=8, healing=8),
-            Card("Trap Door", 4, Rarity.RARE, bleed=15, bonus_damage=3),
+            Card("Trap Door", 4, Rarity.RARE, bleed=15, bonus_damage=3, exhaust=True),
             Card("Panic!", 1, Rarity.RARE, card_draw=5, health_cost=20),
             Card("Regeneration", 2, Rarity.UNIQUE, health_regain=5),
+            Card(
+                "Blade Dance",
+                3,
+                Rarity.UNIQUE,
+                damage=1,
+                num_attacks=5,
+                bleed=5,
+                exhaust=True,
+            ),
             Card("Foresight", 2, Rarity.UNCOMMON, shield=5, card_draw=2),
             Card(
                 "Monstrosity",
@@ -153,7 +185,7 @@ class Card:
                 health_cost=10,
                 bonus_damage=4,
             ),
-            Card("Retreat.", 5, Rarity.RARE, card_draw=4, shield=15),
+            Card("Retreat.", 3, Rarity.RARE, card_draw=4, shield=15, exhaust=True),
             Card(
                 "Lightning", 4, Rarity.RARE, damage=10, bonus_damage=2, targets_all=True
             ),
@@ -162,12 +194,12 @@ class Card:
                 "Dragon Fire", 6, Rarity.LEGENDARY, damage=25, burn=5, targets_all=True
             ),
             Card(
-                "@allcosts",
-                1,
+                "Death's Embrace",
+                3,
                 Rarity.LEGENDARY,
-                energy_bonus=2,
-                health_cost=20,
-                bonus_damage=6,
+                bonus_damage=15,
+                health_cost=15,
+                exhaust=True,
             ),
             Card("Flame Burst", 2, Rarity.UNCOMMON, damage=8, burn=2),
             Card("Devestating Strike", 5, Rarity.UNCOMMON, damage=40),
@@ -222,13 +254,21 @@ def get_player_starting_deck() -> List[Card]:
         Card("Quick Strike", 1, Rarity.COMMON, damage=6),
         Card("Quick Strike", 1, Rarity.COMMON, damage=6),
         Card("Quick Strike", 1, Rarity.COMMON, damage=6),
-        Card("Soulful Persuit", 0, Rarity.COMMON, bonus_damage=2),
-        Card("Soulful Persuit", 0, Rarity.COMMON, bonus_damage=2),
+        Card("Soulful Persuit", 0, Rarity.COMMON, bonus_damage=3, exhaust=True),
+        Card("Soulful Persuit", 0, Rarity.COMMON, bonus_damage=3, exhaust=True),
         Card("Shield", 1, Rarity.COMMON, shield=6),
         Card("Shield", 1, Rarity.COMMON, shield=6),
         Card("Shield", 1, Rarity.COMMON, shield=6),
         Card("Shield", 1, Rarity.COMMON, shield=6),
         Card("Power Strike", 2, Rarity.COMMON, damage=15),
         Card("Double Strike", 1, Rarity.UNCOMMON, damage=3, num_attacks=2),
-        Card("Awals Gift", 0, Rarity.COMMON, card_draw=1, health_regain=2, healing=3),
+        Card(
+            "Awals Gift",
+            0,
+            Rarity.COMMON,
+            card_draw=1,
+            health_regain=3,
+            healing=5,
+            exhaust=True,
+        ),
     ]

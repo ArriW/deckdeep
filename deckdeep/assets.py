@@ -76,6 +76,9 @@ class GameAssets:
         self.strength_icon: pygame.Surface = self.load_and_scale_ui(
             "./assets/images/icons/strength.png", (ICON_SIZE, ICON_SIZE)
         )
+        self.exhaust_icon: pygame.Surface = self.load_and_scale_ui(
+            "./assets/images/icons/exhaust.png", (ICON_SIZE, ICON_SIZE)
+        )
 
         # Units
         self.player: pygame.Surface = self.load_and_scale_ui(

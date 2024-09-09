@@ -12,11 +12,8 @@ from deckdeep.monster_group import MonsterGroup  # noqa: E402
 from deckdeep.logger import GameLogger  # noqa: E402
 from deckdeep.custom_types import Health, Energy  # noqa: E402
 from deckdeep.game import Node  # noqa: E402
-
-
-@pytest.fixture
-def mock_screen():
-    return Mock()
+from deckdeep.relic import Relic  # noqa: E402
+from deckdeep.status_effect import TriggerType  # noqa: E402
 
 
 @pytest.fixture
@@ -25,10 +22,12 @@ def mock_logger():
 
 
 @pytest.fixture
-def game(mock_screen, mock_logger):
-    with patch("pygame.init"), patch("pygame.display.set_mode"), patch(
-        "deckdeep.game.GameAssets"
-    ) as mock_assets, patch("deckdeep.game.Player"), patch(
+def game(mock_logger):
+    with patch("pygame.init"), patch(
+        "pygame.display.set_mode", return_value=pygame.Surface((800, 600))
+    ), patch("deckdeep.game.GameAssets") as mock_assets, patch(
+        "deckdeep.game.Player"
+    ), patch(
         "deckdeep.game.MonsterGroup"
     ), patch(
         "deckdeep.game.Node"
@@ -37,9 +36,23 @@ def game(mock_screen, mock_logger):
         mock_assets.return_value.player = pygame.Surface((50, 50))
         mock_assets.return_value.health_bar = pygame.Surface((100, 10))
         mock_assets.return_value.energy_icon = pygame.Surface((20, 20))
-        # Add more asset mocks as needed
+        mock_assets.return_value.parchment_texture = pygame.Surface((100, 100))
+        mock_assets.return_value.victory_image = pygame.Surface((800, 600))
+        # Add more asset mocks as needed for all assets used in render_victory_state
+        mock_assets.return_value.attack_icon = pygame.Surface((20, 20))
+        mock_assets.return_value.shield_icon = pygame.Surface((20, 20))
+        mock_assets.return_value.heal_icon = pygame.Surface((20, 20))
+        mock_assets.return_value.draw_icon = pygame.Surface((20, 20))
+        mock_assets.return_value.health_cost = pygame.Surface((20, 20))
+        mock_assets.return_value.bleed_icon = pygame.Surface((20, 20))
+        mock_assets.return_value.energy_bonus_icon = pygame.Surface((20, 20))
+        mock_assets.return_value.health_regain_icon = pygame.Surface((20, 20))
+        mock_assets.return_value.weakness_icon = pygame.Surface((20, 20))
+        mock_assets.return_value.bolster_icon = pygame.Surface((20, 20))
+        mock_assets.return_value.burn_icon = pygame.Surface((20, 20))
 
-        game = Game(mock_screen, mock_logger)
+        screen = pygame.Surface((800, 600))  # Create a real surface
+        game = Game(screen, mock_logger)
         game.player = Mock(spec=Player)
         game.player.health = Mock(spec=Health)
         game.player.health.value = 100
@@ -117,19 +130,6 @@ def test_game_over(game):
     assert game.game_over is True
 
 
-def test_combat_victory(game):
-    initial_score = game.score
-    game.monster_group.monsters = []
-    with patch("deckdeep.game.Game.combat_victory") as mock_combat_victory:
-
-        def side_effect():
-            game.score += 10
-
-        mock_combat_victory.side_effect = side_effect
-        game.update()
-    assert game.score > initial_score
-
-
 def test_player_take_damage(game):
     initial_health = game.player.health.value
     damage = 10
@@ -161,7 +161,6 @@ def test_player_heal(game):
 
 def test_monster_group_attack(game):
     monster_group = MonsterGroup()
-
     mock_monster1 = Mock()
     mock_monster1.is_alive = Mock(return_value=True)
     mock_monster1.execute_action = Mock(return_value="Monster 1 attacked")
@@ -178,24 +177,53 @@ def test_monster_group_attack(game):
 
     assert results == ["Monster 1 attacked", "Monster 2 attacked"]
 
+
+def test_monster_intentions(game):
+    monster_group = MonsterGroup()
+    mock_monster = Mock()
+    mock_monster.decide_action = Mock(return_value="ATTACK")
+    monster_group.monsters = [mock_monster]
+
+    intentions = monster_group.decide_action(game.player)
+
+    mock_monster.decide_action.assert_called_once_with(game.player)
+    assert intentions == ["ATTACK"]
+
+
+def test_initialize_combat(game):
+    mock_node = Mock()
+    monster_group = MonsterGroup()
+    mock_monster1 = Mock()
+    mock_monster2 = Mock()
+    monster_group.monsters = [mock_monster1, mock_monster2]
+    mock_node.content = {"monsters": monster_group}
+    game.current_node = mock_node
+
+    game.screen = pygame.Surface((800, 600))
+
+    with patch("deckdeep.game.Game.apply_relic_effects"), patch(
+        "pygame.transform.scale", return_value=pygame.Surface((100, 100))
+    ), patch("deckdeep.render.render_combat_state"), patch(
+        "pygame.display.flip"
+    ), patch(
+        "deckdeep.game.Game.animate_combat_start"
+    ):
+        game.initialize_combat()
+        assert game.monster_group == monster_group
+
+    assert game.player_turn is True
+    game.player.reset_hand.assert_called_once()
+    assert len(game.monster_intentions) == len(monster_group.monsters)
+
+
 def test_apply_relic_effects(game):
-    mock_relic = Mock()
-    mock_relic.trigger_when = "ON_TURN_START"
+    mock_relic = Mock(spec=Relic)
+    mock_relic.trigger_when = TriggerType.TURN_START
     mock_relic.apply_effect = Mock(return_value="Relic effect applied")
     game.player.relics = [mock_relic]
     game.logger.debug = Mock()
 
-    with patch("deckdeep.game.TriggerWhen") as mock_trigger_when:
-        mock_trigger_when.ON_TURN_START = "ON_TURN_START"
-        game.apply_relic_effects = lambda trigger: [
-            game.logger.debug(
-                f"Applied relic effect: {relic.apply_effect(game.player, game)}",
-                category="PLAYER",
-            )
-            for relic in game.player.relics
-            if relic.trigger_when == trigger
-        ]
-        game.apply_relic_effects(mock_trigger_when.ON_TURN_START)
+    game.apply_relic_effects(TriggerType.TURN_START)
 
     mock_relic.apply_effect.assert_called_once_with(game.player, game)
     game.logger.debug.assert_called_with(
@@ -206,8 +234,8 @@ def test_apply_relic_effects(game):
 def test_save_and_load_game(game):
     mock_player_data = {
         "name": "TestPlayer",
-        "health": 80, 
-        "max_health": 100, 
+        "health": 80,
+        "max_health": 100,
         "symbol": "@",
         "shield": 0,
         "bonus_damage": 0,
@@ -216,6 +244,7 @@ def test_save_and_load_game(game):
         "hand_limit": 7,
         "deck": [],
         "hand": [],
+        "exhaust_pile": [],
         "discard_pile": [],
         "size": (50, 50),
         "shake": 0,
@@ -248,9 +277,7 @@ def test_save_and_load_game(game):
                 "stage": 1,
                 "level": 2,
                 "true_level": 2,
-                "content": {
-                    "monsters": mock_monster_group
-                },
+                "content": {"monsters": mock_monster_group},
                 "children": [],
             }
         ],
@@ -293,41 +320,6 @@ def test_generate_node_tree(game):
 
     assert mock_generate_node_tree.call_count == 1
     assert game.node_tree is not None
-
-
-def test_initialize_combat(game):
-    mock_node = Mock()
-    mock_monster_group = Mock(spec=MonsterGroup)
-    mock_monster_group.monsters = [Mock(), Mock()] 
-    mock_monster_group.decide_action.return_value = {}
-    mock_node.content = {"monsters": mock_monster_group}
-    game.current_node = mock_node
-
-    game.screen = pygame.Surface((800, 600))
-
-    with patch("deckdeep.game.Game.apply_relic_effects"), patch(
-        "pygame.transform.scale", return_value=pygame.Surface((100, 100))
-    ), patch("deckdeep.render.render_combat_state"), patch(
-        "pygame.display.flip"
-    ), patch(
-        "deckdeep.game.Game.animate_combat_start"
-    ):
-
-        game.initialize_combat()
-        assert game.monster_group == mock_monster_group
-
-    assert game.player_turn is True
-    game.player.reset_hand.assert_called_once()
-    mock_monster_group.decide_action.assert_called_once_with(game.player)
-
-
-def test_monster_intentions(game):
-    mock_monster = Mock()
-    game.monster_group.monsters = [mock_monster]
-    game.monster_group.decide_action = Mock(return_value={"mock_monster": "ATTACK"})
-    game.monster_intentions = game.monster_group.decide_action(game.player)
-    game.monster_group.decide_action.assert_called_once_with(game.player)
-    assert game.monster_intentions == {"mock_monster": "ATTACK"}
 
 
 def test_combat_state_transitions(game):

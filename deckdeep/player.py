@@ -34,6 +34,7 @@ class Player:
         self.symbol = symbol
         self.hand_limit = 7
         self.deck: List[Card] = get_player_starting_deck()
+        self.exhaust_pile: List[Card] = []
         self.hand: List[Card] = []
         self.discard_pile: List[Card] = []
         self.size = 100
@@ -129,7 +130,10 @@ class Player:
             for _ in range(card.card_draw):
                 self.draw_card()
 
-            self.discard_pile.append(card)
+            if card.exhaust:
+                self.exhaust_pile.append(card)
+            else:
+                self.discard_pile.append(card)
             self.hand.remove(card)
         return score
 
@@ -160,6 +164,9 @@ class Player:
                 amount -= 1
             if amount == 0:
                 break
+
+    def add_block(self, amount: int):
+        self.shield += amount
 
     def take_damage(self, damage: int) -> int:
         if random.random() < self.dodge_chance:
@@ -205,6 +212,10 @@ class Player:
         for _ in range(self.cards_per_turn):
             self.draw_card()
         self.status_effects.trigger_effects(TriggerType.TURN_END, self)
+
+    def end_combat(self):
+        self.deck.extend(self.exhaust_pile)
+        self.exhaust_pile.clear()
 
     def apply_status_effects(self):
         self.status_effects.trigger_effects(TriggerType.TURN_START, self)
@@ -294,6 +305,9 @@ class Player:
         player.hand_limit = data["hand_limit"]
         player.deck = [Card.from_dict(card_data) for card_data in data["deck"]]
         player.hand = [Card.from_dict(card_data) for card_data in data["hand"]]
+        player.exhaust_pile = [
+            Card.from_dict(card_data) for card_data in data["exhaust_pile"]
+        ]
         player.discard_pile = [
             Card.from_dict(card_data) for card_data in data["discard_pile"]
         ]
@@ -314,10 +328,11 @@ class Player:
         }
         player.is_dying = data["is_dying"]
         player.death_start_time = data["death_start_time"]
+
         return player
 
     def get_sorted_full_deck(self) -> List[Card]:
-        full_deck = self.deck + self.hand + self.discard_pile
+        full_deck = self.deck + self.hand + self.discard_pile + self.exhaust_pile
         return sorted(full_deck, key=lambda card: card.energy_cost.value)
 
     def remove_card_from_deck(self, card_index: int) -> Optional[Card]:
@@ -330,6 +345,8 @@ class Player:
                 self.hand.remove(card_to_remove)
             elif card_to_remove in self.discard_pile:
                 self.discard_pile.remove(card_to_remove)
+            elif card_to_remove in self.exhaust_pile:
+                self.exhaust_pile.remove(card_to_remove)
             return card_to_remove
         return None
 
@@ -351,6 +368,8 @@ class Player:
                 bleed=card_to_duplicate.bleed,
                 energy_bonus=card_to_duplicate.energy_bonus,
                 health_regain=card_to_duplicate.health_regain,
+                exhaust=card_to_duplicate.exhaust,
+                num_attacks=card_to_duplicate.num_attacks,
             )
             # Add the new card to the same pile as the original card
             if card_to_duplicate in self.deck:

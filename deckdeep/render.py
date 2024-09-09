@@ -258,6 +258,7 @@ def render_card(
                 )
             current_y += y_offset
 
+    # Render Energy Cost
     energy_x = CARD_WIDTH - round(1.25 * ICON_SIZE)
     energy_y = CARD_HEIGHT - round(1.25 * ICON_SIZE)
 
@@ -278,6 +279,21 @@ def render_card(
         font=CARD_FONT,
     )
 
+    # Render Exhaust
+    exhaust_x = CARD_WIDTH - round(1.25 * ICON_SIZE) * 2
+    exhaust_y = CARD_HEIGHT - round(1.25 * ICON_SIZE) * 2
+    if card.exhaust:
+        render_text_in_icon(
+            card_surface,
+            "",
+            exhaust_x,
+            exhaust_y,
+            assets.exhaust_icon,
+            color=RED,
+            font=CARD_FONT,
+        )
+
+    # Render Hotkey
     if hotkey is not None:
         render_text(
             card_surface,
