@@ -748,52 +748,61 @@ def render_combat_state(
 
 
 def render_node_selection(
-    screen: pygame.Surface, nodes: List[Node], selected: int, assets: GameAssets
+    screen: pygame.Surface,
+    node_map: List[List[Optional[Node]]],
+    current_node: Node,
+    available_nodes: List[Node],
+    selected_index: int,
+    assets: GameAssets
 ):
     screen.blit(assets.background_image, (0, 0))
 
     render_text(
-        screen, "Choose your next path:", SCREEN_WIDTH // 2 - scale(100), scale(50)
+        screen, "Choose your next path:", SCREEN_WIDTH // 2 - scale(100), scale(20)
     )
 
-    node_width = scale(150)
-    node_height = scale(100)
-    node_spacing = scale(50)
-    total_width = len(nodes) * node_width + (len(nodes) - 1) * node_spacing
-    start_x = (SCREEN_WIDTH - total_width) // 2
+    node_size = scale(30)
+    spacing_x = SCREEN_WIDTH // (len(node_map[0]) + 1)
+    spacing_y = SCREEN_HEIGHT // (len(node_map) + 1)
 
-    for i, node in enumerate(nodes):
-        node_x = start_x + i * (node_width + node_spacing)
-        node_y = SCREEN_HEIGHT // 2 - node_height // 2
+    # Draw connections first
+    for y, row in enumerate(node_map):
+        for x, node in enumerate(row):
+            if node is not None:
+                node_x = (x + 1) * spacing_x
+                node_y = SCREEN_HEIGHT - (y + 1) * spacing_y
+                for child in node.children:
+                    child_x = (child.x + 1) * spacing_x
+                    child_y = SCREEN_HEIGHT - (child.y + 1) * spacing_y
+                    pygame.draw.line(screen, WHITE, (node_x, node_y), (child_x, child_y), 2)
 
-        color = YELLOW if i == selected else WHITE
-        pygame.draw.rect(screen, color, (node_x, node_y, node_width, node_height))
-        pygame.draw.rect(screen, BLACK, (node_x, node_y, node_width, node_height), 2)
+    # Draw nodes
+    for y, row in enumerate(node_map):
+        for x, node in enumerate(row):
+            if node is not None:
+                node_x = (x + 1) * spacing_x
+                node_y = SCREEN_HEIGHT - (y + 1) * spacing_y
+                color = get_node_color(node.node_type)
+                
+                if node in available_nodes:
+                    pygame.draw.circle(screen, YELLOW, (node_x, node_y), node_size + 5)
+                
+                pygame.draw.circle(screen, color, (node_x, node_y), node_size)
+                
+                if node == current_node:
+                    pygame.draw.circle(screen, RED, (node_x, node_y), node_size + 5, 3)
+                elif node == available_nodes[selected_index]:
+                    pygame.draw.circle(screen, BLUE, (node_x, node_y), node_size + 5, 3)
 
-        node_type_text = node.node_type.value.capitalize()
-        render_text(screen, node_type_text, node_x + scale(10), node_y + scale(10))
-        render_text(screen, f"Level {node.y}", node_x + scale(10), node_y + scale(50))
-        hotkey_list = [
-            get_key_name(pygame.K_q),
-            get_key_name(pygame.K_w),
-            get_key_name(pygame.K_e),
-            get_key_name(pygame.K_r),
-            get_key_name(pygame.K_t),
-            get_key_name(pygame.K_y),
-            get_key_name(pygame.K_u),
-            get_key_name(pygame.K_i),
-            get_key_name(pygame.K_o),
-            get_key_name(pygame.K_p),
-        ]
-        render_text(
-            screen, hotkey_list[i], node_x + scale(10), node_y + node_height - scale(30)
-        )
+                node_type_text = node.node_type.value[:1].upper()
+                render_text(screen, node_type_text, node_x - scale(5), node_y - scale(10), font=SMALL_FONT)
 
+    # Draw instructions
     render_text(
         screen,
-        "Press number keys to select a path",
+        "Use 'h' and 'l' to navigate, SPACE to select",
         SCREEN_WIDTH // 2 - scale(150),
-        SCREEN_HEIGHT - scale(50),
+        SCREEN_HEIGHT - scale(30),
     )
 
     pygame.display.flip()

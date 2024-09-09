@@ -416,7 +416,7 @@ class Game:
         self.logger.info(f"Event option selected: {option_text}", category="EVENT")
         self.logger.info(f"Event result: {result}", category="EVENT")
         if self.current_node is not None:
-            self.player.increase_max_energy(1, self.current_node.level)
+            self.player.increase_max_energy(1, self.current_node.y)
             self.select_next_node()
 
     def handle_menu_key_press(self, key):
@@ -866,30 +866,33 @@ class Game:
             self.next_stage()
 
     def node_selection_screen(self, available_nodes: List[Node]) -> int:
-        assert (
-            self.current_node is not None
-        ), "Current node is None in node_selection_screen"
+        assert self.current_node is not None, "Current node is None in node_selection_screen"
+        assert self.node_map is not None, "Node map is None in node_selection_screen"
 
-        selected = -1
+        selected_index = 0
         running = True
 
         while running:
-            render_node_selection(self.screen, available_nodes, selected, self.assets)
+            render_node_selection(
+                self.screen,
+                self.node_map,
+                self.current_node,
+                available_nodes,
+                selected_index,
+                self.assets
+            )
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
                     return 0
                 elif event.type == pygame.KEYDOWN:
-                    key_name = pygame.key.name(event.key).upper()
-                    for keys, action in KEYBINDS["Node Selection"].items():
-                        if key_name in keys.split(", "):
-                            index = keys.split(", ").index(key_name)
-                            if index < len(available_nodes):
-                                self.logger.info(
-                                    f"Selected node {index}", category="PLAYER"
-                                )
-                                return index
+                    if event.key == pygame.K_h:
+                        selected_index = max(0, selected_index - 1)
+                    elif event.key == pygame.K_l:
+                        selected_index = min(len(available_nodes) - 1, selected_index + 1)
+                    elif event.key == pygame.K_SPACE:
+                        return selected_index
 
             pygame.time.wait(100)
         raise ValueError("No node selected")
