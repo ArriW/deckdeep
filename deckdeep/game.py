@@ -139,7 +139,6 @@ class Game:
         self.assets = GameAssets()
         self.player = Player.create("Hero", 100, "@")
         self.monster_group = MonsterGroup.generate(1)[0]
-        self.current_node: Optional[Node] = None
         self.node_tree: Optional[Node] = None
         self.stage = 1
         self.score = 0
@@ -170,7 +169,9 @@ class Game:
         self.monster_intentions: List[str] = []
         self.played_cards: List[Card] = []
         self.map_generator = MapGenerator()
-        self.node_map: List[List[Optional[Node]]] = []
+        self.width = 7  # Add this line to define self.width
+        self.generate_node_map()
+        # self.current_node: Optional[Node] = self.node_map[0][self.width // 2]  # Start at the bottom-center node
 
     def run(self):
         while True:
@@ -227,7 +228,7 @@ class Game:
         self.game_over = False
         self.generate_node_map()
         assert self.node_map, "Node map generation failed"
-        self.current_node = self.node_map[0][0]  # Start at the bottom-left node
+        self.current_node = self.node_map[0][self.width // 2]  # Start at the bottom-center node
         assert self.current_node is not None, "Current node is None after generation"
         assert self.current_node.content is not None, "Current node content is None"
         self.initialize_combat()
@@ -235,23 +236,9 @@ class Game:
 
     def generate_node_map(self):
         self.node_map = self.map_generator.generate_map()
-
-        # Ensure we have a valid starting node
-        if self.node_map and self.node_map[0]:
-            self.current_node = next(
-                (node for node in self.node_map[0] if node is not None), None
-            )
-
-        if self.current_node is None:
-            self.logger.error("Failed to generate a valid node map", category="SYSTEM")
-            # Create a default starting node as a fallback
-            self.current_node = Node(NodeType.START, 0, 0)
-            self.node_map = [[self.current_node]]
-
-        self.logger.info(
-            f"Node map generated with {sum(1 for row in self.node_map for node in row if node)} nodes",
-            category="SYSTEM",
-        )
+        self.current_node = self.node_map[0][self.width // 2]  # Start at the bottom-center node
+        self.logger.info(f"Node map generated with {sum(node is not None for row in self.node_map for node in row)} nodes")
+        self.map_generator.print_map()
 
     def handle_events(self, music_manager: BackgroundMusicManager):
         for event in pygame.event.get():
@@ -619,7 +606,6 @@ class Game:
             self.logger.info("Game over", category="SYSTEM")
             self.auto_save()
 
-    # In the Game class, modify the combat_victory method:
     def combat_victory(self):
         assert self.player is not None, "Player is None in combat_victory"
         assert self.current_node is not None, "Current node is None in combat_victory"
@@ -668,6 +654,10 @@ class Game:
         else:
             self.select_next_node()
 
+        # Add this to ensure we're not skipping combat
+        if self.current_node.node_type in [NodeType.MONSTER, NodeType.ELITE, NodeType.BOSS]:
+            self.initialize_combat()
+
     def update_event(self):
         if (
             self.current_event is None
@@ -688,15 +678,52 @@ class Game:
             assert self.player is not None, "Player is None in next_stage"
             self.logger.info(self.player.add_relic(new_relic), category="PLAYER")
             self.logger.info(f"New relic acquired: {new_relic.name}", category="PLAYER")
-        self.generate_node_map()
-        assert self.node_map, "Node map is None after generation in next_stage"
-        self.current_node = self.node_map[0][0]  # Start at the bottom-left node
-        assert (
-            self.current_node.content is not None
-        ), "Current node content is None in next_stage"
-        self.monster_group = self.current_node.content["monsters"]
-        self.apply_relic_effects(TriggerWhen.START_OF_COMBAT)
+        
+        self.node_map = self.map_generator.generate_map()
+        self.current_node = self.node_map[0][self.width // 2]  # Start at the bottom-center node
         self.logger.info(f"Entered stage {self.stage}", category="SYSTEM")
+        self.select_next_node()
+
+    def select_next_node(self):
+        assert self.current_node is not None, "Current node is None in select_next_node"
+
+        available_nodes = [node for node in self.current_node.children if node is not None]
+        self.logger.debug(f"Available nodes: {len(available_nodes)}")
+        if available_nodes:
+            selected = self.node_selection_screen(available_nodes)
+            self.current_node = available_nodes[selected]
+            self.logger.info(f"Selected node type: {self.current_node.node_type}", category="SYSTEM")
+            self.logger.debug(f"Node content: {self.current_node.content}", category="SYSTEM")
+            self.initialize_node()
+        else:
+            self.logger.warning("No available nodes, moving to next stage")
+            self.next_stage()
+
+    def initialize_node(self):
+        self.logger.debug(f"Initializing node of type: {self.current_node.node_type}")
+        if self.current_node.node_type in [NodeType.MONSTER, NodeType.ELITE, NodeType.BOSS]:
+            self.initialize_combat()
+        elif self.current_node.node_type == NodeType.EVENT:
+            self.initialize_event()
+        elif self.current_node.node_type == NodeType.REST:
+            self.initialize_rest_site()
+        elif self.current_node.node_type == NodeType.TREASURE:
+            self.initialize_treasure_room()
+
+
+    def initialize_event(self):
+        if "event" not in self.current_node.content:
+            self.current_node.content["event"] = get_random_event()
+        self.current_event = self.current_node.content["event"]
+        self.text_event_selection = 0
+
+    def initialize_rest_site(self):
+        # Implement rest site logic here
+        pass
+
+    def initialize_treasure_room(self):
+        # Implement treasure room logic here
+        pass
 
     def render(self):
         assert self.player is not None, "Player is None in render"
@@ -762,27 +789,20 @@ class Game:
 
     def initialize_combat(self):
         assert self.player is not None, "Player is None in initialize_combat"
-        assert (
-            self.current_node is not None
-        ), "Current node is None in initialize_combat"
-        assert self.current_node.content is not None, "Current node content is None"
+        assert self.current_node is not None, "Current node is None in initialize_combat"
 
-        # Generate monsters for the node if they don't exist
-        if "monsters" not in self.current_node.content:
+        if "monsters" not in self.current_node.content or not self.current_node.content["monsters"]:
             monster_group, _, _ = MonsterGroup.generate(self.current_node.y)
             self.current_node.content["monsters"] = monster_group
 
         self.monster_group = self.current_node.content["monsters"]
-        assert (
-            self.monster_group is not None
-        ), "Monster group is None in initialize_combat"
+        if not self.monster_group:
+            self.logger.error("Monster group is empty in initialize_combat")
+            return
 
         self.player_turn = True
         self.player.reset_hand()
         self.monster_intentions = self.monster_group.decide_action(self.player)
-        self.logger.debug(
-            f"Initial monster intentions: {self.monster_intentions}", category="COMBAT"
-        )
         self.apply_relic_effects(TriggerWhen.START_OF_COMBAT)
         self.animate_combat_start()
 
@@ -830,41 +850,6 @@ class Game:
         )
         pygame.display.flip()
 
-    def select_next_node(self):
-        assert self.current_node is not None, "Current node is None in select_next_node"
-
-        available_nodes = [
-            node for node in self.current_node.children if node is not None
-        ]
-        if available_nodes:
-            selected = self.node_selection_screen(available_nodes)
-            self.current_node = available_nodes[selected]
-            self.logger.info(
-                f"Selected node type: {self.current_node.node_type}", category="SYSTEM"
-            )
-            self.logger.debug(f"Node content: {self.current_node}", category="SYSTEM")
-            if self.current_node.node_type in [
-                NodeType.MONSTER,
-                NodeType.ELITE,
-                NodeType.BOSS,
-            ]:
-                if "monsters" not in self.current_node.content:
-                    monster_group, _, _ = MonsterGroup.generate(self.current_node.y)
-                    self.current_node.content["monsters"] = monster_group
-                self.monster_group = self.current_node.content["monsters"]
-                self.logger.debug(
-                    f"Monster group: Power {round(self.monster_group.get_power_rating())} {self.monster_group}",
-                    category="COMBAT",
-                )
-                self.initialize_combat()
-            elif self.current_node.node_type == NodeType.EVENT:
-                if "event" not in self.current_node.content:
-                    self.current_node.content["event"] = get_random_event()
-                self.current_event = self.current_node.content["event"]
-                self.text_event_selection = 0
-        else:
-            self.next_stage()
-
     def node_selection_screen(self, available_nodes: List[Node]) -> int:
         assert self.current_node is not None, "Current node is None in node_selection_screen"
         assert self.node_map is not None, "Node map is None in node_selection_screen"
@@ -894,9 +879,10 @@ class Game:
                     elif event.key == pygame.K_SPACE:
                         return selected_index
 
-            pygame.time.wait(100)
-        raise ValueError("No node selected")
+            pygame.display.flip()
+            self.clock.tick(30)
 
+        return 0  # Default to first node if loop is somehow exited
     def victory_screen(self, assets: GameAssets) -> Optional[Card]:
         new_cards = Card.generate_card_pool(3)
         selected_card = -1
