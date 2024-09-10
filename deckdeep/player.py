@@ -274,6 +274,7 @@ class Player:
             "hand_limit": self.hand_limit,
             "deck": [card.to_dict() for card in self.deck],
             "hand": [card.to_dict() for card in self.hand],
+            "exhaust_pile": [card.to_dict() for card in self.exhaust_pile],
             "discard_pile": [card.to_dict() for card in self.discard_pile],
             "size": self.size,
             "shake": self.shake,
