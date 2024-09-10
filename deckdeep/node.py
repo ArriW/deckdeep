@@ -26,12 +26,42 @@ class Node:
         self.y = y
         self.content = content or {}
         self.children: List["Node"] = []
+        self.parents: List["Node"] = []  # Add this line
 
     def __str__(self) -> str:
         return f"Node({self.node_type}, {self.x}, {self.y})"
 
+    def would_create_intersection(self, other: "Node") -> bool:
+        # Check if connecting to this node would create an intersection
+        if abs(self.x - other.x) <= 1 or self.y == other.y:
+            return False  # No intersection for adjacent or same-row nodes
+        for child in self.children:
+            if (child.x < other.x and self.x > other.x) or (child.x > other.x and self.x < other.x):
+                return True
+        return False
+
+    def can_connect(self, other: "Node") -> bool:
+        # Allow connections to the boss node without restrictions
+        if other.node_type == NodeType.BOSS:
+            return True
+        # For other nodes, use the existing logic
+        return (
+            abs(self.x - other.x) <= 1
+            and other.y == self.y + 1
+            and not self.would_create_intersection(other)
+        )
+
     def add_child(self, child: "Node"):
-        self.children.append(child)
+        if child not in self.children:
+            self.children.append(child)
+            if self not in child.parents:
+                child.parents.append(self)
+
+    def add_parent(self, parent: "Node"):
+        if parent not in self.parents:
+            self.parents.append(parent)
+            if self not in parent.children:
+                parent.children.append(self)
 
     def to_dict(self):
         content_dict = self.content.copy()
@@ -46,11 +76,12 @@ class Node:
             "x": self.x,
             "y": self.y,
             "content": content_dict,
-            "children": [child.to_dict() for child in self.children],
+            "children": [{"x": child.x, "y": child.y} for child in self.children],
+            "parents": [{"x": parent.x, "y": parent.y} for parent in self.parents],
         }
 
     @classmethod
-    def from_dict(cls, data):
+    def from_dict(cls, data, node_map=None):
         node = cls(
             NodeType(data["node_type"]),
             data["x"],
@@ -62,6 +93,15 @@ class Node:
         if "event" in node.content and isinstance(node.content["event"], str):
             event_class = globals()[node.content["event"]]
             node.content["event"] = event_class()
-        for child_data in data["children"]:
-            node.add_child(cls.from_dict(child_data))
+        
+        if node_map:
+            for child_data in data["children"]:
+                child_node = node_map[child_data["y"]][child_data["x"]]
+                if child_node:
+                    node.add_child(child_node)
+            for parent_data in data["parents"]:
+                parent_node = node_map[parent_data["y"]][parent_data["x"]]
+                if parent_node:
+                    node.add_parent(parent_node)
+        
         return node

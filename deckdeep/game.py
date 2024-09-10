@@ -228,16 +228,23 @@ class Game:
         self.game_over = False
         self.generate_node_map()
         assert self.node_map, "Node map generation failed"
-        self.current_node = self.node_map[0][self.width // 2]  # Start at the bottom-center node
-        assert self.current_node is not None, "Current node is None after generation"
+        try:
+            self.current_node = self.map_generator.get_start_node()
+        except ValueError:
+            self.logger.error("Failed to get a valid starting node", category="SYSTEM")
+            raise
         assert self.current_node.content is not None, "Current node content is None"
         self.initialize_combat()
         self.logger.info("New game started", category="SYSTEM")
 
     def generate_node_map(self):
         self.node_map = self.map_generator.generate_map()
-        self.current_node = self.node_map[0][self.width // 2]  # Start at the bottom-center node
-        self.logger.info(f"Node map generated with {sum(node is not None for row in self.node_map for node in row)} nodes")
+        self.current_node = self.node_map[0][
+            self.width // 2
+        ]  # Start at the bottom-center node
+        self.logger.info(
+            f"Node map generated with {sum(node is not None for row in self.node_map for node in row)} nodes"
+        )
         self.map_generator.print_map()
 
     def handle_events(self, music_manager: BackgroundMusicManager):
@@ -655,7 +662,11 @@ class Game:
             self.select_next_node()
 
         # Add this to ensure we're not skipping combat
-        if self.current_node.node_type in [NodeType.MONSTER, NodeType.ELITE, NodeType.BOSS]:
+        if self.current_node.node_type in [
+            NodeType.MONSTER,
+            NodeType.ELITE,
+            NodeType.BOSS,
+        ]:
             self.initialize_combat()
 
     def update_event(self):
@@ -678,22 +689,30 @@ class Game:
             assert self.player is not None, "Player is None in next_stage"
             self.logger.info(self.player.add_relic(new_relic), category="PLAYER")
             self.logger.info(f"New relic acquired: {new_relic.name}", category="PLAYER")
-        
+
         self.node_map = self.map_generator.generate_map()
-        self.current_node = self.node_map[0][self.width // 2]  # Start at the bottom-center node
+        self.current_node = self.node_map[0][
+            self.width // 2
+        ]  # Start at the bottom-center node
         self.logger.info(f"Entered stage {self.stage}", category="SYSTEM")
         self.select_next_node()
 
     def select_next_node(self):
         assert self.current_node is not None, "Current node is None in select_next_node"
 
-        available_nodes = [node for node in self.current_node.children if node is not None]
+        available_nodes = [
+            node for node in self.current_node.children if node is not None
+        ]
         self.logger.debug(f"Available nodes: {len(available_nodes)}")
         if available_nodes:
             selected = self.node_selection_screen(available_nodes)
             self.current_node = available_nodes[selected]
-            self.logger.info(f"Selected node type: {self.current_node.node_type}", category="SYSTEM")
-            self.logger.debug(f"Node content: {self.current_node.content}", category="SYSTEM")
+            self.logger.info(
+                f"Selected node type: {self.current_node.node_type}", category="SYSTEM"
+            )
+            self.logger.debug(
+                f"Node content: {self.current_node.content}", category="SYSTEM"
+            )
             self.initialize_node()
         else:
             self.logger.warning("No available nodes, moving to next stage")
@@ -701,7 +720,11 @@ class Game:
 
     def initialize_node(self):
         self.logger.debug(f"Initializing node of type: {self.current_node.node_type}")
-        if self.current_node.node_type in [NodeType.MONSTER, NodeType.ELITE, NodeType.BOSS]:
+        if self.current_node.node_type in [
+            NodeType.MONSTER,
+            NodeType.ELITE,
+            NodeType.BOSS,
+        ]:
             self.initialize_combat()
         elif self.current_node.node_type == NodeType.EVENT:
             self.initialize_event()
@@ -709,7 +732,6 @@ class Game:
             self.initialize_rest_site()
         elif self.current_node.node_type == NodeType.TREASURE:
             self.initialize_treasure_room()
-
 
     def initialize_event(self):
         if "event" not in self.current_node.content:
@@ -789,9 +811,14 @@ class Game:
 
     def initialize_combat(self):
         assert self.player is not None, "Player is None in initialize_combat"
-        assert self.current_node is not None, "Current node is None in initialize_combat"
+        assert (
+            self.current_node is not None
+        ), "Current node is None in initialize_combat"
 
-        if "monsters" not in self.current_node.content or not self.current_node.content["monsters"]:
+        if (
+            "monsters" not in self.current_node.content
+            or not self.current_node.content["monsters"]
+        ):
             monster_group, _, _ = MonsterGroup.generate(self.current_node.y)
             self.current_node.content["monsters"] = monster_group
 
@@ -851,7 +878,9 @@ class Game:
         pygame.display.flip()
 
     def node_selection_screen(self, available_nodes: List[Node]) -> int:
-        assert self.current_node is not None, "Current node is None in node_selection_screen"
+        assert (
+            self.current_node is not None
+        ), "Current node is None in node_selection_screen"
         assert self.node_map is not None, "Node map is None in node_selection_screen"
 
         selected_index = 0
@@ -864,7 +893,7 @@ class Game:
                 self.current_node,
                 available_nodes,
                 selected_index,
-                self.assets
+                self.assets,
             )
 
             for event in pygame.event.get():
@@ -875,7 +904,9 @@ class Game:
                     if event.key == pygame.K_h:
                         selected_index = max(0, selected_index - 1)
                     elif event.key == pygame.K_l:
-                        selected_index = min(len(available_nodes) - 1, selected_index + 1)
+                        selected_index = min(
+                            len(available_nodes) - 1, selected_index + 1
+                        )
                     elif event.key == pygame.K_SPACE:
                         return selected_index
 
@@ -883,6 +914,7 @@ class Game:
             self.clock.tick(30)
 
         return 0  # Default to first node if loop is somehow exited
+
     def victory_screen(self, assets: GameAssets) -> Optional[Card]:
         new_cards = Card.generate_card_pool(3)
         selected_card = -1
@@ -995,7 +1027,7 @@ class Game:
                 [node.to_dict() if node else None for node in row]
                 for row in self.node_map
             ],
-            "current_node_path": self.get_node_path(self.node_map, self.current_node),
+            "current_node": {"x": self.current_node.x, "y": self.current_node.y},
             "stage": self.stage,
             "score": self.score,
             "game_over": self.game_over,
@@ -1004,36 +1036,6 @@ class Game:
             with open("save_game.json", "w") as f:
                 json.dump(save_data, f, cls=CustomJSONEncoder)
             self.logger.info("Game saved successfully", category="SYSTEM")
-        except TypeError as e:
-            self.logger.error(
-                f"TypeError during game save: {str(e)}", category="SYSTEM"
-            )
-            # Identify the problematic key-value pair
-            for key, value in save_data.items():
-                try:
-                    json.dumps({key: value}, cls=CustomJSONEncoder)
-                except TypeError:
-                    self.logger.error(
-                        f"Non-serializable data in key: {key}", category="SYSTEM"
-                    )
-                    if isinstance(value, dict):
-                        for sub_key, sub_value in value.items():
-                            try:
-                                json.dumps({sub_key: sub_value}, cls=CustomJSONEncoder)
-                            except TypeError:
-                                self.logger.error(
-                                    f"Non-serializable data in sub-key: {key}.{sub_key}",
-                                    category="SYSTEM",
-                                )
-                    elif isinstance(value, list):
-                        for i, item in enumerate(value):
-                            try:
-                                json.dumps(item, cls=CustomJSONEncoder)
-                            except TypeError:
-                                self.logger.error(
-                                    f"Non-serializable data in list item: {key}[{i}]",
-                                    category="SYSTEM",
-                                )
         except Exception as e:
             self.logger.error(
                 f"Unexpected error during game save: {str(e)}", category="SYSTEM"
@@ -1051,34 +1053,38 @@ class Game:
             else:
                 self.player = Player.from_dict(save_data["player"])
                 self.node_map = [
-                    [
-                        Node.from_dict(node_data) if node_data else None
-                        for node_data in row
-                    ]
-                    for row in save_data["node_map"]
+                    [None for _ in range(len(save_data["node_map"][0]))]
+                    for _ in range(len(save_data["node_map"]))
                 ]
-                if self.node_map:
-                    self.current_node = self.get_node_from_path(
-                        self.node_map, save_data["current_node_path"]
-                    )
-                    self.stage = save_data["stage"]
-                    self.score = save_data["score"]
-                    self.game_over = save_data.get("game_over", False)
-                    if self.current_node.node_type in [
-                        NodeType.MONSTER,
-                        NodeType.ELITE,
-                        NodeType.BOSS,
-                    ]:
-                        self.monster_group = self.current_node.content["monsters"]
-                    elif self.current_node.node_type == NodeType.EVENT:
-                        self.current_event = self.current_node.content["event"]
-                    self.logger.info("Game loaded successfully", category="SYSTEM")
-                else:
-                    raise ValueError("Failed to load node map")
+                for y, row in enumerate(save_data["node_map"]):
+                    for x, node_data in enumerate(row):
+                        if node_data:
+                            self.node_map[y][x] = Node.from_dict(node_data)
+                
+                # Second pass to set up children and parents
+                for y, row in enumerate(save_data["node_map"]):
+                    for x, node_data in enumerate(row):
+                        if node_data:
+                            self.node_map[y][x] = Node.from_dict(node_data, self.node_map)
+                
+                self.current_node = self.node_map[save_data["current_node"]["y"]][save_data["current_node"]["x"]]
+                self.stage = save_data["stage"]
+                self.score = save_data["score"]
+                self.game_over = save_data.get("game_over", False)
+                if self.current_node.node_type in [
+                    NodeType.MONSTER,
+                    NodeType.ELITE,
+                    NodeType.BOSS,
+                ]:
+                    self.monster_group = self.current_node.content["monsters"]
+                elif self.current_node.node_type == NodeType.EVENT:
+                    self.current_event = self.current_node.content["event"]
+                self.logger.info("Game loaded successfully", category="SYSTEM")
         except (FileNotFoundError, json.JSONDecodeError) as e:
             self.logger.error(f"Error loading game: {e}", category="SYSTEM")
             self.logger.info("Starting a new game", category="SYSTEM")
             self.new_game()
+
 
     def get_node_path(
         self, root: List[List[Optional[Node]]], target: Node

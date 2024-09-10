@@ -753,7 +753,7 @@ def render_node_selection(
     current_node: Node,
     available_nodes: List[Node],
     selected_index: int,
-    assets: GameAssets
+    assets: GameAssets,
 ):
     screen.blit(assets.background_image, (0, 0))
 
@@ -761,7 +761,7 @@ def render_node_selection(
         screen, "Choose your next path:", SCREEN_WIDTH // 2 - scale(100), scale(20)
     )
 
-    node_size = scale(30)
+    node_size = scale(15)
     spacing_x = SCREEN_WIDTH // (len(node_map[0]) + 1)
     spacing_y = SCREEN_HEIGHT // (len(node_map) + 1)
 
@@ -774,7 +774,9 @@ def render_node_selection(
                 for child in node.children:
                     child_x = (child.x + 1) * spacing_x
                     child_y = SCREEN_HEIGHT - (child.y + 1) * spacing_y
-                    pygame.draw.line(screen, WHITE, (node_x, node_y), (child_x, child_y), 2)
+                    pygame.draw.line(
+                        screen, WHITE, (node_x, node_y), (child_x, child_y), 2
+                    )
 
     # Draw nodes
     for y, row in enumerate(node_map):
@@ -783,19 +785,25 @@ def render_node_selection(
                 node_x = (x + 1) * spacing_x
                 node_y = SCREEN_HEIGHT - (y + 1) * spacing_y
                 color = get_node_color(node.node_type)
-                
+
                 if node in available_nodes:
                     pygame.draw.circle(screen, YELLOW, (node_x, node_y), node_size + 5)
-                
+
                 pygame.draw.circle(screen, color, (node_x, node_y), node_size)
-                
+
                 if node == current_node:
                     pygame.draw.circle(screen, RED, (node_x, node_y), node_size + 5, 3)
                 elif node == available_nodes[selected_index]:
                     pygame.draw.circle(screen, BLUE, (node_x, node_y), node_size + 5, 3)
 
                 node_type_text = node.node_type.value[:1].upper()
-                render_text(screen, node_type_text, node_x - scale(5), node_y - scale(10), font=SMALL_FONT)
+                render_text(
+                    screen,
+                    node_type_text,
+                    node_x - scale(5),
+                    node_y - scale(10),
+                    font=SMALL_FONT,
+                )
 
     # Draw instructions
     render_text(
