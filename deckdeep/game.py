@@ -894,6 +894,7 @@ class Game:
                 available_nodes,
                 selected_index,
                 self.assets,
+                self.player,
             )
 
             for event in pygame.event.get():

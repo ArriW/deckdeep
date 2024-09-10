@@ -754,18 +754,21 @@ def render_node_selection(
     available_nodes: List[Node],
     selected_index: int,
     assets: GameAssets,
+    player: Player
 ):
-    screen.blit(assets.background_image, (0, 0))
+    screen.fill((0, 0, 0))
 
-    render_text(
-        screen, "Choose your next path:", SCREEN_WIDTH // 2 - scale(100), scale(20)
-    )
+    # Render parchment background
+    parchment = pygame.transform.scale(assets.parchment_texture, (SCREEN_WIDTH, SCREEN_HEIGHT))
+    screen.blit(parchment, (0, 0))
 
-    node_size = scale(15)
+    node_size = scale(35)
+    boss_node_size = node_size * 1.5
+    line_thickness = 3
     spacing_x = SCREEN_WIDTH // (len(node_map[0]) + 1)
     spacing_y = SCREEN_HEIGHT // (len(node_map) + 1)
 
-    # Draw connections first
+    # Draw lines first
     for y, row in enumerate(node_map):
         for x, node in enumerate(row):
             if node is not None:
@@ -775,7 +778,7 @@ def render_node_selection(
                     child_x = (child.x + 1) * spacing_x
                     child_y = SCREEN_HEIGHT - (child.y + 1) * spacing_y
                     pygame.draw.line(
-                        screen, WHITE, (node_x, node_y), (child_x, child_y), 2
+                        screen, (100, 100, 100), (node_x, node_y), (child_x, child_y), line_thickness
                     )
 
     # Draw nodes
@@ -784,17 +787,25 @@ def render_node_selection(
             if node is not None:
                 node_x = (x + 1) * spacing_x
                 node_y = SCREEN_HEIGHT - (y + 1) * spacing_y
+                
+                if node.node_type == NodeType.BOSS:
+                    size = boss_node_size
+                else:
+                    size = node_size
+
                 color = get_node_color(node.node_type)
+                outline_color = (100, 100, 100)  # Grey outline for unselected nodes
 
                 if node in available_nodes:
-                    pygame.draw.circle(screen, YELLOW, (node_x, node_y), node_size + 5)
-
-                pygame.draw.circle(screen, color, (node_x, node_y), node_size)
+                    if node == available_nodes[selected_index]:
+                        outline_color = (255, 215, 0)  # Yellow outline for selected node
+                        color = tuple(min(c + 50, 255) for c in color)  # Lighter color for available nodes
 
                 if node == current_node:
-                    pygame.draw.circle(screen, RED, (node_x, node_y), node_size + 5, 3)
-                elif node == available_nodes[selected_index]:
-                    pygame.draw.circle(screen, BLUE, (node_x, node_y), node_size + 5, 3)
+                    color = (0, 255, 0)  # Green for current node
+
+                pygame.draw.circle(screen, outline_color, (node_x, node_y), size // 2 + 2)
+                pygame.draw.circle(screen, color, (node_x, node_y), size // 2)
 
                 node_type_text = node.node_type.value[:1].upper()
                 render_text(
