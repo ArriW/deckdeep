@@ -68,9 +68,11 @@ class MonsterGroup:
         self._update_selection()
         return alive_monsters[self.selected_index]
 
-    def remove_dead_monsters(self):
+    def remove_dead_monsters(self) -> List[Monster]:
+        dead_monsters = [monster for monster in self.monsters if not monster.is_alive()]
         self.monsters = [monster for monster in self.monsters if monster.is_alive()]
         self._update_selection()
+        return dead_monsters
 
     def decide_action(self, player) -> List[str]:
         return [monster.decide_action(player) for monster in self.monsters]
