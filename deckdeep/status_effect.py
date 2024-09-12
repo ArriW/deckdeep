@@ -1,5 +1,6 @@
 from typing import Dict, Any, List
 from enum import Enum
+from deckdeep.custom_types import TriggerWhen
 
 
 class TriggerType(Enum):
@@ -45,6 +46,10 @@ class StatusEffect:
         effect = cls(data["name"], data["value"], data["stack"], data["type"])
         effect.triggers = [TriggerType(t) for t in data["triggers"]]
         return effect
+
+    def trigger(self, trigger_when: TriggerWhen, entity):
+        # Implement the trigger logic here
+        pass
 
 
 class Bleed(StatusEffect):

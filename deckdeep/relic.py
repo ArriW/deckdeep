@@ -3,27 +3,14 @@ from enum import Enum
 from typing import Dict
 from copy import deepcopy
 import uuid
-
-
-class TriggerWhen(Enum):
-    START_OF_TURN = 0
-    END_OF_TURN = 1
-    START_OF_COMBAT = 2
-    END_OF_COMBAT = 3
-    ON_ATTACK = 4
-    ON_DAMAGE_TAKEN = 5
-    ON_DEATH = 6
-    PERMANENT = 7
+from deckdeep.custom_types import TriggerWhen
 
 
 class Relic:
-    def __init__(self, name: str, data: Dict):
-        self.id = str(uuid.uuid4())
+    def __init__(self, name: str, description: str, trigger_when: TriggerWhen):
         self.name = name
-        self.description = data["description"]
-        self.effect = data["effect"]
-        self.trigger_when = data["trigger_when"]
-        self.has_been_applied = False
+        self.description = description
+        self.trigger_when = trigger_when
 
     def apply_effect(self, player, game) -> str:
         if self.trigger_when == TriggerWhen.PERMANENT:
