@@ -1,6 +1,6 @@
 import pygame
 import sys
-from deckdeep.game_state import GameState, GameStateMachine, state_handler, key_handler, renderer
+from deckdeep.game_state import GameState, GameStateMachine, TransitionReason, state_handler, key_handler, renderer
 from deckdeep.assets import GameAssets
 from deckdeep.player import Player
 from deckdeep.monster_group import MonsterGroup
@@ -21,6 +21,7 @@ import os
 import json
 
 from typing import List, Optional
+
 
 class Game:
     def __init__(self, screen, logger: GameLogger):
@@ -81,22 +82,22 @@ class Game:
         if not self.player:
             if self.check_save_file():
                 if self.load_game():
-                    self.state_machine.transition_to(GameState.NODE_SELECTION, "Load Game")
+                    self.state_machine.transition_to(GameState.NODE_SELECTION, TransitionReason.LOAD_GAME)
                 else:
                     self.new_game()
-                    self.state_machine.transition_to(GameState.COMBAT_START, "Start Game")
+                    self.state_machine.transition_to(GameState.COMBAT_START, TransitionReason.START_GAME)
             else:
                 self.new_game()
-                self.state_machine.transition_to(GameState.COMBAT_START, "Start Game")
+                self.state_machine.transition_to(GameState.COMBAT_START, TransitionReason.ENTER_COMBAT)
         else:
             # If player exists, we're returning from game over, so reset the game
             self.new_game()
-            self.state_machine.transition_to(GameState.COMBAT_START, "Start Game")
+            self.state_machine.transition_to(GameState.COMBAT_START, TransitionReason.START_GAME)
 
     @key_handler(GameState.MAIN_MENU)
     def handle_main_menu_key_press(self, key_name: str):
         if key_name == "RETURN":
-            self.state_machine.transition_to(GameState.NODE_SELECTION, "Start Game")
+            self.state_machine.transition_to(GameState.NODE_SELECTION, TransitionReason.START_GAME)
 
     @renderer(GameState.MAIN_MENU)
     def render_main_menu(self):
@@ -107,23 +108,6 @@ class Game:
         available_nodes = [node for node in self.current_node.children if node is not None]
         if not available_nodes:
             self.next_stage()
-        else:
-            self.current_node = random.choice(available_nodes)
-            self.initialize_node()
-            # Remove the transition here, it will be handled in initialize_node
-
-    def initialize_node(self):
-        self.logger.debug(f"Initializing node of type: {self.current_node.node_type}")
-        if self.current_node.node_type in [NodeType.MONSTER, NodeType.ELITE, NodeType.BOSS]:
-            self.initialize_combat()
-            self.state_machine.transition_to(GameState.COMBAT_START, "Enter Combat")
-        elif self.current_node.node_type == NodeType.EVENT:
-            self.initialize_event()
-            self.state_machine.transition_to(GameState.EVENT, "Enter Event")
-        elif self.current_node.node_type == NodeType.REST:
-            self.state_machine.transition_to(GameState.REST_SITE, "Enter Rest Site")
-        elif self.current_node.node_type == NodeType.TREASURE:
-            self.state_machine.transition_to(GameState.TREASURE_ROOM, "Enter Treasure Room")
 
     @key_handler(GameState.NODE_SELECTION)
     def handle_node_selection_key_press(self, key_name: str):
@@ -133,6 +117,21 @@ class Game:
             if index < len(available_nodes):
                 self.current_node = available_nodes[index]
                 self.initialize_node()
+                transition_reason = self.state_machine.get_transition_reason_for_node_type(self.current_node.node_type)
+                new_state = self.get_state_for_node_type(self.current_node.node_type)
+                self.state_machine.transition_to(new_state, transition_reason)
+
+    def get_state_for_node_type(self, node_type):
+        if node_type in [NodeType.MONSTER, NodeType.ELITE, NodeType.BOSS]:
+            return GameState.COMBAT_START
+        elif node_type == NodeType.EVENT:
+            return GameState.EVENT
+        elif node_type == NodeType.REST:
+            return GameState.REST_SITE
+        elif node_type == NodeType.TREASURE:
+            return GameState.TREASURE_ROOM
+        else:
+            return GameState.NODE_SELECTION
 
     @renderer(GameState.NODE_SELECTION)
     def render_node_selection(self):
@@ -154,11 +153,10 @@ class Game:
         self.player.apply_status_effects(TriggerWhen.COMBAT_START)
         self.monster_group.apply_status_effects(TriggerWhen.COMBAT_START)
         
-        # Check if combat should end before starting player turn
         if self.check_combat_end():
             return
         
-        self.state_machine.transition_to(GameState.COMBAT_PLAYER_TURN, "Start Player Turn")
+        self.state_machine.transition_to(GameState.COMBAT_PLAYER_TURN, TransitionReason.START_PLAYER_TURN)
 
     @state_handler(GameState.COMBAT_PLAYER_TURN)
     def handle_combat_player_turn(self):
@@ -175,17 +173,16 @@ class Game:
         self.player.apply_status_effects(TriggerWhen.TURN_END)
         self.monster_group.apply_status_effects(TriggerWhen.TURN_END)
         
-        # Remove dead monsters after their actions
         self.monster_group.remove_dead_monsters()
         
         if self.check_combat_end():
             return
         
-        self.state_machine.transition_to(GameState.COMBAT_START, "Next Combat Round")
+        self.state_machine.transition_to(GameState.COMBAT_START, TransitionReason.NEXT_COMBAT_ROUND)
 
     def check_combat_end(self) -> bool:
         if not self.monster_group.has_alive_monsters() or self.player.health.value <= 0:
-            self.state_machine.transition_to(GameState.COMBAT_END, "Combat Completed")
+            self.state_machine.transition_to(GameState.COMBAT_END, TransitionReason.COMBAT_COMPLETED)
             return True
         return False
 
@@ -194,7 +191,7 @@ class Game:
         if key_name == "SPACE":
             if self.check_combat_end():
                 return
-            self.state_machine.transition_to(GameState.COMBAT_MONSTER_TURN, "End Player Turn")
+            self.state_machine.transition_to(GameState.COMBAT_MONSTER_TURN, TransitionReason.END_PLAYER_TURN)
         elif key_name in ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"]:
             index = ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"].index(key_name)
             if index < len(self.player.hand):
@@ -205,9 +202,9 @@ class Game:
         elif key_name == "L":
             self.monster_group.select_next()
         elif key_name == "1":
-            self.state_machine.transition_to(GameState.DECK_VIEW, "View Deck")
+            self.state_machine.transition_to(GameState.DECK_VIEW, TransitionReason.VIEW_DECK)
         elif key_name == "2":
-            self.state_machine.transition_to(GameState.RELIC_VIEW, "View Relics")
+            self.state_machine.transition_to(GameState.RELIC_VIEW, TransitionReason.VIEW_RELICS)
 
     @renderer(GameState.COMBAT_PLAYER_TURN)
     def render_combat(self):
@@ -235,7 +232,7 @@ class Game:
             if index < len(self.current_event.options):
                 self.text_event_selection = index
                 self.handle_event_selection()
-                self.state_machine.transition_to(GameState.NODE_SELECTION, "Event Completed")
+                self.state_machine.transition_to(GameState.NODE_SELECTION, TransitionReason.EVENT_COMPLETED)
 
     @renderer(GameState.EVENT)
     def render_event(self):
@@ -252,7 +249,7 @@ class Game:
     @state_handler(GameState.REST_SITE)
     def handle_rest_site(self):
         # Implement rest site logic
-        self.state_machine.transition_to(GameState.NODE_SELECTION, "Rest Complete")
+        self.state_machine.transition_to(GameState.NODE_SELECTION, TransitionReason.REST_COMPLETED)
 
     @key_handler(GameState.REST_SITE)
     def handle_rest_site_key_press(self, key_name: str):
@@ -267,7 +264,7 @@ class Game:
     @state_handler(GameState.TREASURE_ROOM)
     def handle_treasure_room(self):
         # Implement treasure room logic
-        self.state_machine.transition_to(GameState.NODE_SELECTION, "Treasure Collected")
+        self.state_machine.transition_to(GameState.NODE_SELECTION, TransitionReason.TREASURE_COLLECTED)
 
     @key_handler(GameState.TREASURE_ROOM)
     def handle_treasure_room_key_press(self, key_name: str):
@@ -293,7 +290,7 @@ class Game:
                 self.player.add_card_to_deck(new_cards[index])
             else:
                 self.player.increase_max_health(self.player.health_gain_on_skip)
-            self.state_machine.transition_to(GameState.NODE_SELECTION, "Continue")  # Changed to "Continue"
+            self.state_machine.transition_to(GameState.NODE_SELECTION, TransitionReason.CONTINUE)
 
     @renderer(GameState.VICTORY_SCREEN)
     def render_victory_screen(self):
@@ -306,12 +303,12 @@ class Game:
     def handle_game_over(self):
         self.game_over_screen()
         self.reset_game_state()
-        self.state_machine.transition_to(GameState.MAIN_MENU, "Game Over")
+        self.state_machine.transition_to(GameState.MAIN_MENU, TransitionReason.GAME_OVER)
 
     @key_handler(GameState.GAME_OVER)
     def handle_game_over_key_press(self, key_name: str):
         if key_name == "RETURN":
-            self.state_machine.transition_to(GameState.MAIN_MENU, "Restart")
+            self.state_machine.transition_to(GameState.MAIN_MENU, TransitionReason.GAME_OVER)
 
     @renderer(GameState.GAME_OVER)
     def render_game_over(self):
@@ -333,7 +330,7 @@ class Game:
             max_page = (len(self.player.get_sorted_full_deck()) - 1) // self.cards_per_page
             self.current_page = min(max_page, self.current_page + 1)
         elif key_name == "ESCAPE":
-            self.state_machine.transition_to(GameState.COMBAT_PLAYER_TURN, "Return to Combat")
+            self.state_machine.transition_to(GameState.COMBAT_PLAYER_TURN, TransitionReason.RETURN_TO_COMBAT)
 
     @renderer(GameState.DECK_VIEW)
     def render_deck_view(self):
@@ -355,8 +352,7 @@ class Game:
     @key_handler(GameState.RELIC_VIEW)
     def handle_relic_view_key_press(self, key_name: str):
         if key_name in ["ESCAPE", "2"]:
-            self.state_machine.transition_to(GameState.COMBAT_PLAYER_TURN, "Return to Combat")
-
+            self.state_machine.transition_to
     @renderer(GameState.RELIC_VIEW)
     def render_relic_view(self):
         render_relic_view(self.screen, self.player.relics, self.assets)
@@ -369,13 +365,13 @@ class Game:
         if not self.monster_group.has_alive_monsters():
             self.logger.info("Combat victory!", category="COMBAT")
             if self.current_node.node_type == NodeType.BOSS:
-                self.state_machine.transition_to(GameState.VICTORY_SCREEN, "Boss Defeated")
+                self.state_machine.transition_to(GameState.VICTORY_SCREEN, TransitionReason.VICTORY)
             else:
-                self.state_machine.transition_to(GameState.CARD_SELECT, "Victory")
+                self.state_machine.transition_to(GameState.CARD_SELECT, TransitionReason.VICTORY)
         elif self.player.health.value <= 0:
-            self.state_machine.transition_to(GameState.GAME_OVER, "Player Died")
+            self.state_machine.transition_to(GameState.GAME_OVER, TransitionReason.PLAYER_DIED)
         else:
-            self.state_machine.transition_to(GameState.COMBAT_START, "Next Combat Round")
+            self.state_machine.transition_to(GameState.COMBAT_START, TransitionReason.NEXT_COMBAT_ROUND)
 
     @state_handler(GameState.CARD_SELECT)
     def handle_card_select(self):
@@ -388,10 +384,11 @@ class Game:
             index = ["Q", "W", "E", "R"].index(key_name)
             if index < 3:
                 self.player.add_card_to_deck(self.new_cards[index])
+                self.state_machine.transition_to(GameState.NODE_SELECTION, TransitionReason.CARD_SELECTED)
             else:
                 self.player.increase_max_health(self.player.health_gain_on_skip)
+                self.state_machine.transition_to(GameState.NODE_SELECTION, TransitionReason.SKIP_CARD)
             self.new_cards = []  # Clear the new cards after selection
-            self.state_machine.transition_to(GameState.NODE_SELECTION, "Card Selected")
 
     @renderer(GameState.CARD_SELECT)
     def render_card_select(self):
@@ -416,6 +413,26 @@ class Game:
             f"Node map generated with {sum(node is not None for row in self.node_map for node in row)} nodes"
         )
         self.map_generator.print_map()
+
+    def initialize_node(self):
+        self.logger.debug(f"Initializing node of type: {self.current_node.node_type}")
+        if self.current_node.node_type in [NodeType.MONSTER, NodeType.ELITE, NodeType.BOSS]:
+            self.initialize_combat()
+        elif self.current_node.node_type == NodeType.EVENT:
+            self.initialize_event()
+        elif self.current_node.node_type == NodeType.REST:
+            self.initialize_rest_site()
+        elif self.current_node.node_type == NodeType.TREASURE:
+            self.initialize_treasure_room()
+
+    def initialize_rest_site(self):
+        # Initialize rest site logic
+        pass
+
+    def initialize_treasure_room(self):
+        # Initialize treasure room logic
+        pass
+
 
     def initialize_combat(self):
         if "monsters" not in self.current_node.content or not self.current_node.content["monsters"]:

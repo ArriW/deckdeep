@@ -1,7 +1,7 @@
 from enum import Enum, auto
 from typing import Dict, List, Callable, Tuple, Optional, TYPE_CHECKING
 from functools import wraps
-
+from deckdeep.node import NodeType
 if TYPE_CHECKING:
     from game import Game
 
@@ -20,6 +20,32 @@ class GameState(Enum):
     DECK_VIEW = auto()
     RELIC_VIEW = auto()
     CARD_SELECT = auto()
+
+class TransitionReason(Enum):
+    START_GAME = "Start Game"
+    LOAD_GAME = "Load Game"
+    ENTER_COMBAT = "Enter Combat"
+    ENTER_EVENT = "Enter Event"
+    ENTER_REST_SITE = "Enter Rest Site"
+    ENTER_TREASURE_ROOM = "Enter Treasure Room"
+    START_PLAYER_TURN = "Start Player Turn"
+    END_PLAYER_TURN = "End Player Turn"
+    VIEW_DECK = "View Deck"
+    VIEW_RELICS = "View Relics"
+    COMBAT_COMPLETED = "Combat Completed"
+    END_COMBAT = "End Combat"
+    NEXT_COMBAT_ROUND = "Next Combat Round"
+    VICTORY = "Victory"
+    DEFEAT = "Defeat"
+    PLAYER_DIED = "Player Died"
+    EVENT_COMPLETED = "Event Completed"
+    REST_COMPLETED = "Rest Completed"
+    TREASURE_COLLECTED = "Treasure Collected"
+    CONTINUE = "Continue"
+    GAME_OVER = "Game Over"
+    RETURN_TO_COMBAT = "Return to Combat"
+    CARD_SELECTED = "Card Selected"
+    SKIP_CARD = "Skip Card"
 
 def state_handler(state: GameState):
     def decorator(func):
@@ -55,63 +81,61 @@ class GameStateMachine:
         self.state_handlers: Dict[GameState, Callable] = {}
         self.key_handlers: Dict[GameState, Callable] = {}
         self.renderers: Dict[GameState, Callable] = {}
-        self.transition_map: Dict[GameState, List[Tuple[str, GameState]]] = {
+        self.transition_map: Dict[GameState, List[Tuple[TransitionReason, GameState]]] = {
             GameState.MAIN_MENU: [
-                ("Start Game", GameState.NODE_SELECTION),
-                ("Load Game", GameState.NODE_SELECTION),
-                ("Enter Combat", GameState.COMBAT_START),
-                ("Start Game", GameState.COMBAT_START),
+                (TransitionReason.START_GAME, GameState.NODE_SELECTION),
+                (TransitionReason.LOAD_GAME, GameState.NODE_SELECTION),
+                (TransitionReason.ENTER_COMBAT, GameState.COMBAT_START),
             ],
             GameState.NODE_SELECTION: [
-                ("Enter Combat", GameState.COMBAT_START),
-                ("Enter Event", GameState.EVENT),
-                ("Enter Rest Site", GameState.REST_SITE),
-                ("Enter Treasure Room", GameState.TREASURE_ROOM),
+                (TransitionReason.ENTER_COMBAT, GameState.COMBAT_START),
+                (TransitionReason.ENTER_EVENT, GameState.EVENT),
+                (TransitionReason.ENTER_REST_SITE, GameState.REST_SITE),
+                (TransitionReason.ENTER_TREASURE_ROOM, GameState.TREASURE_ROOM),
             ],
             GameState.COMBAT_START: [
-                ("Start Player Turn", GameState.COMBAT_PLAYER_TURN),
+                (TransitionReason.START_PLAYER_TURN, GameState.COMBAT_PLAYER_TURN),
             ],
             GameState.COMBAT_PLAYER_TURN: [
-                ("End Player Turn", GameState.COMBAT_MONSTER_TURN),
-                ("View Deck", GameState.DECK_VIEW),
-                ("View Relics", GameState.RELIC_VIEW),
-                ("Combat Completed", GameState.COMBAT_END),  # Changed from NODE_SELECTION to COMBAT_END
+                (TransitionReason.END_PLAYER_TURN, GameState.COMBAT_MONSTER_TURN),
+                (TransitionReason.VIEW_DECK, GameState.DECK_VIEW),
+                (TransitionReason.VIEW_RELICS, GameState.RELIC_VIEW),
+                (TransitionReason.COMBAT_COMPLETED, GameState.COMBAT_END),
             ],
             GameState.COMBAT_MONSTER_TURN: [
-                ("End Combat", GameState.COMBAT_END),  # Changed from COMBAT_END to COMBAT_START
-                ("Next Combat Round", GameState.COMBAT_START),
+                (TransitionReason.COMBAT_COMPLETED, GameState.COMBAT_END),
+                (TransitionReason.NEXT_COMBAT_ROUND, GameState.COMBAT_START),
             ],
             GameState.COMBAT_END: [
-                ("Next Combat Round", GameState.COMBAT_START),
-                ("Victory", GameState.CARD_SELECT),  # Changed from VICTORY_SCREEN to CARD_SELECT
-                ("Defeat", GameState.GAME_OVER),
-                ("Player Died", GameState.GAME_OVER),
+                (TransitionReason.NEXT_COMBAT_ROUND, GameState.COMBAT_START),
+                (TransitionReason.VICTORY, GameState.CARD_SELECT),
+                (TransitionReason.DEFEAT, GameState.GAME_OVER),
+                (TransitionReason.PLAYER_DIED, GameState.GAME_OVER),
             ],
             GameState.EVENT: [
-                ("Event Completed", GameState.NODE_SELECTION),
+                (TransitionReason.EVENT_COMPLETED, GameState.NODE_SELECTION),
             ],
             GameState.REST_SITE: [
-                ("Rest Completed", GameState.NODE_SELECTION),
+                (TransitionReason.REST_COMPLETED, GameState.NODE_SELECTION),
             ],
             GameState.TREASURE_ROOM: [
-                ("Treasure Collected", GameState.NODE_SELECTION),
+                (TransitionReason.TREASURE_COLLECTED, GameState.NODE_SELECTION),
             ],
             GameState.VICTORY_SCREEN: [
-                ("Continue", GameState.NODE_SELECTION),
-                ("Continue to Next Node", GameState.NODE_SELECTION),
+                (TransitionReason.CONTINUE, GameState.NODE_SELECTION),
             ],
             GameState.GAME_OVER: [
-                ("Game Over", GameState.MAIN_MENU),
+                (TransitionReason.GAME_OVER, GameState.MAIN_MENU),
             ],
             GameState.DECK_VIEW: [
-                ("Return to Combat", GameState.COMBAT_PLAYER_TURN),
+                (TransitionReason.RETURN_TO_COMBAT, GameState.COMBAT_PLAYER_TURN),
             ],
             GameState.RELIC_VIEW: [
-                ("Return to Combat", GameState.COMBAT_PLAYER_TURN),
+                (TransitionReason.RETURN_TO_COMBAT, GameState.COMBAT_PLAYER_TURN),
             ],
             GameState.CARD_SELECT: [
-                ("Card Selected", GameState.NODE_SELECTION),
-                ("Skip Card", GameState.NODE_SELECTION),
+                (TransitionReason.CARD_SELECTED, GameState.NODE_SELECTION),
+                (TransitionReason.SKIP_CARD, GameState.NODE_SELECTION),
             ],
         }
         self._register_handlers()
@@ -126,14 +150,14 @@ class GameStateMachine:
             if hasattr(attr, 'rendered_state'):
                 self.renderers[attr.rendered_state] = attr
 
-    def transition_to(self, new_state: GameState, transition_reason: str):
+    def transition_to(self, new_state: GameState, transition_reason: TransitionReason):
         valid_transitions = self.transition_map.get(self.current_state, [])
         for reason, state in valid_transitions:
             if state == new_state and reason == transition_reason:
-                self.game.logger.info(f"Transitioning from {self.current_state} to {new_state}: {transition_reason}", category="STATE")
+                self.game.logger.info(f"Transitioning from {self.current_state} to {new_state}: {transition_reason.value}", category="STATE")
                 self.current_state = new_state
                 return
-        raise ValueError(f"Invalid transition from {self.current_state} to {new_state} with reason: {transition_reason}")
+        raise ValueError(f"Invalid transition from {self.current_state} to {new_state} with reason: {transition_reason.value}")
 
     def update(self):
         handler = self.state_handlers.get(self.current_state)
@@ -150,5 +174,17 @@ class GameStateMachine:
         if renderer:
             renderer()
 
-    def get_valid_transitions(self) -> List[Tuple[str, GameState]]:
+    def get_valid_transitions(self) -> List[Tuple[TransitionReason, GameState]]:
         return self.transition_map.get(self.current_state, [])
+
+    def get_transition_reason_for_node_type(self, node_type) -> TransitionReason:
+        if node_type in [NodeType.MONSTER, NodeType.ELITE, NodeType.BOSS]:
+            return TransitionReason.ENTER_COMBAT
+        elif node_type == NodeType.EVENT:
+            return TransitionReason.ENTER_EVENT
+        elif node_type == NodeType.REST:
+            return TransitionReason.ENTER_REST_SITE
+        elif node_type == NodeType.TREASURE:
+            return TransitionReason.ENTER_TREASURE_ROOM
+        else:
+            raise ValueError(f"Invalid node type: {node_type}")
