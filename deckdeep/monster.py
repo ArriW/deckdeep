@@ -7,7 +7,7 @@ from deckdeep.status_effect import (
     Bleed,
     HealthRegain,
     Weakness,
-    TriggerType,
+    TriggerWhen,
 )
 from deckdeep.config import scale
 from enum import Enum
@@ -80,9 +80,12 @@ class BasicAttack(Ability):
     def use(self, user: "Monster", target: "Player") -> str:
         total_damage = 0
         for _ in range(self.num_attacks):
+            user.apply_status_effects(TriggerWhen.BEFORE_ATTACK)
             damage = self.apply_weakness(user, user.damage)
             target.take_damage(damage)
             total_damage += damage
+            user.apply_status_effects(TriggerWhen.AFTER_ATTACK)
+        user.apply_status_effects(TriggerWhen.ON_DAMAGE_DEALT)
         return f"{user.name} attacks {self.num_attacks} times for a total of {total_damage} damage!"
 
     def calculate_power_contribution(self, user: "Monster") -> float:
@@ -94,8 +97,11 @@ class SneakAttack(Ability):
         super().__init__(name, probability, [IconType.ATTACK])
 
     def use(self, user: "Monster", target: "Player") -> str:
+        user.apply_status_effects(TriggerWhen.BEFORE_ATTACK)
         damage = self.apply_weakness(user, round(user.damage * 1.5))
         target.take_damage(damage)
+        user.apply_status_effects(TriggerWhen.AFTER_ATTACK)
+        user.apply_status_effects(TriggerWhen.ON_DAMAGE_DEALT)
         return f"{user.name} performs a Sneak Attack for {damage} damage!"
 
     def calculate_power_contribution(self, user: "Monster") -> float:
@@ -107,11 +113,14 @@ class InfectiousBite(Ability):
         super().__init__(name, probability, [IconType.ATTACK, IconType.BLEED])
 
     def use(self, user: "Monster", target: "Player") -> str:
+        user.apply_status_effects(TriggerWhen.BEFORE_ATTACK)
         damage = self.apply_weakness(user, round(user.damage * 0.25))
         target.take_damage(damage)
         bleed_damage = max(damage, 1)
         bleed = Bleed(bleed_damage)
         target.status_effects.add_effect(bleed)
+        user.apply_status_effects(TriggerWhen.AFTER_ATTACK)
+        user.apply_status_effects(TriggerWhen.ON_DAMAGE_DEALT)
         return f"{user.name} inflicts an Infectious Bite, causing {bleed_damage} Bleed!"
 
     def calculate_power_contribution(self, user: "Monster") -> float:
@@ -189,9 +198,12 @@ class PowerOverTime(Ability):
 
     def use(self, user: "Monster", target: "Player") -> str:
         old_damage = user.damage
+        user.apply_status_effects(TriggerWhen.BEFORE_ATTACK)
         damage_dealt = self.apply_weakness(user, round(user.damage))
         user.damage = round(user.damage * 1.2)
         target.take_damage(damage_dealt)
+        user.apply_status_effects(TriggerWhen.AFTER_ATTACK)
+        user.apply_status_effects(TriggerWhen.ON_DAMAGE_DEALT)
         return f"{user.name}'s power increases from {old_damage} to {user.damage} and deals {damage_dealt} damage!"
 
     def calculate_power_contribution(self, user: "Monster") -> float:
@@ -218,8 +230,11 @@ class MagicMissile(Ability):
 
     def use(self, user: "Monster", target: "Player") -> str:
         user.heal(round(user.spell_power * 0.4))
+        user.apply_status_effects(TriggerWhen.BEFORE_ATTACK)
         damage = self.apply_weakness(user, round(user.spell_power))
         target.take_damage(damage)
+        user.apply_status_effects(TriggerWhen.AFTER_ATTACK)
+        user.apply_status_effects(TriggerWhen.ON_DAMAGE_DEALT)
         return f"{user.name} casts Magic Missile for {damage} damage!"
 
     def calculate_power_contribution(self, user: "Monster") -> float:
@@ -247,10 +262,13 @@ class FireBreath(Ability):
         super().__init__(name, probability, [IconType.ATTACK, IconType.BLEED])
 
     def use(self, user: "Monster", target: "Player") -> str:
+        user.apply_status_effects(TriggerWhen.BEFORE_ATTACK)
         damage = self.apply_weakness(user, round(user.spell_power * 1.5))
         bleed = Bleed(v := round(damage * 0.1))
         target.take_damage(damage)
         target.status_effects.add_effect(bleed)
+        user.apply_status_effects(TriggerWhen.AFTER_ATTACK)
+        user.apply_status_effects(TriggerWhen.ON_DAMAGE_DEALT)
         return f"{user.name} breathes fire for {damage} damage and inflicts {v} Bleed!"
 
     def calculate_power_contribution(self, user):
@@ -304,8 +322,11 @@ class PoisonDart(Ability):
         super().__init__(name, probability, [IconType.ATTACK, IconType.BLEED])
 
     def use(self, user: "Monster", target: "Player") -> str:
+        user.apply_status_effects(TriggerWhen.BEFORE_ATTACK)
         damage = self.apply_weakness(user, round(user.spell_power * 0.5))
         target.take_damage(damage)
+        user.apply_status_effects(TriggerWhen.AFTER_ATTACK)
+        user.apply_status_effects(TriggerWhen.ON_DAMAGE_DEALT)
         return f"{user.name} fires a Poison Dart for {damage} damage!"
 
     def calculate_power_contribution(self, user: "Monster") -> float:
@@ -317,10 +338,13 @@ class ThunderClap(Ability):
         super().__init__(name, probability, [IconType.ATTACK, IconType.BUFF])
 
     def use(self, user: "Monster", target: "Player") -> str:
+        user.apply_status_effects(TriggerWhen.BEFORE_ATTACK)
         damage = self.apply_weakness(user, round(user.damage * 0.8))
         target.take_damage(damage)
         weakness = Weakness(1)
         target.status_effects.add_effect(weakness)
+        user.apply_status_effects(TriggerWhen.AFTER_ATTACK)
+        user.apply_status_effects(TriggerWhen.ON_DAMAGE_DEALT)
         return (
             f"{user.name} uses Thunder Clap for {damage} damage and applies 1 Weakness!"
         )
@@ -334,10 +358,13 @@ class LifeDrain(Ability):
         super().__init__(name, probability, [IconType.ATTACK, IconType.HEAL])
 
     def use(self, user: "Monster", target: "Player") -> str:
+        user.apply_status_effects(TriggerWhen.BEFORE_ATTACK)
         damage = self.apply_weakness(user, round(user.spell_power * 0.7))
         heal = round(damage * 0.5)
         target.take_damage(damage)
         user.heal(heal)
+        user.apply_status_effects(TriggerWhen.AFTER_ATTACK)
+        user.apply_status_effects(TriggerWhen.ON_DAMAGE_DEALT)
         return f"{user.name} uses Life Drain, dealing {damage} damage and healing for {heal}!"
 
     def calculate_power_contribution(self, user):
@@ -687,7 +714,7 @@ class Monster:
         self.health = min(self.max_health, self.health + amount)
 
     def take_damage(self, damage: int):
-        self.status_effects.trigger_effects(TriggerType.ON_DAMAGE_TAKEN, self)
+        self.apply_status_effects(TriggerWhen.ON_DAMAGE_TAKEN)
 
         # Handle shield absorption
         if self.shields > 0:
@@ -704,17 +731,22 @@ class Monster:
     def deal_damage(self, base_damage: int, num_attacks: int = 1) -> int:
         total_damage = 0
         for _ in range(num_attacks):
-            self.status_effects.trigger_effects(TriggerType.BEFORE_ATTACK, self)
+            self.apply_status_effects(TriggerWhen.BEFORE_ATTACK)
             damage = base_damage
             total_damage += damage
+            self.apply_status_effects(TriggerWhen.AFTER_ATTACK)
+        self.apply_status_effects(TriggerWhen.ON_DAMAGE_DEALT)
         return total_damage
 
-    def apply_status_effects(self):
-        self.status_effects.trigger_effects(TriggerType.TURN_START, self)
+    def apply_status_effects(self, trigger_when: TriggerWhen):
+        self.status_effects.trigger_effects(trigger_when, self)
 
     def execute_action(self, target):
         if self.intention:
-            return self.intention.use(self, target)
+            self.apply_status_effects(TriggerWhen.BEFORE_ATTACK)
+            result = self.intention.use(self, target)
+            self.apply_status_effects(TriggerWhen.AFTER_ATTACK)
+            return result
         else:
             raise ValueError(f"No intention set for {self.name}")
 
@@ -792,4 +824,4 @@ class Monster:
         return monster
 
     def diminish_effects_at_turn_start(self):
-        self.status_effects.trigger_effects(TriggerType.TURN_START, self)
+        self.status_effects.trigger_effects(TriggerWhen.TURN_START, self)

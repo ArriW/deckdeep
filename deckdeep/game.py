@@ -15,20 +15,23 @@ from deckdeep.node import NodeType
 from deckdeep.card import Card
 from deckdeep.events import get_random_event
 from deckdeep.custom_types import TriggerWhen
+import random
 
 import os
 import json
 
+from typing import List, Optional
+
 class Game:
     def __init__(self, screen, logger: GameLogger):
-        self.screen = screen
-        self.logger = logger
-        self.assets = GameAssets()
-        self.player = None
-        self.monster_group = None
-        self.node_map = None
-        self.current_node = None
-        self.stage = 1
+        self.screen: pygame.Surface = screen
+        self.logger: GameLogger = logger
+        self.assets: GameAssets = GameAssets()
+        self.player: Player = None
+        self.monster_group: MonsterGroup = None
+        self.node_map: List[List[Node]] = None
+        self.current_node: Node = None
+        self.stage: int = 1
         self.score = 0
         self.running = True
         self.clock = pygame.time.Clock()
@@ -42,6 +45,7 @@ class Game:
         self.current_page = 0
         self.cards_per_page = 15
         self.selected_card = -1
+        self.new_cards = []
 
     def run(self):
         # Don't transition here, just set the initial state
@@ -68,7 +72,7 @@ class Game:
             music_manager.handle_event(event)
 
     def handle_mouse_click(self, pos):
-        if self.state_machine.current_state == GameState.COMBAT:
+        if self.state_machine.current_state == GameState.COMBAT_PLAYER_TURN:
             self.select_card(pos[0], pos[1])
             self.play_card()
 
@@ -80,14 +84,14 @@ class Game:
                     self.state_machine.transition_to(GameState.NODE_SELECTION, "Load Game")
                 else:
                     self.new_game()
-                    self.state_machine.transition_to(GameState.COMBAT, "Start Game")
+                    self.state_machine.transition_to(GameState.COMBAT_START, "Start Game")
             else:
                 self.new_game()
-                self.state_machine.transition_to(GameState.COMBAT, "Start Game")
+                self.state_machine.transition_to(GameState.COMBAT_START, "Start Game")
         else:
             # If player exists, we're returning from game over, so reset the game
             self.new_game()
-            self.state_machine.transition_to(GameState.COMBAT, "Start Game")
+            self.state_machine.transition_to(GameState.COMBAT_START, "Start Game")
 
     @key_handler(GameState.MAIN_MENU)
     def handle_main_menu_key_press(self, key_name: str):
@@ -106,8 +110,20 @@ class Game:
         else:
             self.current_node = random.choice(available_nodes)
             self.initialize_node()
-            if self.current_node.node_type in [NodeType.MONSTER, NodeType.ELITE, NodeType.BOSS]:
-                self.state_machine.transition_to(GameState.COMBAT, "Enter Combat")
+            # Remove the transition here, it will be handled in initialize_node
+
+    def initialize_node(self):
+        self.logger.debug(f"Initializing node of type: {self.current_node.node_type}")
+        if self.current_node.node_type in [NodeType.MONSTER, NodeType.ELITE, NodeType.BOSS]:
+            self.initialize_combat()
+            self.state_machine.transition_to(GameState.COMBAT_START, "Enter Combat")
+        elif self.current_node.node_type == NodeType.EVENT:
+            self.initialize_event()
+            self.state_machine.transition_to(GameState.EVENT, "Enter Event")
+        elif self.current_node.node_type == NodeType.REST:
+            self.state_machine.transition_to(GameState.REST_SITE, "Enter Rest Site")
+        elif self.current_node.node_type == NodeType.TREASURE:
+            self.state_machine.transition_to(GameState.TREASURE_ROOM, "Enter Treasure Room")
 
     @key_handler(GameState.NODE_SELECTION)
     def handle_node_selection_key_press(self, key_name: str):
@@ -131,24 +147,54 @@ class Game:
             self.player,
         )
 
-    @state_handler(GameState.COMBAT)
-    def handle_combat(self):
-        if not self.player_turn:
-            self.execute_monster_turn()
+    @state_handler(GameState.COMBAT_START)
+    def handle_combat_start(self):
+        self.player.reset_energy()
+        self.player.draw_hand()
+        self.player.apply_status_effects(TriggerWhen.COMBAT_START)
+        self.monster_group.apply_status_effects(TriggerWhen.COMBAT_START)
         
-        if self.player.health.value <= 0:
-            self.state_machine.transition_to(GameState.GAME_OVER, "Player Died")
-        elif not self.monster_group.monsters:
-            self.logger.info("Combat victory!", category="COMBAT")
-            if self.current_node.node_type == NodeType.BOSS:
-                self.state_machine.transition_to(GameState.VICTORY_SCREEN, "Boss Defeated")
-            else:
-                self.state_machine.transition_to(GameState.NODE_SELECTION, "Combat Completed")
+        # Check if combat should end before starting player turn
+        if self.check_combat_end():
+            return
+        
+        self.state_machine.transition_to(GameState.COMBAT_PLAYER_TURN, "Start Player Turn")
 
-    @key_handler(GameState.COMBAT)
-    def handle_combat_key_press(self, key_name: str):
+    @state_handler(GameState.COMBAT_PLAYER_TURN)
+    def handle_combat_player_turn(self):
+        self.player.apply_status_effects(TriggerWhen.TURN_START)
+        # Player actions are handled by key presses, so we don't need to do anything here
+        if self.check_combat_end():
+            return
+        # The transition to monster turn will be handled by key press (SPACE)
+
+    @state_handler(GameState.COMBAT_MONSTER_TURN)
+    def handle_combat_monster_turn(self):
+        self.monster_group.apply_status_effects(TriggerWhen.TURN_START)
+        self.monster_group.execute_actions(self.player)
+        self.player.apply_status_effects(TriggerWhen.TURN_END)
+        self.monster_group.apply_status_effects(TriggerWhen.TURN_END)
+        
+        # Remove dead monsters after their actions
+        self.monster_group.remove_dead_monsters()
+        
+        if self.check_combat_end():
+            return
+        
+        self.state_machine.transition_to(GameState.COMBAT_START, "Next Combat Round")
+
+    def check_combat_end(self) -> bool:
+        if not self.monster_group.has_alive_monsters() or self.player.health.value <= 0:
+            self.state_machine.transition_to(GameState.COMBAT_END, "Combat Completed")
+            return True
+        return False
+
+    @key_handler(GameState.COMBAT_PLAYER_TURN)
+    def handle_combat_player_turn_key_press(self, key_name: str):
         if key_name == "SPACE":
-            self.player_turn = False
+            if self.check_combat_end():
+                return
+            self.state_machine.transition_to(GameState.COMBAT_MONSTER_TURN, "End Player Turn")
         elif key_name in ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"]:
             index = ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"].index(key_name)
             if index < len(self.player.hand):
@@ -163,7 +209,7 @@ class Game:
         elif key_name == "2":
             self.state_machine.transition_to(GameState.RELIC_VIEW, "View Relics")
 
-    @renderer(GameState.COMBAT)
+    @renderer(GameState.COMBAT_PLAYER_TURN)
     def render_combat(self):
         render_combat_state(
             self.screen,
@@ -287,7 +333,7 @@ class Game:
             max_page = (len(self.player.get_sorted_full_deck()) - 1) // self.cards_per_page
             self.current_page = min(max_page, self.current_page + 1)
         elif key_name == "ESCAPE":
-            self.state_machine.transition_to(GameState.COMBAT, "Return to Combat")
+            self.state_machine.transition_to(GameState.COMBAT_PLAYER_TURN, "Return to Combat")
 
     @renderer(GameState.DECK_VIEW)
     def render_deck_view(self):
@@ -309,11 +355,49 @@ class Game:
     @key_handler(GameState.RELIC_VIEW)
     def handle_relic_view_key_press(self, key_name: str):
         if key_name in ["ESCAPE", "2"]:
-            self.state_machine.transition_to(GameState.COMBAT, "Return to Combat")
+            self.state_machine.transition_to(GameState.COMBAT_PLAYER_TURN, "Return to Combat")
 
     @renderer(GameState.RELIC_VIEW)
     def render_relic_view(self):
         render_relic_view(self.screen, self.player.relics, self.assets)
+
+    @state_handler(GameState.COMBAT_END)
+    def handle_combat_end(self):
+        self.player.apply_status_effects(TriggerWhen.COMBAT_END)
+        self.monster_group.apply_status_effects(TriggerWhen.COMBAT_END)
+        
+        if not self.monster_group.has_alive_monsters():
+            self.logger.info("Combat victory!", category="COMBAT")
+            if self.current_node.node_type == NodeType.BOSS:
+                self.state_machine.transition_to(GameState.VICTORY_SCREEN, "Boss Defeated")
+            else:
+                self.state_machine.transition_to(GameState.CARD_SELECT, "Victory")
+        elif self.player.health.value <= 0:
+            self.state_machine.transition_to(GameState.GAME_OVER, "Player Died")
+        else:
+            self.state_machine.transition_to(GameState.COMBAT_START, "Next Combat Round")
+
+    @state_handler(GameState.CARD_SELECT)
+    def handle_card_select(self):
+        if not self.new_cards:  # Only generate new cards if the list is empty
+            self.new_cards = Card.generate_card_pool(3)
+
+    @key_handler(GameState.CARD_SELECT)
+    def handle_card_select_key_press(self, key_name: str):
+        if key_name in ["Q", "W", "E", "R"]:
+            index = ["Q", "W", "E", "R"].index(key_name)
+            if index < 3:
+                self.player.add_card_to_deck(self.new_cards[index])
+            else:
+                self.player.increase_max_health(self.player.health_gain_on_skip)
+            self.new_cards = []  # Clear the new cards after selection
+            self.state_machine.transition_to(GameState.NODE_SELECTION, "Card Selected")
+
+    @renderer(GameState.CARD_SELECT)
+    def render_card_select(self):
+        render_victory_state(
+            self.screen, self.new_cards, -1, self.score, self.player, self.assets
+        )
 
     def new_game(self):
         self.player = Player.create("Hero", 100, "@")
@@ -333,23 +417,6 @@ class Game:
         )
         self.map_generator.print_map()
 
-    def initialize_node(self):
-        self.logger.debug(f"Initializing node of type: {self.current_node.node_type}")
-        if self.current_node.node_type in [NodeType.MONSTER, NodeType.ELITE, NodeType.BOSS]:
-            self.initialize_combat()
-            self.state_machine.transition_to(GameState.COMBAT, "Enter Combat")
-        elif self.current_node.node_type == NodeType.EVENT:
-            self.initialize_event()
-            self.state_machine.transition_to(GameState.EVENT, "Enter Event")
-        elif self.current_node.node_type == NodeType.REST:
-            self.state_machine.transition_to(GameState.REST_SITE, "Enter Rest Site")
-        elif self.current_node.node_type == NodeType.TREASURE:
-            self.state_machine.transition_to(GameState.TREASURE_ROOM, "Enter Treasure Room")
-        elif self.current_node.node_type == NodeType.REST:
-            self.state_machine.transition_to(GameState.REST_SITE, "Enter Rest Site")
-        elif self.current_node.node_type == NodeType.TREASURE:
-            self.state_machine.transition_to(GameState.TREASURE_ROOM, "Enter Treasure Room")
-
     def initialize_combat(self):
         if "monsters" not in self.current_node.content or not self.current_node.content["monsters"]:
             monster_group, _, _ = MonsterGroup.generate(self.current_node.y)
@@ -363,7 +430,7 @@ class Game:
         self.player_turn = True
         self.player.reset_hand()
         self.monster_intentions = self.monster_group.decide_action(self.player)
-        self.apply_relic_effects(TriggerWhen.START_OF_COMBAT)
+        self.apply_relic_effects(TriggerWhen.COMBAT_START)
 
     def initialize_event(self):
         if "event" not in self.current_node.content:
@@ -416,48 +483,17 @@ class Game:
                 self.logger.debug("No valid monsters to target", category="COMBAT")
                 return
 
-            self.score += self.player.play_card(card, self.monster_group)
-            self.logger.info(
-                f"Player played card: {card.name} on {target_monster.name}",
-                category="COMBAT",
-            )
-            self.selected_card = -1
-
-    def execute_monster_turn(self):
-        self.apply_relic_effects(TriggerWhen.END_OF_TURN)
-        self.monster_group.remove_dead_monsters()
-
-        for monster in self.monster_group.monsters:
-            monster.status_effects.trigger_effects(TriggerWhen.START_OF_TURN, monster)
-            removed_monsters = self.monster_group.remove_dead_monsters()
-            for removed_monster in removed_monsters:
-                self.logger.debug(f"Removed monster: {removed_monster.name}", category="COMBAT")
-
-        for i, monster in enumerate(self.monster_group.monsters):
-            try:
-                result = monster.execute_action(self.player)
-                self.logger.debug(
-                    f"Monster {i} {monster.name} executed action: {result}",
+            if self.player.energy >= card.energy_cost:
+                self.player.apply_status_effects(TriggerWhen.BEFORE_ATTACK)
+                self.score += self.player.play_card(card, self.monster_group)
+                self.player.apply_status_effects(TriggerWhen.AFTER_ATTACK)
+                self.logger.info(
+                    f"Player played card: {card.name} on {target_monster.name}",
                     category="COMBAT",
                 )
-            except ValueError as e:
-                self.logger.error(
-                    f"Error executing monster action: {str(e)}", category="COMBAT"
-                )
-
-        try:
-            self.monster_intentions = self.monster_group.decide_action(self.player)
-            self.logger.debug(
-                f"New monster intentions: {self.monster_intentions}",
-                category="COMBAT",
-            )
-        except ValueError as e:
-            self.logger.error(
-                f"Error deciding monster actions: {str(e)}", category="COMBAT"
-            )
-
-        self.player_turn = True
-
+                self.selected_card = -1
+            else:
+                self.logger.debug("Not enough energy to play the card", category="COMBAT")
 
     def apply_relic_effects(self, trigger: TriggerWhen):
         for relic in self.player.relics:

@@ -1,5 +1,16 @@
 from dataclasses import dataclass
+from enum import Enum, auto
 
+class TriggerWhen(Enum):
+    COMBAT_START = auto()
+    COMBAT_END = auto()
+    TURN_START = auto()
+    TURN_END = auto()
+    BEFORE_ATTACK = auto()
+    AFTER_ATTACK = auto()
+    ON_DAMAGE_TAKEN = auto()
+    ON_DAMAGE_DEALT = auto()
+    PERMANENT = auto()
 
 @dataclass(frozen=True)
 class Health:

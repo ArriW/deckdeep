@@ -8,9 +8,11 @@ from deckdeep.custom_types import TriggerWhen
 
 class Relic:
     def __init__(self, name: str, description: str, trigger_when: TriggerWhen):
+        self.id = str(uuid.uuid4())
         self.name = name
         self.description = description
         self.trigger_when = trigger_when
+        self.has_been_applied = False
 
     def apply_effect(self, player, game) -> str:
         if self.trigger_when == TriggerWhen.PERMANENT:
@@ -22,9 +24,12 @@ class Relic:
         else:
             return self.effect(player, game) or f"{self.name} triggered!"
 
+    def effect(self, player, game):
+        pass
+
     def to_dict(self) -> Dict:
         return {
-            "id": self.id,  # Add this line
+            "id": self.id,
             "name": self.name,
             "description": self.description,
             "trigger_when": self.trigger_when.value,
@@ -38,15 +43,10 @@ class Relic:
     def from_dict(cls, data: Dict) -> "Relic":
         relic = cls(
             name=data["name"],
-            data={
-                "description": data["description"],
-                "effect": ALL_RELICS[data["name"]][
-                    "effect"
-                ],  # Get effect from ALL_RELICS
-                "trigger_when": TriggerWhen(data["trigger_when"]),
-            },
+            description=data["description"],
+            trigger_when=TriggerWhen(data["trigger_when"]),
         )
-        relic.id = data["id"]  # Add this line
+        relic.id = data["id"]
         relic.has_been_applied = data["has_been_applied"]
         return relic
 
@@ -72,12 +72,12 @@ ALL_RELICS = {
     "Healing Charm": {
         "description": "Heal 5 HP at the start of each combat.",
         "effect": lambda p, g: p.heal(5),
-        "trigger_when": TriggerWhen.START_OF_COMBAT,
+        "trigger_when": TriggerWhen.COMBAT_START,
     },
     "Energy Crystal": {
         "description": "Start each combat with 1 additional energy.",
         "effect": lambda p, g: p.grant_temporary_energy(1),
-        "trigger_when": TriggerWhen.START_OF_COMBAT,
+        "trigger_when": TriggerWhen.COMBAT_START,
     },
     "Strength Amulet": {
         "description": "Your attacks deal 1 additional damage.",
@@ -87,7 +87,7 @@ ALL_RELICS = {
     "Shield Rune": {
         "description": "Gain 3 block at the start of each turn.",
         "effect": lambda p, g: p.add_block(3),
-        "trigger_when": TriggerWhen.START_OF_TURN,
+        "trigger_when": TriggerWhen.TURN_START,
     },
     "Lucky Coin": {
         "description": "10% chance to dodge enemy attacks.",
@@ -114,7 +114,7 @@ ALL_RELICS = {
         and g.monster_group.random_monster()
         and g.monster_group.random_monster().take_damage(10)
         or "No valid target for Cursed Dagger",
-        "trigger_when": TriggerWhen.START_OF_TURN,
+        "trigger_when": TriggerWhen.TURN_START,
     },
     "Time Warp": {
         "description": "12% chance to take an extra turn after your turn ends.",
@@ -127,4 +127,4 @@ ALL_RELICS = {
 def get_relic_by_name(name: str) -> Relic:
     if name not in ALL_RELICS:
         raise KeyError(f"Relic '{name}' not found in ALL_RELICS")
-    return Relic(name, ALL_RELICS[name])
+    return Relic(name, ALL_RELICS[name]["description"], ALL_RELICS[name]["trigger_when"])

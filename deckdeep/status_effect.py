@@ -18,7 +18,7 @@ class StatusEffect:
         self.value = value
         self.stack = stack
         self.type = type
-        self.triggers: List[TriggerType] = []
+        self.triggers: List[TriggerWhen] = []
 
     def apply(self, target: Any) -> None:
         pass
@@ -26,7 +26,7 @@ class StatusEffect:
     def is_expired(self) -> bool:
         return self.value <= 0
 
-    def on_trigger(self, trigger_type: TriggerType, target: Any) -> None:
+    def on_trigger(self, trigger_when: TriggerWhen, target: Any) -> None:
         pass
 
     def diminish(self) -> None:
@@ -44,7 +44,7 @@ class StatusEffect:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "StatusEffect":
         effect = cls(data["name"], data["value"], data["stack"], data["type"])
-        effect.triggers = [TriggerType(t) for t in data["triggers"]]
+        effect.triggers = [TriggerWhen(t) for t in data["triggers"]]
         return effect
 
     def trigger(self, trigger_when: TriggerWhen, entity):
@@ -55,10 +55,10 @@ class StatusEffect:
 class Bleed(StatusEffect):
     def __init__(self, value: int):
         super().__init__("Bleed", value=value, stack=True, type="debuff")
-        self.triggers = [TriggerType.TURN_START]
+        self.triggers = [TriggerWhen.TURN_START]
 
-    def on_trigger(self, trigger_type: TriggerType, target: Any) -> None:
-        if trigger_type == TriggerType.TURN_START:
+    def on_trigger(self, trigger_when: TriggerWhen, target: Any) -> None:
+        if trigger_when == TriggerWhen.TURN_START:
             damage = self.value
             target.take_damage(damage)
             self.diminish()
@@ -67,10 +67,10 @@ class Bleed(StatusEffect):
 class HealthRegain(StatusEffect):
     def __init__(self, value: int):
         super().__init__("HealthRegain", value=value, stack=True, type="buff")
-        self.triggers = [TriggerType.TURN_START]
+        self.triggers = [TriggerWhen.TURN_START]
 
-    def on_trigger(self, trigger_type: TriggerType, target: Any) -> None:
-        if trigger_type == TriggerType.TURN_START:
+    def on_trigger(self, trigger_when: TriggerWhen, target: Any) -> None:
+        if trigger_when == TriggerWhen.TURN_START:
             target.heal(self.value)
             self.diminish()
 
@@ -78,10 +78,10 @@ class HealthRegain(StatusEffect):
 class EnergyBonus(StatusEffect):
     def __init__(self, value: int):
         super().__init__("EnergyBonus", value=value, stack=False, type="buff")
-        self.triggers = [TriggerType.TURN_START]
+        self.triggers = [TriggerWhen.TURN_START]
 
-    def on_trigger(self, trigger_type: TriggerType, target: Any) -> None:
-        if trigger_type == TriggerType.TURN_START:
+    def on_trigger(self, trigger_when: TriggerWhen, target: Any) -> None:
+        if trigger_when == TriggerWhen.TURN_START:
             target.bonus_energy += self.value
             self.value = 0
 
@@ -89,30 +89,30 @@ class EnergyBonus(StatusEffect):
 class Weakness(StatusEffect):
     def __init__(self, value: int):
         super().__init__("Weakness", value=value, stack=True, type="debuff")
-        self.triggers = [TriggerType.BEFORE_ATTACK, TriggerType.TURN_END]
+        self.triggers = [TriggerWhen.BEFORE_ATTACK, TriggerWhen.TURN_END]
 
-    def on_trigger(self, trigger_type: TriggerType, target: Any) -> None:
-        if trigger_type == TriggerType.TURN_END:
+    def on_trigger(self, trigger_when: TriggerWhen, target: Any) -> None:
+        if trigger_when == TriggerWhen.TURN_END:
             self.diminish()
 
 
 class Bolster(StatusEffect):
     def __init__(self, value: int):
         super().__init__("Bolster", value=value, stack=True, type="buff")
-        self.triggers = [TriggerType.ON_DAMAGE_TAKEN, TriggerType.TURN_END]
+        self.triggers = [TriggerWhen.ON_DAMAGE_TAKEN, TriggerWhen.TURN_END]
 
-    def on_trigger(self, trigger_type: TriggerType, target: Any) -> None:
-        if trigger_type == TriggerType.TURN_END:
+    def on_trigger(self, trigger_when: TriggerWhen, target: Any) -> None:
+        if trigger_when == TriggerWhen.TURN_END:
             self.diminish()
 
 
 class Burn(StatusEffect):
     def __init__(self, value: int):
         super().__init__("Burn", value=value, stack=True, type="debuff")
-        self.triggers = [TriggerType.TURN_START]
+        self.triggers = [TriggerWhen.TURN_START]
 
-    def on_trigger(self, trigger_type: TriggerType, target: Any) -> None:
-        if trigger_type == TriggerType.TURN_START:
+    def on_trigger(self, trigger_when: TriggerWhen, target: Any) -> None:
+        if trigger_when == TriggerWhen.TURN_START:
             if self.value >= 3:
                 damage = self.value * 4
                 target.take_damage(damage)
@@ -135,10 +135,10 @@ class StatusEffectManager:
         else:
             self.effects.append(effect)
 
-    def trigger_effects(self, trigger_type: TriggerType, target: Any) -> None:
+    def trigger_effects(self, trigger_when: TriggerWhen, target: Any) -> None:
         for effect in list(self.effects):
-            if trigger_type in effect.triggers:
-                effect.on_trigger(trigger_type, target)
+            if trigger_when in effect.triggers:
+                effect.on_trigger(trigger_when, target)
             if effect.is_expired():
                 self.effects.remove(effect)
 

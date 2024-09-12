@@ -1,5 +1,7 @@
 # TODO
 
+# Warn me if i have # BUG in my code somewhere
+
 ## Bugs
 - [ ] BUG: Monsters'i block needs to go to 0
 

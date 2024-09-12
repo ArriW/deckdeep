@@ -3,6 +3,7 @@ from deckdeep.monster import Monster
 import random
 from typing import Dict
 import math
+from deckdeep.custom_types import TriggerWhen
 
 
 class MonsterGroup:
@@ -18,8 +19,14 @@ class MonsterGroup:
         if len(self.monsters) == 1:
             monster.selected = True
 
+    def has_alive_monsters(self) -> bool:
+        return any(monster.is_alive() for monster in self.monsters)
+
+    def alive_monsters(self) -> List[Monster]:
+        return [m for m in self.monsters if m.is_alive() and not m.is_dying]
+
     def _update_selection(self):
-        alive_monsters = [m for m in self.monsters if m.is_alive() and not m.is_dying]
+        alive_monsters = self.alive_monsters()
         if not alive_monsters:
             self.selected_index = 0
             return
@@ -149,14 +156,16 @@ class MonsterGroup:
         monster_group.selected_index = data["selected_index"]
         return monster_group
 
-    def apply_status_effects(self):
+    def apply_status_effects(self, trigger_when: TriggerWhen):
         for monster in self.monsters:
-            monster.apply_status_effects()
+            monster.apply_status_effects(trigger_when)
 
     def execute_actions(self, player):
         results = []
         for monster in self.monsters:
             if monster.is_alive():
+                monster.apply_status_effects(TriggerWhen.BEFORE_ATTACK)
                 result = monster.execute_action(player)
+                monster.apply_status_effects(TriggerWhen.AFTER_ATTACK)
                 results.append(result)
         return results

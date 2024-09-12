@@ -8,7 +8,10 @@ if TYPE_CHECKING:
 class GameState(Enum):
     MAIN_MENU = auto()
     NODE_SELECTION = auto()
-    COMBAT = auto()
+    COMBAT_START = auto()
+    COMBAT_PLAYER_TURN = auto()
+    COMBAT_MONSTER_TURN = auto()
+    COMBAT_END = auto()
     EVENT = auto()
     REST_SITE = auto()
     TREASURE_ROOM = auto()
@@ -16,6 +19,7 @@ class GameState(Enum):
     GAME_OVER = auto()
     DECK_VIEW = auto()
     RELIC_VIEW = auto()
+    CARD_SELECT = auto()
 
 def state_handler(state: GameState):
     def decorator(func):
@@ -55,20 +59,32 @@ class GameStateMachine:
             GameState.MAIN_MENU: [
                 ("Start Game", GameState.NODE_SELECTION),
                 ("Load Game", GameState.NODE_SELECTION),
-                ("Enter Combat", GameState.COMBAT),
-                ("Start Game", GameState.COMBAT),  # Add this line
+                ("Enter Combat", GameState.COMBAT_START),
+                ("Start Game", GameState.COMBAT_START),
             ],
             GameState.NODE_SELECTION: [
-                ("Enter Combat", GameState.COMBAT),
+                ("Enter Combat", GameState.COMBAT_START),
                 ("Enter Event", GameState.EVENT),
                 ("Enter Rest Site", GameState.REST_SITE),
                 ("Enter Treasure Room", GameState.TREASURE_ROOM),
             ],
-            GameState.COMBAT: [
-                ("Victory", GameState.VICTORY_SCREEN),
-                ("Defeat", GameState.GAME_OVER),
+            GameState.COMBAT_START: [
+                ("Start Player Turn", GameState.COMBAT_PLAYER_TURN),
+            ],
+            GameState.COMBAT_PLAYER_TURN: [
+                ("End Player Turn", GameState.COMBAT_MONSTER_TURN),
                 ("View Deck", GameState.DECK_VIEW),
                 ("View Relics", GameState.RELIC_VIEW),
+                ("Combat Completed", GameState.COMBAT_END),  # Changed from NODE_SELECTION to COMBAT_END
+            ],
+            GameState.COMBAT_MONSTER_TURN: [
+                ("End Combat", GameState.COMBAT_END),  # Changed from COMBAT_END to COMBAT_START
+                ("Next Combat Round", GameState.COMBAT_START),
+            ],
+            GameState.COMBAT_END: [
+                ("Next Combat Round", GameState.COMBAT_START),
+                ("Victory", GameState.CARD_SELECT),  # Changed from VICTORY_SCREEN to CARD_SELECT
+                ("Defeat", GameState.GAME_OVER),
                 ("Player Died", GameState.GAME_OVER),
             ],
             GameState.EVENT: [
@@ -82,16 +98,20 @@ class GameStateMachine:
             ],
             GameState.VICTORY_SCREEN: [
                 ("Continue", GameState.NODE_SELECTION),
-                ("Continue to Next Node", GameState.NODE_SELECTION),  # Add this line
+                ("Continue to Next Node", GameState.NODE_SELECTION),
             ],
             GameState.GAME_OVER: [
                 ("Game Over", GameState.MAIN_MENU),
             ],
             GameState.DECK_VIEW: [
-                ("Return to Combat", GameState.COMBAT),
+                ("Return to Combat", GameState.COMBAT_PLAYER_TURN),
             ],
             GameState.RELIC_VIEW: [
-                ("Return to Combat", GameState.COMBAT),
+                ("Return to Combat", GameState.COMBAT_PLAYER_TURN),
+            ],
+            GameState.CARD_SELECT: [
+                ("Card Selected", GameState.NODE_SELECTION),
+                ("Skip Card", GameState.NODE_SELECTION),
             ],
         }
         self._register_handlers()

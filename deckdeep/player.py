@@ -92,6 +92,10 @@ class Player:
         if self.deck and len(self.hand) < self.hand_limit:
             self.hand.append(self.deck.pop())
 
+    def draw_hand(self):
+        for _ in range(self.cards_per_turn):
+            self.draw_card()
+
     def shuffle_deck(self):
         self.deck.extend(self.discard_pile)
         self.discard_pile.clear()
@@ -103,6 +107,7 @@ class Player:
     def play_card(self, card: Card, monster_group) -> int:
         score = 0
         if self.can_play_card(card):
+            self.apply_status_effects(TriggerWhen.BEFORE_ATTACK)
             self.bonus_damage += card.bonus_damage
             total_damage = card.calculate_total_damage(self.bonus_damage, self.strength)
 
@@ -135,6 +140,8 @@ class Player:
             else:
                 self.discard_pile.append(card)
             self.hand.remove(card)
+            self.apply_status_effects(TriggerWhen.AFTER_ATTACK)
+            self.apply_status_effects(TriggerWhen.ON_DAMAGE_DEALT)
         return score
 
     def apply_card_effects(self, card: Card, monster):
@@ -169,6 +176,7 @@ class Player:
         self.shield += amount
 
     def take_damage(self, damage: int) -> int:
+        self.apply_status_effects(TriggerWhen.ON_DAMAGE_TAKEN)
         if random.random() < self.dodge_chance:
             return 0
 
@@ -217,8 +225,8 @@ class Player:
         self.deck.extend(self.exhaust_pile)
         self.exhaust_pile.clear()
 
-    def apply_status_effects(self):
-        self.status_effects.trigger_effects(TriggerType.TURN_START, self)
+    def apply_status_effects(self, trigger_when: TriggerWhen):
+        self.status_effects.trigger_effects(trigger_when, self)
 
     def reset_energy(self):
         self.energy = self.max_energy
@@ -260,6 +268,10 @@ class Player:
     def discard_card(self, index: int):
         if 0 <= index < len(self.hand):
             self.discard_pile.append(self.hand.pop(index))
+
+    def discard_hand(self):
+        self.discard_pile.extend(self.hand)
+        self.hand.clear()
 
     def to_dict(self) -> Dict:
         return {
