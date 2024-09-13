@@ -1,61 +1,68 @@
-import graphviz
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from deckdeep.game import Game
-from deckdeep.game_state import GameState, GameStateMachine
-from deckdeep.logger import setup_game_logger
+from graphviz import Digraph
+from .game_state import GameState, TransitionReason, GameStateMachine
 
-def create_state_diagram(game_state_machine: GameStateMachine):
-    dot = graphviz.Digraph(comment='DeckDeep Game State Machine')
-    dot.attr(rankdir='TB', size='16,20', dpi='300', fontsize='16', overlap='false', splines='ortho')
+def create_state_machine_diagram():
+    dot = Digraph(comment='Game State Machine', format='png')
+    dot.attr(rankdir='TB', size='40,60', dpi='300', overlap='false', splines='ortho')
+    dot.attr('node', shape='rectangle', style='rounded,filled', fontname='Arial', fontsize='14', height='0.6', width='2.5')
+    dot.attr('edge', fontname='Arial', fontsize='10', len='2')
 
-    # Define node styles
-    dot.attr('node', shape='rectangle', style='filled', fontname='Arial', fontsize='14', width='2', height='1')
+    # Color scheme
+    colors = {
+        'menu': '#FFB3BA',  # Light pink
+        'combat': '#BAFFC9',  # Light green
+        'exploration': '#BAE1FF',  # Light blue
+        'other': '#FFFFBA',  # Light yellow
+    }
 
-    state_info = game_state_machine.get_state_info()
+    # Group and color-code states
+    with dot.subgraph(name='cluster_menu') as c:
+        c.attr(label='Menu States', style='filled', color=colors['menu'])
+        c.node('MAIN_MENU')
+        c.node('DECK_VIEW')
+        c.node('RELIC_VIEW')
+        c.node('CARD_SELECT')
 
-    # Define the main states
-    states = {state.name: 'lightgray' for state in GameState}
-    states.update({
-        'MAIN_MENU': 'lightblue',
-        'NODE_SELECTION': 'lightgreen',
-        'COMBAT': 'lightpink',
-        'EVENT': 'lightyellow',
-        'REST_SITE': 'lightcyan',
-        'TREASURE_ROOM': 'gold',
-        'VICTORY_SCREEN': 'palegreen',
-        'GAME_OVER': 'lightcoral',
-        'DECK_VIEW': 'lavender',
-        'RELIC_VIEW': 'lavender'
-    })
+    with dot.subgraph(name='cluster_combat') as c:
+        c.attr(label='Combat States', style='filled', color=colors['combat'])
+        c.node('COMBAT_START')
+        c.node('COMBAT_PLAYER_TURN')
+        c.node('COMBAT_MONSTER_TURN')
+        c.node('COMBAT_END')
 
-    # Add nodes
-    for state, color in states.items():
-        dot.node(state, fillcolor=color)
+    with dot.subgraph(name='cluster_exploration') as c:
+        c.attr(label='Exploration States', style='filled', color=colors['exploration'])
+        c.node('NODE_SELECTION')
+        c.node('EVENT')
+        c.node('REST_SITE')
+        c.node('TREASURE_ROOM')
+
+    # Other states
+    dot.node('VICTORY_SCREEN', fillcolor=colors['other'])
+    dot.node('GAME_OVER', fillcolor=colors['other'])
+
+    # Create a dummy Game instance and GameStateMachine
+    class DummyGame:
+        pass
+    state_machine = GameStateMachine(DummyGame())
 
     # Add edges
-    for from_state, transitions in state_info['transitions'].items():
-        for transition in transitions:
-            to_state = transition['to']
-            label = transition['description']
-            dot.edge(from_state, to_state, label=label)
+    for from_state, transitions in state_machine.transition_map.items():
+        for reason, to_state in transitions:
+            dot.edge(from_state.name, to_state.name, label=reason.value)
 
-    # Add initial state
-    dot.node('START', shape='circle', fillcolor='black', style='filled', fontcolor='white', width='0.5')
-    dot.edge('START', 'MAIN_MENU')
+    # Add a simplified legend
+    with dot.subgraph(name='cluster_legend') as legend:
+        legend.attr(label='Legend', rankdir='LR', style='filled', color='lightgrey')
+        legend.node('state_types', 'State Types:', shape='plaintext')
+        legend.node('menu_legend', 'Menu', style='filled', fillcolor=colors['menu'])
+        legend.node('combat_legend', 'Combat', style='filled', fillcolor=colors['combat'])
+        legend.node('exploration_legend', 'Exploration', style='filled', fillcolor=colors['exploration'])
+        legend.node('other_legend', 'Other', style='filled', fillcolor=colors['other'])
 
     # Save the diagram
-    output_path = 'docs/state_machine_diagram'
-    dot.render(output_path, format='png', cleanup=True)
-    print(f"State machine diagram generated at {output_path}.png")
+    dot.render('game_state_machine', cleanup=True)
+    print("Enhanced state machine diagram saved as 'game_state_machine.png'")
 
 if __name__ == "__main__":
-    # Setup a mock logger
-    logger = setup_game_logger(name="deckdeep_logger", log_file="deckdeep.log")
-    
-    # Create a Game instance with mock screen and logger
-    game = Game(None, logger)
-    
-    # Create the state diagram
-    create_state_diagram(game.state_machine)
+    create_state_machine_diagram()
