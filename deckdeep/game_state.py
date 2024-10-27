@@ -74,6 +74,24 @@ def renderer(state: GameState):
         return wrapper
     return decorator
 
+def on_enter(state: GameState):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            return func(self, *args, **kwargs)
+        wrapper.on_enter_state = state
+        return wrapper
+    return decorator
+
+def on_exit(state: GameState):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            return func(self, *args, **kwargs)
+        wrapper.on_exit_state = state
+        return wrapper
+    return decorator
+
 class GameStateMachine:
     def __init__(self, game: "Game"):
         self.game = game
@@ -81,6 +99,8 @@ class GameStateMachine:
         self.state_handlers: Dict[GameState, Callable] = {}
         self.key_handlers: Dict[GameState, Callable] = {}
         self.renderers: Dict[GameState, Callable] = {}
+        self.on_enter_handlers: Dict[GameState, Callable] = {}
+        self.on_exit_handlers: Dict[GameState, Callable] = {}
         self.transition_map: Dict[GameState, List[Tuple[TransitionReason, GameState]]] = {
             GameState.MAIN_MENU: [
                 (TransitionReason.START_GAME, GameState.NODE_SELECTION),
@@ -149,13 +169,28 @@ class GameStateMachine:
                 self.key_handlers[attr.key_handled_state] = attr
             if hasattr(attr, 'rendered_state'):
                 self.renderers[attr.rendered_state] = attr
+            if hasattr(attr, 'on_enter_state'):
+                self.on_enter_handlers[attr.on_enter_state] = attr
+            if hasattr(attr, 'on_exit_state'):
+                self.on_exit_handlers[attr.on_exit_state] = attr
 
     def transition_to(self, new_state: GameState, transition_reason: TransitionReason):
         valid_transitions = self.transition_map.get(self.current_state, [])
         for reason, state in valid_transitions:
             if state == new_state and reason == transition_reason:
+                # Execute exit action for current state
+                exit_handler = self.on_exit_handlers.get(self.current_state)
+                if exit_handler:
+                    exit_handler()
+
                 self.game.logger.info(f"Transitioning from {self.current_state} to {new_state}: {transition_reason.value}", category="STATE")
                 self.current_state = new_state
+
+                # Execute enter action for new state
+                enter_handler = self.on_enter_handlers.get(new_state)
+                if enter_handler:
+                    enter_handler()
+
                 return
         raise ValueError(f"Invalid transition from {self.current_state} to {new_state} with reason: {transition_reason.value}")
 

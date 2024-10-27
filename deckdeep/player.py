@@ -210,11 +210,13 @@ class Player:
 
         return actual_damage
 
+    def start_turn(self):
+        self.shield = 0
+
     def end_turn(self):
         self.energy = self.max_energy
         self.bonus_energy = 0
         self.bonus_damage = 0
-        self.shield = 0
         self.discard_pile.extend(self.hand)
         self.hand.clear()
         for _ in range(self.cards_per_turn):
@@ -222,6 +224,10 @@ class Player:
         self.status_effects.trigger_effects(TriggerType.TURN_END, self)
 
     def end_combat(self):
+        self.shield = 0 
+        self.bonus_energy = 0
+        self.bonus_damage = 0 
+        self.reset_energy()
         self.deck.extend(self.exhaust_pile)
         self.exhaust_pile.clear()
 

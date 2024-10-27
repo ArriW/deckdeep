@@ -1,6 +1,6 @@
 import pygame
 import sys
-from deckdeep.game_state import GameState, GameStateMachine, TransitionReason, state_handler, key_handler, renderer
+from deckdeep.game_state import GameState, GameStateMachine, TransitionReason, state_handler, key_handler, renderer, on_enter, on_exit
 from deckdeep.assets import GameAssets
 from deckdeep.player import Player
 from deckdeep.monster_group import MonsterGroup
@@ -147,60 +147,39 @@ class Game:
             self.player,
         )
 
-    @state_handler(GameState.COMBAT_START)
-    def handle_combat_start(self):
+    @on_enter(GameState.COMBAT_START)
+    def on_enter_combat_start(self):
         self.player.reset_energy()
         self.player.draw_hand()
         self.player.apply_status_effects(TriggerWhen.COMBAT_START)
         self.monster_group.apply_status_effects(TriggerWhen.COMBAT_START)
-        
+        self.logger.info("Entered combat start state", category="COMBAT")
+
+    @state_handler(GameState.COMBAT_START)
+    def handle_combat_start(self):
+        # is this needed?
         if self.check_combat_end():
             return
-        
         self.state_machine.transition_to(GameState.COMBAT_PLAYER_TURN, TransitionReason.START_PLAYER_TURN)
+
+    @on_enter(GameState.COMBAT_PLAYER_TURN)
+    def on_enter_combat_player_turn(self):
+        self.player.apply_status_effects(TriggerWhen.TURN_START)
 
     @state_handler(GameState.COMBAT_PLAYER_TURN)
     def handle_combat_player_turn(self):
-        self.player.apply_status_effects(TriggerWhen.TURN_START)
-        # Player actions are handled by key presses, so we don't need to do anything here
         if self.check_combat_end():
             return
-        # The transition to monster turn will be handled by key press (SPACE)
 
-    @state_handler(GameState.COMBAT_MONSTER_TURN)
-    def handle_combat_monster_turn(self):
-        self.monster_group.apply_status_effects(TriggerWhen.TURN_START)
-        self.monster_group.execute_actions(self.player)
-        self.player.apply_status_effects(TriggerWhen.TURN_END)
-        self.monster_group.apply_status_effects(TriggerWhen.TURN_END)
-        
-        self.monster_group.remove_dead_monsters()
-        
-        if self.check_combat_end():
-            return
-        
-        self.state_machine.transition_to(GameState.COMBAT_PLAYER_TURN, TransitionReason.NEXT_COMBAT_ROUND)
-
-    def check_combat_end(self) -> bool:
-        if not self.monster_group.has_alive_monsters() or self.player.health.value <= 0:
-            self.state_machine.transition_to(GameState.COMBAT_END, TransitionReason.COMBAT_COMPLETED)
-            return True
-        return False
+    @on_exit(GameState.COMBAT_PLAYER_TURN)
+    def on_exit_combat_player_turn(self):
+        self.player.end_turn()
 
     @key_handler(GameState.COMBAT_PLAYER_TURN)
     def handle_combat_player_turn_key_press(self, key_name: str):
         if key_name == "SPACE":
-            # The end turn player method needs to be broken
-            # into start_turn and end turn
-            self.player.end_turn()
             if self.check_combat_end():
                 return
-
-            # TODO trigger status effect manager?
-            # TODO self.player.apply_status_effects(TriggerWhen.TURN_END)
-            # TODO discard cards ?
-            
-            
             self.state_machine.transition_to(GameState.COMBAT_MONSTER_TURN, TransitionReason.END_PLAYER_TURN)
         elif key_name in ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"]:
             index = ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"].index(key_name)
@@ -229,6 +208,28 @@ class Game:
             self.assets,
             self.played_cards,
         )
+
+    @on_enter(GameState.COMBAT_MONSTER_TURN)
+    def on_enter_combat_monster_turn(self):
+        self.monster_group.apply_status_effects(TriggerWhen.TURN_START)
+
+    @state_handler(GameState.COMBAT_MONSTER_TURN)
+    def handle_combat_monster_turn(self):
+        self.monster_group.execute_actions(self.player)
+        if self.check_combat_end():
+            return
+        
+        self.state_machine.transition_to(GameState.COMBAT_PLAYER_TURN, TransitionReason.NEXT_COMBAT_ROUND)
+
+    @on_exit(GameState.COMBAT_MONSTER_TURN)
+    def on_exit_combat_monster_turn(self):
+        # self.player.apply_status_effects(TriggerWhen.TURN_END) # HACK 
+        self.monster_group.apply_status_effects(TriggerWhen.TURN_END)
+        self.monster_group.remove_dead_monsters()
+
+
+
+ 
 
     @state_handler(GameState.EVENT)
     def handle_event(self):
@@ -483,6 +484,12 @@ class Game:
         
         self.player.increase_max_energy(1, self.current_node.y)
         self.select_next_node()
+
+    def check_combat_end(self) -> bool:
+        if not self.monster_group.has_alive_monsters() or self.player.health.value <= 0:
+            self.state_machine.transition_to(GameState.COMBAT_END, TransitionReason.COMBAT_COMPLETED)
+            return True
+        return False
 
     def select_card(self, mouse_x: int, mouse_y: int):
         card_start_x = (
