@@ -16,6 +16,7 @@ from deckdeep.card import Card
 from deckdeep.events import get_random_event
 from deckdeep.custom_types import TriggerWhen
 import random
+from deckdeep.config import CARD_WIDTH, CARD_SPACING, CARD_HEIGHT
 
 import os
 import json
@@ -178,7 +179,7 @@ class Game:
         if self.check_combat_end():
             return
         
-        self.state_machine.transition_to(GameState.COMBAT_START, TransitionReason.NEXT_COMBAT_ROUND)
+        self.state_machine.transition_to(GameState.COMBAT_PLAYER_TURN, TransitionReason.NEXT_COMBAT_ROUND)
 
     def check_combat_end(self) -> bool:
         if not self.monster_group.has_alive_monsters() or self.player.health.value <= 0:
@@ -189,8 +190,17 @@ class Game:
     @key_handler(GameState.COMBAT_PLAYER_TURN)
     def handle_combat_player_turn_key_press(self, key_name: str):
         if key_name == "SPACE":
+            # The end turn player method needs to be broken
+            # into start_turn and end turn
+            self.player.end_turn()
             if self.check_combat_end():
                 return
+
+            # TODO trigger status effect manager?
+            # TODO self.player.apply_status_effects(TriggerWhen.TURN_END)
+            # TODO discard cards ?
+            
+            
             self.state_machine.transition_to(GameState.COMBAT_MONSTER_TURN, TransitionReason.END_PLAYER_TURN)
         elif key_name in ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"]:
             index = ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"].index(key_name)

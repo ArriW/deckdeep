@@ -262,8 +262,7 @@ class Player:
     def reset_hand(self):
         self.discard_pile.extend(self.hand)
         self.hand.clear()
-        for _ in range(self.cards_per_turn):
-            self.draw_card()
+
 
     def discard_card(self, index: int):
         if 0 <= index < len(self.hand):

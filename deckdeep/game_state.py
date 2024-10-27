@@ -104,7 +104,7 @@ class GameStateMachine:
             ],
             GameState.COMBAT_MONSTER_TURN: [
                 (TransitionReason.COMBAT_COMPLETED, GameState.COMBAT_END),
-                (TransitionReason.NEXT_COMBAT_ROUND, GameState.COMBAT_START),
+                (TransitionReason.NEXT_COMBAT_ROUND, GameState.COMBAT_PLAYER_TURN),
             ],
             GameState.COMBAT_END: [
                 (TransitionReason.NEXT_COMBAT_ROUND, GameState.COMBAT_START),
