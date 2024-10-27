@@ -42,7 +42,7 @@ class Player:
         self.health_gain_on_skip = 5
         self.cards_drawn_per_turn = 5
         self.hp_regain_per_level = 2
-        self.status_effects = StatusEffectManager()
+        self.status_effects_manager = StatusEffectManager()
         self.relics: List[Relic] = []
         self.strength = 0
         self.dodge_chance = 0
@@ -152,11 +152,11 @@ class Player:
         if hasattr(card, "burn") and card.burn > 0:
             monster.status_effects.add_effect(Burn(card.burn))
         if hasattr(card, "bolster") and card.bolster > 0:
-            self.status_effects.add_effect(Bolster(card.bolster))
+            self.status_effects_manager.add_effect(Bolster(card.bolster))
         if hasattr(card, "health_regain") and card.health_regain > 0:
-            self.status_effects.add_effect(HealthRegain(card.health_regain))
+            self.status_effects_manager.add_effect(HealthRegain(card.health_regain))
         if hasattr(card, "energy_bonus") and card.energy_bonus > 0:
-            self.status_effects.add_effect(EnergyBonus(card.energy_bonus))
+            self.status_effects_manager.add_effect(EnergyBonus(card.energy_bonus))
 
     def heal(self, amount: int):
         self.health = Health(min(self.max_health.value, self.health.value + amount))
@@ -182,7 +182,7 @@ class Player:
 
         old_health = self.health.value
 
-        self.status_effects.trigger_effects(TriggerType.ON_DAMAGE_TAKEN, self)
+        self.status_effects_manager.trigger_effects(TriggerType.ON_DAMAGE_TAKEN, self)
 
         # Handle shield absorption
         if self.shield > 0:
@@ -221,7 +221,7 @@ class Player:
         self.hand.clear()
         for _ in range(self.cards_per_turn):
             self.draw_card()
-        self.status_effects.trigger_effects(TriggerType.TURN_END, self)
+        self.status_effects_manager.trigger_effects(TriggerType.TURN_END, self)
 
     def end_combat(self):
         self.shield = 0 
@@ -232,7 +232,10 @@ class Player:
         self.exhaust_pile.clear()
 
     def apply_status_effects(self, trigger_when: TriggerWhen):
-        self.status_effects.trigger_effects(trigger_when, self)
+        self.status_effects_manager.trigger_effects(trigger_when, self)
+
+    def clear_effects(self):
+        self.status_effects_manager.clear_debuff()
 
     def reset_energy(self):
         self.energy = self.max_energy
@@ -298,7 +301,7 @@ class Player:
             "health_gain_on_skip": self.health_gain_on_skip,
             "cards_drawn_per_turn": self.cards_drawn_per_turn,
             "hp_regain_per_level": self.hp_regain_per_level,
-            "status_effects": self.status_effects.to_dict(),
+            "status_effects": self.status_effects_manager.to_dict(),
             "relics": [relic.to_dict() for relic in self.relics],
             "strength": self.strength,
             "dodge_chance": self.dodge_chance,
@@ -334,7 +337,7 @@ class Player:
         player.health_gain_on_skip = data["health_gain_on_skip"]
         player.cards_drawn_per_turn = data["cards_drawn_per_turn"]
         player.hp_regain_per_level = data["hp_regain_per_level"]
-        player.status_effects = StatusEffectManager.from_dict(data["status_effects"])
+        player.status_effects_manager = StatusEffectManager.from_dict(data["status_effects"])
         player.relics = [Relic.from_dict(relic_data) for relic_data in data["relics"]]
         player.strength = data["strength"]
         player.dodge_chance = data["dodge_chance"]
@@ -402,4 +405,4 @@ class Player:
         return None
 
     def diminish_effects_at_turn_start(self):
-        self.status_effects.trigger_effects(TriggerType.TURN_START, self)
+        self.status_effects_manager.trigger_effects(TriggerType.TURN_START, self)

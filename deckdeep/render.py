@@ -443,7 +443,7 @@ def render_player(
     offset = random.randint(-player.shake, player.shake)
 
     # Render status effects above the player
-    status_effects = player.status_effects.effects.copy()
+    status_effects = player.status_effects_manager.effects.copy()
 
     # HACK should make these more formal status effects so we don't have to attempt them like this
     if player.bonus_damage > 0:

@@ -118,7 +118,7 @@ class InfectiousBite(Ability):
         target.take_damage(damage)
         bleed_damage = max(damage, 1)
         bleed = Bleed(bleed_damage)
-        target.status_effects.add_effect(bleed)
+        target.status_effects_manager.add_effect(bleed)
         user.apply_status_effects(TriggerWhen.AFTER_ATTACK)
         user.apply_status_effects(TriggerWhen.ON_DAMAGE_DEALT)
         return f"{user.name} inflicts an Infectious Bite, causing {bleed_damage} Bleed!"

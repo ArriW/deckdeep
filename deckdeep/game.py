@@ -157,7 +157,6 @@ class Game:
 
     @state_handler(GameState.COMBAT_START)
     def handle_combat_start(self):
-        # is this needed?
         if self.check_combat_end():
             return
         self.state_machine.transition_to(GameState.COMBAT_PLAYER_TURN, TransitionReason.START_PLAYER_TURN)
@@ -168,6 +167,7 @@ class Game:
 
     @state_handler(GameState.COMBAT_PLAYER_TURN)
     def handle_combat_player_turn(self):
+        self.monster_group.remove_dead_monsters()
         if self.check_combat_end():
             return
 
@@ -372,7 +372,7 @@ class Game:
     def handle_combat_end(self):
         self.player.apply_status_effects(TriggerWhen.COMBAT_END)
         self.monster_group.apply_status_effects(TriggerWhen.COMBAT_END)
-        
+        self.player.clear_effects()
         if not self.monster_group.has_alive_monsters():
             self.logger.info("Combat victory!", category="COMBAT")
             if self.current_node.node_type == NodeType.BOSS:
