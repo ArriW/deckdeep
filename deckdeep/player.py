@@ -40,7 +40,7 @@ class Player:
         self.shake = 0
         self.health_gain_on_skip = 5
         self.cards_drawn_per_turn = 5
-        self.hp_regain_per_level = 2
+        self.hp_regain_per_level = 3
         self.status_effects = StatusEffectManager()
         self.relics: List[Relic] = []
         self.strength = 0

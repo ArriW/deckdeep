@@ -1,0 +1,6 @@
+{
+  "enabledMcpjsonServers": [
+    "ludo"
+  ],
+  "enableAllProjectMcpServers": true
+}

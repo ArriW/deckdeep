@@ -3,9 +3,9 @@ import plotly.graph_objects as go
 
 
 def calculate_baseline_monster_power(level):
-    base_health = 12 + math.log(level + 1, 3) * 8
-    base_damage = 6 + math.log(level + 1, 3) * 3
-    base_spell_power = 6 + math.log(level + 1, 3) * 3
+    base_health = 15 + math.log(level + 1, 3) * 8
+    base_damage = 7 + math.log(level + 1, 3) * 3
+    base_spell_power = 7 + math.log(level + 1, 3) * 3
 
     # Assuming average multipliers for monster types
     avg_health_mult = 1.0

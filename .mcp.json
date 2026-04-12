@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "ludo": {
+      "type": "http",
+      "url": "https://mcp.ludo.ai/mcp",
+      "headers": {
+        "Authentication": "ApiKey b8c38f21-04c0-4ea9-a758-98274e92629a"
+      }
+    }
+  }
+}

@@ -97,7 +97,7 @@ class MonsterGroup:
         def scaling_factor(lvl):
             return 1 + math.log(lvl + 1, 2)  # Logarithmic scaling
 
-        base_power = 15
+        base_power = 18
         target_power = int(base_power * scaling_factor(level))
         target_power = int(target_power * random.uniform(0.9, 1.1))
 

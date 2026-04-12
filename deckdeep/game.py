@@ -704,7 +704,9 @@ class Game:
 
         self.player.end_turn()
         self.apply_relic_effects(TriggerWhen.END_OF_COMBAT)
-        self.player.heal(self.player.hp_regain_per_level)
+        # Scale healing with stage progression: 3 HP at stage 1, increasing with difficulty
+        scaled_heal = self.player.hp_regain_per_level + (max(0, (self.stage - 1) // 2))
+        self.player.heal(scaled_heal)
         self.player.reset_energy()
         self.player.status_effects.clear_effects()
         self.logger.info(
@@ -761,9 +763,16 @@ class Game:
 
     def next_stage(self):
         self.stage += 1
+        # Award bonus health for clearing boss stage
+        assert self.player is not None, "Player is None in next_stage"
+        boss_clear_bonus = 5
+        self.player.increase_max_health(boss_clear_bonus)
+        self.logger.info(
+            f"Boss stage cleared! Max health increased by {boss_clear_bonus}",
+            category="PLAYER",
+        )
         new_relic = self.relic_selection_screen(self.assets)
         if new_relic:
-            assert self.player is not None, "Player is None in next_stage"
             self.logger.info(self.player.add_relic(new_relic), category="PLAYER")
             self.logger.info(f"New relic acquired: {new_relic.name}", category="PLAYER")
         self.generate_node_tree()
@@ -946,7 +955,11 @@ class Game:
         raise ValueError("No node selected")
 
     def victory_screen(self, assets: GameAssets) -> Optional[Card]:
-        new_cards = Card.generate_card_pool(3)
+        # Scale card pool size with progression: 3 cards early, up to 4 at later levels
+        num_cards = 3
+        if self.current_node and self.current_node.true_level >= 15:
+            num_cards = 4
+        new_cards = Card.generate_card_pool(num_cards)
         selected_card = -1
         running = True
 
