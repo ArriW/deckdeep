@@ -58,6 +58,7 @@ from deckdeep.render import (
     render_keybinds,
 )
 from deckdeep.status_effect import TriggerType
+from deckdeep.animation import HitFeedback, AttackAnimation, DamageNumber
 
 
 def get_key_name(key: int) -> str:
@@ -225,6 +226,10 @@ class Game:
         self.viewing_relics = False
         self.monster_intentions: List[str] = []
         self.played_cards: List[Card] = []
+        # Enhanced animation and visual feedback system
+        self.hit_feedback = HitFeedback()
+        self.attack_animations: List[AttackAnimation] = []
+        self.damage_numbers: List[DamageNumber] = []
 
     def run(self):
         while True:
@@ -602,6 +607,9 @@ class Game:
                 f"Player played card: {card.name} on {target_monster.name}",
                 category="COMBAT",
             )
+            # Add visual feedback for card play/hit
+            self.hit_feedback.add_hit_flash(duration=150, intensity=0.5)
+            self.hit_feedback.add_screen_shake(duration=200, intensity=0.3)
             self.selected_card = -1
             self.update_combat()
 

@@ -134,6 +134,40 @@ ALL_RELICS = {
         "effect": lambda p, _: setattr(p, "extra_turn_chance", 0.12),
         "trigger_when": TriggerWhen.PERMANENT,
     },
+    # New relics from Agent 3
+    "Void Stone": {
+        "description": "Your attacks deal 2 additional damage.",
+        "effect": lambda p, g: p.increase_strength(2),
+        "trigger_when": TriggerWhen.PERMANENT,
+    },
+    "Plague Amulet": {
+        "description": "Attacks inflict 1 extra Bleed.",
+        "effect": lambda p, _: setattr(p, "extra_bleed", getattr(p, "extra_bleed", 0) + 1),
+        "trigger_when": TriggerWhen.PERMANENT,
+    },
+    "Sentinel's Resolve": {
+        "description": "Gain 15 max HP and 1 extra shield per turn.",
+        "effect": lambda p, g: (
+            p.increase_max_health(15),
+            p.add_block(1),
+        ),
+        "trigger_when": TriggerWhen.PERMANENT,
+    },
+    "Necrotic Focus": {
+        "description": "Heal 3 HP when you deal Bleed damage.",
+        "effect": lambda p, _: setattr(p, "bleed_heal", 3),
+        "trigger_when": TriggerWhen.PERMANENT,
+    },
+    "Eldritch Tome": {
+        "description": "Draw 1 additional card at the start of each turn.",
+        "effect": lambda p, _: p.increase_cards_per_turn(1),
+        "trigger_when": TriggerWhen.PERMANENT,
+    },
+    "Golem's Heart": {
+        "description": "Gain 20 max HP.",
+        "effect": lambda p, g: p.increase_max_health(20),
+        "trigger_when": TriggerWhen.PERMANENT,
+    },
 }
 
 

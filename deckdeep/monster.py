@@ -357,6 +357,80 @@ class Enfeeblement(Ability):
         return max(1, user.spell_power // 5) * 3
 
 
+# New abilities for Agent 3 content
+class PlagueSpread(Ability):
+    """Plague Rat ability - spreads disease and deals ongoing damage"""
+    def __init__(self, name: str, probability: float):
+        super().__init__(name, probability, [IconType.BLEED])
+
+    def use(self, user: "Monster", target: "Player") -> str:
+        damage = self.apply_weakness(user, max(2, user.damage // 2))
+        target.take_damage(damage)
+        # Inflict bleed status
+        target.status_effects.add_effect(Bleed(3, 2))
+        return f"{user.name} spreads plague! {damage} damage and 3 Bleed applied!"
+
+    def calculate_power_contribution(self, user):
+        return user.damage // 2 + 6
+
+
+class DeathCurse(Ability):
+    """Lich ability - deals damage over time"""
+    def __init__(self, name: str, probability: float):
+        super().__init__(name, probability, [IconType.MAGIC])
+
+    def use(self, user: "Monster", target: "Player") -> str:
+        damage = user.spell_power
+        target.take_damage(damage)
+        target.status_effects.add_effect(Bleed(2, 3))
+        return f"{user.name} casts Death Curse! {damage} damage and 2 Bleed!"
+
+    def calculate_power_contribution(self, user):
+        return user.spell_power + 6
+
+
+class VoidRift(Ability):
+    """Void Aberration ability - disrupts and damages"""
+    def __init__(self, name: str, probability: float):
+        super().__init__(name, probability, [IconType.ATTACK, IconType.MAGIC])
+
+    def use(self, user: "Monster", target: "Player") -> str:
+        damage = self.apply_weakness(user, int(user.damage * 1.2))
+        target.take_damage(damage)
+        return f"{user.name} tears a Void Rift! {damage} damage!"
+
+    def calculate_power_contribution(self, user):
+        return int(user.damage * 1.2)
+
+
+class StoneForm(Ability):
+    """Stone Golem ability - increases defense temporarily"""
+    def __init__(self, name: str, probability: float):
+        super().__init__(name, probability, [IconType.BUFF])
+
+    def use(self, user: "Monster", target: "Player") -> str:
+        shield_amount = int(user.max_health * 0.3)
+        user.shields = min(user.shields + shield_amount, user.max_health)
+        return f"{user.name} hardens! Gained {shield_amount} shields!"
+
+    def calculate_power_contribution(self, user):
+        return int(user.max_health * 0.3)
+
+
+class SentinelStrike(Ability):
+    """Sentinel ability - precise powerful attack"""
+    def __init__(self, name: str, probability: float):
+        super().__init__(name, probability, [IconType.ATTACK])
+
+    def use(self, user: "Monster", target: "Player") -> str:
+        damage = self.apply_weakness(user, int(user.damage * 1.4))
+        target.take_damage(damage)
+        return f"{user.name} strikes with precision! {damage} damage!"
+
+    def calculate_power_contribution(self, user):
+        return int(user.damage * 1.4)
+
+
 class MonsterType:
     def __init__(
         self,
@@ -484,6 +558,69 @@ class Monster:
                 FireBreath("Fire Breath", 0.3),
                 Corruption("Corruption", 0.4),
                 LifeDrain("Life Drain", 0.3),
+            ],
+        ),
+        # New enemies from Agent 3
+        MonsterType(
+            "sentinel",
+            "S",
+            1.0,
+            1.3,
+            0.6,
+            0.7,
+            [
+                SentinelStrike("Precision Strike", 0.6),
+                BasicAttack("Spear Thrust", 0.4),
+            ],
+        ),
+        MonsterType(
+            "plague_rat",
+            "PR",
+            0.6,
+            0.9,
+            0.4,
+            0.8,
+            [
+                PlagueSpread("Plague Spread", 0.5),
+                SneakAttack("Sneak Attack", 0.4),
+                BasicAttack("Bite", 0.3),
+            ],
+        ),
+        MonsterType(
+            "lich",
+            "L",
+            1.1,
+            0.8,
+            1.4,
+            0.6,
+            [
+                DeathCurse("Death Curse", 0.5),
+                MagicMissile("Magic Missile", 0.3),
+                LifeDrain("Life Drain", 0.2),
+            ],
+        ),
+        MonsterType(
+            "void_aberration",
+            "VA",
+            1.2,
+            1.2,
+            1.1,
+            0.5,
+            [
+                VoidRift("Void Rift", 0.5),
+                BasicAttack("Tentacle Strike", 0.5),
+            ],
+        ),
+        MonsterType(
+            "stone_golem",
+            "SG",
+            1.6,
+            0.9,
+            0.3,
+            0.6,
+            [
+                StoneForm("Stone Form", 0.4),
+                BasicAttack("Stone Smash", 0.6),
             ],
         ),
     ]
@@ -713,6 +850,9 @@ class Monster:
 
         # Apply remaining damage to health
         self.health = max(Health(0), self.health - damage)
+
+        # Visual feedback: screen shake and flash on damage taken
+        self.shake = max(self.shake, 5)
 
     def deal_damage(self, base_damage: int, num_attacks: int = 1) -> int:
         total_damage = 0

@@ -179,6 +179,17 @@ class Card:
             Card("Double Strike", 1, Rarity.UNCOMMON, damage=3, num_attacks=2),
             Card("Triple Slash", 2, Rarity.RARE, damage=5, num_attacks=3),
             Card("Flurry of Blows", 1, Rarity.COMMON, damage=2, num_attacks=2),
+            # New cards from Agent 3 - 10 new synergy cards
+            Card("Plague Wave", 3, Rarity.RARE, damage=6, bleed=5, targets_all=True),
+            Card("Necrotic Drain", 2, Rarity.UNCOMMON, damage=7, healing=7, bleed=3),
+            Card("Void Echo", 4, Rarity.RARE, damage=14, bonus_damage=3, targets_all=True),
+            Card("Sentinel Discipline", 2, Rarity.UNCOMMON, shield=12, bolster=2, damage=4),
+            Card("Corrupted Wish", 3, Rarity.UNIQUE, damage=15, health_cost=8, card_draw=2),
+            Card("Metamorphosis", 5, Rarity.UNIQUE, bonus_damage=8, health_regain=10, card_draw=1),
+            Card("Spectral Assault", 3, Rarity.RARE, damage=10, num_attacks=2, bleed=2),
+            Card("Stone Prison", 4, Rarity.RARE, shield=25, weakness=3, targets_all=True),
+            Card("Eternal Hunger", 2, Rarity.UNCOMMON, damage=9, health_regain=3, bleed=4),
+            Card("Eldritch Wisdom", 3, Rarity.UNCOMMON, card_draw=3, bonus_damage=2, health_cost=3),
         ]
         return random.choices(
             card_pool, weights=[card.rarity.value for card in card_pool], k=num_cards

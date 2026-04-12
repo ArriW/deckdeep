@@ -361,6 +361,80 @@ class DarkMerchant(Event):
         return "You decline the mysterious offer and walk away."
 
 
+# New event types from Agent 3
+class NecromancerPact(Event):
+    """Event: A necromancer offers power in exchange for a curse"""
+    def __init__(self):
+        super().__init__(
+            "Necromancer's Pact",
+            "A dark figure offers to strengthen your spells. Gain 3 extra Bleed on all attacks, but add a cursed card to your deck.",
+            [
+                ("Accept the pact", "accept_pact"),
+                ("Decline", "decline"),
+            ],
+        )
+
+    def accept_pact(self, player: Player):
+        setattr(player, "extra_bleed", getattr(player, "extra_bleed", 0) + 3)
+        curse = Card("Curse of Weakness", 99, Rarity.UNCOMMON, health_cost=8)
+        player.deck.append(curse)
+        return "You accepted the Necromancer's Pact. Your attacks now inflict more Bleed, but you added a curse to your deck."
+
+    def decline(self, player: Player):
+        return "You decline the dark offer and move on."
+
+
+class VoidGate(Event):
+    """Event: A mysterious gate offers rewards but with danger"""
+    def __init__(self):
+        super().__init__(
+            "Void Gate",
+            "A shimmering portal appears. You can take 15 damage to gain a powerful relic, or walk away.",
+            [
+                ("Enter the portal", "enter_portal"),
+                ("Walk away", "walk_away"),
+            ],
+        )
+
+    def enter_portal(self, player: Player):
+        if player.health.value > 15:
+            player.take_damage(15)
+            relic = get_relic_by_name("Void Stone")
+            player.relics.append(relic)
+            return f"You gained the '{relic.name}' relic. {relic.description}"
+        return "You feel too weak to enter the portal safely."
+
+    def walk_away(self, player: Player):
+        return "You carefully back away from the ominous portal."
+
+
+class EldritchScholar(Event):
+    """Event: An ancient scholar offers rare cards for a price"""
+    def __init__(self):
+        super().__init__(
+            "Eldritch Scholar",
+            "An ancient scholar offers to teach you forbidden knowledge. Pay 25 HP to gain 2 rare cards.",
+            [
+                ("Learn forbidden knowledge", "learn"),
+                ("Politely refuse", "refuse"),
+            ],
+        )
+
+    def learn(self, player: Player):
+        if player.health.value > 25:
+            player.take_damage(25)
+            new_cards = [
+                Card("Void Echo", 4, Rarity.RARE, damage=14, bonus_damage=3, targets_all=True),
+                Card("Metamorphosis", 5, Rarity.UNIQUE, bonus_damage=8, health_regain=10, card_draw=1),
+            ]
+            player.deck.extend(new_cards)
+            return "You gained 2 powerful rare cards from the Eldritch Scholar."
+        return "You don't have enough HP to pay the Scholar's price."
+
+    def refuse(self, player: Player):
+        return "You politely decline the Scholar's offer and continue your journey."
+
+
 def get_random_event():
     events = [
         Medic(),
@@ -374,5 +448,8 @@ def get_random_event():
         DarkMerchant(),
         Priest(),
         AncientLibrary(),
+        NecromancerPact(),
+        VoidGate(),
+        EldritchScholar(),
     ]
     return random.choice(events)
