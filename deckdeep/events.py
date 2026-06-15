@@ -341,7 +341,7 @@ class DarkMerchant(Event):
         cursed_dagger = get_relic_by_name("Cursed Dagger")
         super().__init__(
             "Dark Merchant",
-            f"A shadowy figure appears offers you a mysterious dagger. A Do you can accept the '{cursed_dagger.name}' in exchange for 15 max HP?",
+            f"A shadowy figure appears and offers you a mysterious dagger. Do you accept the '{cursed_dagger.name}' in exchange for 15 max HP?",
             [
                 ("Accept dagger", "accept_dagger"),
                 ("Decline and leave", "leave"),
