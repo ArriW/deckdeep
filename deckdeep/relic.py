@@ -4,6 +4,8 @@ from typing import Dict
 from copy import deepcopy
 import uuid
 
+from deckdeep.text_utils import truncate_name
+
 
 class TriggerWhen(Enum):
     START_OF_TURN = 0
@@ -46,6 +48,11 @@ class Relic:
 
     def reset_application_status(self):
         self.has_been_applied = False
+
+    @property
+    def display_name(self) -> str:
+        """A UI-friendly name capped at 18 characters and ending in an ellipsis."""
+        return truncate_name(self.name, 18)
 
     @classmethod
     def from_dict(cls, data: Dict) -> "Relic":
