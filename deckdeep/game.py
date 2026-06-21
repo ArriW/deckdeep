@@ -635,14 +635,17 @@ class Game:
             self.apply_relic_effects(TriggerWhen.END_OF_TURN)
             self.monster_group.remove_dead_monsters()
 
+            # Trigger TURN_START effects for all monsters first
             for monster in self.monster_group.monsters:
                 assert (
                     monster is not None
                 ), f"Encountered None monster in group: {self.monster_group.monsters}"
                 monster.status_effects.trigger_effects(TriggerType.TURN_START, monster)
-                self.monster_group.remove_dead_monsters()
+            
+            # Remove monsters that died from status effects
+            self.monster_group.remove_dead_monsters()
 
-            # Execute previous intentions
+            # Execute previous intentions only for monsters still alive
             for i, monster in enumerate(self.monster_group.monsters):
                 result = monster.execute_action(self.player)
                 self.logger.debug(

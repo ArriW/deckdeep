@@ -129,7 +129,7 @@ class Thrifter(Event):
         if player.health.value > cost:
             player.take_damage(cost)
             full_deck = player.get_sorted_full_deck()
-            chosen_index = handle_card_selection(full_deck, assets, player)
+            chosen_index = handle_card_selection(full_deck, assets, player, "remove")
             if chosen_index is not None:
                 removed_card = player.remove_card_from_deck(chosen_index)
                 if removed_card:
@@ -185,7 +185,7 @@ class Scribe(Event):
 
     def duplicate_card(self, player, assets):
         full_deck = player.get_sorted_full_deck()
-        chosen_index = handle_card_selection(full_deck, assets, player)
+        chosen_index = handle_card_selection(full_deck, assets, player, "duplicate")
         if chosen_index is not None:
             duplicated_card = player.duplicate_card_in_deck(chosen_index)
             if duplicated_card:
@@ -288,7 +288,7 @@ class RestSite(Event):
 
     def remove_card(self, player, assets):
         full_deck = player.get_sorted_full_deck()
-        chosen_index = handle_card_selection(full_deck, assets, player)
+        chosen_index = handle_card_selection(full_deck, assets, player, "remove")
         if chosen_index is not None:
             removed_card = player.remove_card_from_deck(chosen_index)
             if removed_card:
@@ -326,7 +326,7 @@ class Defender(Event):
 
     def leave(self, player: Player, assets):
         full_deck = player.get_sorted_full_deck()
-        chosen_index = handle_card_selection(full_deck, assets, player)
+        chosen_index = handle_card_selection(full_deck, assets, player, "remove")
         if chosen_index is not None:
             removed_card = player.remove_card_from_deck(chosen_index)
             if removed_card:
@@ -341,7 +341,7 @@ class DarkMerchant(Event):
         cursed_dagger = get_relic_by_name("Cursed Dagger")
         super().__init__(
             "Dark Merchant",
-            f"A shadowy figure appears offers you a mysterious dagger. A Do you can accept the '{cursed_dagger.name}' in exchange for 15 max HP?",
+            f"A shadowy figure appears and offers you a mysterious dagger. Do you accept the '{cursed_dagger.name}' in exchange for 15 max HP?",
             [
                 ("Accept dagger", "accept_dagger"),
                 ("Decline and leave", "leave"),

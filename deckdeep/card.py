@@ -92,7 +92,7 @@ class Card:
             Card("Earthquake", 3, Rarity.RARE, damage=8, targets_all=True, shield=5),
             Card("Inspire", 2, Rarity.UNCOMMON, bonus_damage=3, card_draw=1, healing=5),
             Card("Blood Pact", 4, Rarity.RARE, damage=20, health_cost=10, bleed=5),
-            Card("Meditation", 1, Rarity.COMMON, shield=5, health_regain=2),
+            Card("Meditation", 1, Rarity.COMMON, shield=3, health_regain=2),
             Card(
                 "Chain Lightning",
                 3,

@@ -1215,7 +1215,7 @@ def render_relic_view(screen: pygame.Surface, relics: List[Relic], assets: GameA
     pygame.display.flip()
 
 
-def handle_card_selection(full_deck: List[Card], assets: GameAssets, player: Player):
+def handle_card_selection(full_deck: List[Card], assets: GameAssets, player: Player, action: str = "choose"):
     selected_index = 0
     clock = pygame.time.Clock()
     screen = pygame.display.get_surface()
@@ -1227,6 +1227,7 @@ def handle_card_selection(full_deck: List[Card], assets: GameAssets, player: Pla
             selected_index,
             assets,
             player,
+            action,
         )
 
         for event in pygame.event.get():
@@ -1251,6 +1252,7 @@ def render_card_selection(
     selected_index: int,
     assets: GameAssets,
     player: Player,
+    action: str = "choose",
 ):
     screen.blit(assets.background_image, (0, 0))
 
@@ -1261,9 +1263,16 @@ def render_card_selection(
     )
     screen.blit(parchment, (0, 0))
 
+    if action == "remove":
+        action_text = "Select a card to remove from your deck"
+    elif action == "duplicate":
+        action_text = "Select a card to duplicate"
+    else:
+        action_text = "Choose a card"
+    
     render_text(
         screen,
-        "Choose a card. (navigate with K & J and select with SPACE)",
+        f"{action_text}. (navigate with K & J and select with SPACE)",
         scale(20),
         scale(15),
         color=BLACK,
